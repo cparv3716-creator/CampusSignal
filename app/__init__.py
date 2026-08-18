@@ -1,0 +1,1 @@
+"""CampusSignal backend package."""
