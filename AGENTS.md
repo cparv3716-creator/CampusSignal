@@ -38,3 +38,12 @@ The current milestone includes the backend foundation, local/manual raw-email in
 - Never commit credentials or local `.env` files.
 - Run the relevant tests after every change and report the command and result.
 - Preserve duplicate protection and source independence when extending ingestion.
+
+## Project Traceability Rules
+
+- Every coding-agent task must append the exact task prompt to docs/AGENT_PROMPTS.md before or during implementation.
+- Every completed development task must append an entry to docs/WORK_LOG.md.
+- Never overwrite previous entries.
+- Never invent commit hashes, PR numbers, PR URLs, authors, dates, or test results.
+- If a PR has not yet been created, record its status as "Pending".
+- Documentation updates are part of the definition of done.
