@@ -8,6 +8,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import edu.campussignal.config.GmailProperties;
 import edu.campussignal.service.EmailRetrievalService;
+import edu.campussignal.service.GmailListenerService;
+import edu.campussignal.service.GmailWatchService;
 
 @Component
 @ConditionalOnProperty(prefix = "gmail", name = "command")
@@ -16,14 +18,19 @@ public class GmailCommand implements ApplicationRunner, ExitCodeGenerator {
     private final GmailProperties settings;
     private final GmailAuthorizationService authorization;
     private final EmailRetrievalService retrieval;
+    private final GmailWatchService watch;
+    private final GmailListenerService listener;
     private int exitCode;
 
     public GmailCommand(@Value("${gmail.command}") String command, GmailProperties settings,
-                        GmailAuthorizationService authorization, EmailRetrievalService retrieval) {
+                        GmailAuthorizationService authorization, EmailRetrievalService retrieval,
+                        GmailWatchService watch, GmailListenerService listener) {
         this.command = command;
         this.settings = settings;
         this.authorization = authorization;
         this.retrieval = retrieval;
+        this.watch = watch;
+        this.listener = listener;
     }
 
     @Override
@@ -40,14 +47,25 @@ public class GmailCommand implements ApplicationRunner, ExitCodeGenerator {
                             result.fetched(), result.created(), result.alreadyExisted(), result.failed());
                     exitCode = result.failed() == 0 ? 0 : 1;
                 }
+                case "watch" -> {
+                    var result = watch.register(authorization.client(), settings.topicPath());
+                    System.out.println("Watch registered");
+                    System.out.println("History ID: " + result.historyId());
+                    System.out.println("Expiration: " + result.expiresAt());
+                }
+                case "listen" -> {
+                    String subscription = settings.subscriptionPath();
+                    System.out.println("Listening on " + subscription);
+                    listener.listen(authorization.client(), subscription, settings.recoveryMaxResults());
+                }
                 default -> {
-                    System.err.println("Use --gmail.command=authorize or --gmail.command=retrieve.");
+                    System.err.println("Use --gmail.command=authorize, retrieve, watch, or listen.");
                     exitCode = 1;
                 }
             }
         } catch (Exception exception) {
-            // Never print provider exceptions, credential files, or private message content.
-            System.err.println("Gmail command failed. Check OAuth configuration, authorization, and connectivity.");
+            // Never print provider exceptions, credential files, Pub/Sub payloads, or private email content.
+            System.err.println("Gmail command failed. Check OAuth, Pub/Sub configuration, and connectivity.");
             exitCode = 1;
         }
     }

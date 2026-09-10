@@ -70,6 +70,6 @@ public class GmailAuthorizationService {
             request.setConnectTimeout(10_000);
             request.setReadTimeout(30_000);
         }).setApplicationName("CampusSignal").build();
-        return new GmailApiClient(gmail);
+        return new GmailApiClient(gmail, settings.userId());
     }
 }
