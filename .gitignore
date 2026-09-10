@@ -32,3 +32,13 @@ client_secret*.json
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Java build, portable local tooling, and local data
+target/
+.tools/
+.m2/
+data/
+.gmail-tokens/
+*.jks
+*.p12
+*.pem

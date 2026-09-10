@@ -1,5 +1,13 @@
 # CampusSignal
 
+The course-compliant backend is now **Java 25 + Maven + Spring Boot 3.5.16**. The Java implementation covers the 11 September milestone: Gmail OAuth/retrieval, relational email storage and duplicate protection, user profiles/API, and initial category preference scores.
+
+See [Java backend setup and milestone behavior](docs/JAVA_BACKEND.md) for build commands, OAuth setup, API examples, configuration, and verification limits. Run `mvnw.cmd test` on Windows or `sh mvnw test` on Unix with JDK 25 configured.
+
+The existing Python/FastAPI implementation is the earlier prototype/reference only. It remains intact; new backend product functionality belongs in Java unless explicitly approved otherwise. The historical Python notes below describe that prototype, including watch/Pub/Sub/history functionality that is not part of the Java retrieval milestone.
+
+## Earlier Python prototype documentation
+
 CampusSignal is a campus-email processing system that ingests Gmail messages and provides the backend foundation for identifying useful academic, internship, competition, event, and opportunity-related signals from high-volume university email.
 
 ## Why I Built It

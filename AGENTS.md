@@ -6,7 +6,9 @@ CampusSignal is an intelligent university information-routing system. Its intend
 
 ## Architecture
 
-The backend uses a layered FastAPI architecture:
+The course-compliant backend uses Java + Maven + Spring Boot under `src/main/java/edu/campussignal`, with controllers, DTOs, entities, Spring Data repositories, services, configuration, and a separate Gmail adapter. Java tests live under `src/test/java`.
+
+The earlier Python/FastAPI prototype remains as a behavioral reference:
 
 - `app/api`: HTTP routes and request dependencies.
 - `app/schemas`: Pydantic API and canonical data contracts.
@@ -20,14 +22,21 @@ Keep source adapters behind the `EmailSource` contract. Business ingestion must 
 
 ## Current milestone
 
-The current milestone includes the backend foundation, local/manual raw-email ingestion, one-shot Gmail ingestion, and near-real-time local Gmail monitoring through `users.watch`, Cloud Pub/Sub pull delivery, and Gmail history synchronization. Public webhooks, deployment infrastructure, AI or LLM processing, frontend work, and recommendation logic remain out of scope until explicitly requested.
+The 11 September 2026 milestone covers Java Gmail OAuth and retrieval, relational email storage with duplicate protection, user profiles and their API, and initial category preference scores. Python watch/Pub/Sub/history remains reference-only. AI/NLP, embeddings, final email ranking, behavioral learning, feeds, frontend, and deployment infrastructure remain out of scope.
+
+## Backend stack rules
+
+- The course-compliant backend is Java + Maven + Spring Boot.
+- The existing Python implementation is a prototype/reference only.
+- New backend product functionality must be implemented in Java unless an explicit project decision changes the stack.
+- Every agent must continue maintaining AGENT_PROMPTS.md and WORK_LOG.md.
 
 ## Coding conventions
 
-- Target Python 3.11 or newer and use type hints on public functions and important local boundaries.
+- Target Java 25; follow normal Spring Boot conventions and keep controllers thin.
 - Keep routes thin; put business decisions in services and persistence operations in repositories.
-- Use Pydantic schemas at external and service boundaries.
-- Use SQLAlchemy 2-style APIs and database constraints for integrity.
+- Use validated request/response DTOs at Java HTTP boundaries and Spring Data JPA with database constraints for integrity.
+- Python reference maintenance retains Python 3.11+, type hints, Pydantic schemas, and SQLAlchemy 2 conventions.
 - Prefer small, readable modules and descriptive names.
 - Add or update tests for every behaviour change.
 
