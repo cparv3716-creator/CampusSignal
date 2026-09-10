@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 @Validated
 @ConfigurationProperties("gmail")
@@ -19,6 +20,9 @@ public record GmailProperties(
         @DefaultValue("") String pubsubTopic,
         @DefaultValue("") String pubsubSubscription,
         @Min(1) @Max(500) @DefaultValue("10") int recoveryMaxResults) {
+    @ConstructorBinding
+    public GmailProperties {
+    }
 
     public GmailProperties(Path credentialsFile, Path tokenDirectory, int callbackPort, int maxResults) {
         this(credentialsFile, tokenDirectory, callbackPort, maxResults,

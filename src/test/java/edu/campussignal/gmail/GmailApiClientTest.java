@@ -48,7 +48,7 @@ class GmailApiClientTest {
     @Test
     void registersInboxWatchAndReadsHistory() throws Exception {
         var transport = new QueuedHttpTransport()
-                .enqueue("{\"historyId\":\"123\",\"expiration\":1789000000000}")
+               .enqueue("{\"historyId\":\"123\",\"expiration\":\"1789000000000\"}")
                 .enqueue("{\"history\":[{\"id\":\"124\",\"messagesAdded\":[{\"message\":{\"id\":\"m1\"}}]}],\"historyId\":\"125\"}")
                 .enqueue("{\"historyId\":\"130\"}");
         var client = client(transport);
