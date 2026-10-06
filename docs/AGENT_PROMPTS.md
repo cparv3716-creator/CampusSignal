@@ -213,6 +213,261 @@ If you encounter an architectural conflict with the existing repository, stop an
 
 ---
 
+## 2026-10-06 — CS5013 JaCoCo baseline analysis and triage
+
+### Exact task prompt
+
+> We have completed the CampusSignal PMD analysis and remediation phase.
+>
+> Current verified state:
+>
+> - Branch: `phase4-live-demo`
+> - Complete Java suite: 132 tests
+> - Failures: 0
+> - Errors: 0
+> - Skipped: 0
+> - PMD findings reduced from 32 to 27
+> - Major genuine complexity findings in GmailApiClient, GmailNotificationDecoder, and GmailHistorySyncService were refactored
+> - RuleBasedEmailClassificationService preprocessing was extracted into ClassificationTextPreprocessor
+> - All externally observable Gmail and classifier behavior was preserved
+> - No JaCoCo configuration exists yet unless inspection proves otherwise
+>
+> We are now beginning the CS5013 CODE COVERAGE phase using JaCoCo.
+>
+> This task is ANALYSIS FIRST.
+>
+> Do NOT immediately add tests simply to increase a percentage.
+>
+> ## 1. Establish clean baseline
+>
+> Before changing tooling:
+>
+> - record branch
+> - record commit SHA
+> - confirm working tree is clean
+> - run:
+>
+> `.\mvnw.cmd -B -ntp clean test`
+>
+> Record the actual test count and result.
+>
+> Expected current result:
+>
+> 132 tests
+> 0 failures
+> 0 errors
+> 0 skipped
+>
+> Use the actual result if it differs.
+>
+> ## 2. Inspect Maven configuration
+>
+> Read `pom.xml`.
+>
+> Add an appropriate JaCoCo Maven plugin configuration compatible with the existing Java/Spring Boot/Maven project.
+>
+> Use Maven dependency/plugin management.
+>
+> Do not manually download a JaCoCo executable.
+>
+> Do not remove or alter SpotBugs or PMD configuration.
+>
+> Configure JaCoCo so the normal test execution generates a coverage report.
+>
+> Prefer generation of:
+>
+> - HTML report
+> - XML report
+> - CSV report if useful
+>
+> Do NOT initially introduce a mandatory minimum coverage gate.
+>
+> We first want to observe the real baseline.
+>
+> ## 3. Run the complete test suite with JaCoCo
+>
+> Run the complete Java test suite under JaCoCo.
+>
+> Generate the report.
+>
+> Record project-level:
+>
+> - instruction coverage
+> - line coverage
+> - branch coverage
+> - method coverage
+> - class coverage
+>
+> Where available, record both covered and missed counts in addition to percentages.
+>
+> ## 4. Analyze coverage by package and class
+>
+> Do not focus only on the global percentage.
+>
+> Identify:
+>
+> - lowest-covered production classes
+> - classes with high line coverage but poor branch coverage
+> - important business logic with uncovered branches
+> - completely uncovered production methods/classes
+> - failure/error-handling paths that are untested
+> - infrastructure code that is difficult or inappropriate to unit-test
+>
+> Pay particular attention to:
+>
+> - RuleBasedEmailClassificationService
+> - ClassificationTextPreprocessor
+> - GmailApiClient
+> - GmailNotificationDecoder
+> - GmailHistorySyncService
+> - GmailCommand
+> - PubSubPullSubscriber
+> - Email ingestion/persistence services
+> - Profile/category scoring logic
+>
+> Do not assume every class must have identical coverage.
+>
+> ## 5. Interpret gaps rather than chasing numbers
+>
+> For each meaningful uncovered region classify it as:
+>
+> - IMPORTANT BEHAVIORAL GAP
+> - FAILURE-PATH GAP
+> - LOW-RISK INFRASTRUCTURE GAP
+> - GENERATED/FRAMEWORK/BOOTSTRAP CODE
+> - INTENTIONALLY NOT UNIT-TESTED
+> - NEEDS INTEGRATION TEST RATHER THAN UNIT TEST
+>
+> For every important gap explain:
+>
+> 1. class/method
+> 2. uncovered lines or branches
+> 3. what scenario would execute them
+> 4. whether that scenario matters to CampusSignal
+> 5. what type of test would be appropriate
+> 6. whether a test should be added now or deferred
+>
+> Do not write meaningless tests that merely execute code without assertions.
+>
+> ## 6. Branch coverage is especially important
+>
+> Pay particular attention to conditional logic where line coverage may hide missing paths.
+>
+> Examples include:
+>
+> - classifier precedence
+> - confidence selection
+> - negation handling
+> - null/malformed Gmail data
+> - pagination
+> - history synchronization
+> - exception handling
+> - fallback behavior
+>
+> If a condition has two or more outcomes, determine which outcomes are exercised.
+>
+> Do not confuse high line coverage with complete behavioral verification.
+>
+> ## 7. Existing test quality
+>
+> Relate coverage results to the existing 132 tests.
+>
+> Identify examples where:
+>
+> - existing tests provide meaningful assertions
+> - multiple tests hit the same code path
+> - an uncovered branch represents an actual missing scenario
+> - coverage is high but test quality could still be weak
+>
+> Explicitly record that JaCoCo measures execution, not correctness.
+>
+> ## 8. Do not add tests yet unless required for tooling verification
+>
+> This first task is baseline analysis.
+>
+> Do NOT begin a broad coverage-improvement campaign during the initial run.
+>
+> We want the untouched baseline preserved.
+>
+> After analysis, recommend a small prioritized coverage batch.
+>
+> ## 9. Documentation
+>
+> Create:
+>
+> `docs/COVERAGE_LOG.md`
+>
+> Record:
+>
+> - date
+> - branch
+> - commit
+> - Java version
+> - JaCoCo plugin version
+> - Maven command
+> - test count
+> - project-level coverage
+> - package/class coverage
+> - meaningful uncovered branches
+> - triage of coverage gaps
+> - recommended next tests
+>
+> Append a concise task summary to:
+>
+> `docs/AGENT_PROMPTS.md`
+>
+> Append execution details to:
+>
+> `docs/WORK_LOG.md`
+>
+> Do not update `BUG_LOG.md` simply because code is uncovered.
+>
+> An uncovered branch is not automatically a bug.
+>
+> ## 10. Restrictions
+>
+> Do NOT:
+>
+> - modify classifier behavior
+> - alter Gmail behavior
+> - refactor production code
+> - modify database schema
+> - implement ranking
+> - add coverage thresholds yet
+> - add arbitrary tests solely to increase percentages
+> - remove SpotBugs or PMD
+> - delete Python
+> - commit or push automatically
+>
+> ## 11. Completion report
+>
+> Report:
+>
+> 1. Branch and commit.
+> 2. Baseline test result.
+> 3. JaCoCo plugin version.
+> 4. Maven configuration added.
+> 5. Command used.
+> 6. Overall line coverage.
+> 7. Overall branch coverage.
+> 8. Method/class coverage.
+> 9. Highest-risk uncovered production areas.
+> 10. Classes with misleadingly high line but low branch coverage.
+> 11. Uncovered areas that do not warrant unit tests.
+> 12. Recommended prioritized test additions.
+> 13. Files changed.
+> 14. Post-tooling full-suite result.
+> 15. Confirmation that production behavior was untouched.
+> 16. Exact recommended next step.
+>
+> Stop after initial coverage analysis and triage.
+
+### Prompt summary
+
+Establish and preserve the clean 132-test Java baseline; add JaCoCo to the normal Maven test lifecycle without changing PMD, SpotBugs, production behavior, or coverage thresholds; generate HTML/XML/CSV reports; analyze instruction, line, branch, method, class, package, and risk-focused class coverage; distinguish meaningful behavioral and failure gaps from infrastructure/bootstrap code; assess the quality and overlap of the existing tests; document the baseline and triage; recommend a small prioritized test batch; and stop before adding coverage-improvement tests, committing, or pushing.
+
+---
+
 ## 2026-10-06 — PMD test-first maintainability remediation
 
 ### Exact task prompt
@@ -1563,5 +1818,11 @@ Asked Codex to preserve and verify the 122-test baseline; add reproducible Maven
 ## 2026-10-06 — PMD remediation completion summary
 
 The exact remediation prompt is recorded above under “PMD test-first maintainability remediation.” The task preserved the clean 122-test/32-finding baseline, added 10 focused characterization tests, sequentially refactored Gmail pagination, notification validation, history traversal, and classifier text preprocessing, ran focused/full/PMD verification after every group, left MIME traversal and stale-history cause preservation unchanged after investigation, finished with 132 green tests and 27 unsuppressed PMD findings, found no behavioral bug, and made no commit or push.
+
+---
+
+## 2026-10-06 — JaCoCo baseline task summary
+
+The exact task prompt is recorded above under “CS5013 JaCoCo baseline analysis and triage.” The task required a clean 132-test baseline, JaCoCo HTML/XML/CSV reporting in the normal Maven test lifecycle without a coverage gate, package/class/branch analysis with risk-based gap triage, no production behavior changes or percentage-driven tests, full documentation, and a small prioritized next test batch.
 
 ---

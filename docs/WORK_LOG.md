@@ -882,3 +882,67 @@ PR created by: Pending
 Add the four recommended MIME mapper characterizations in a separate test-first task, then reassess one small `collectText` extraction; do not preserve the stale provider cause unless an explicitly privacy-reviewed internal diagnostic sink is introduced.
 
 ---
+
+## Work Entry
+Date: 2026-10-06
+Contributor: Codex
+Milestone: CS5013 Code Coverage
+Stage: JaCoCo Baseline Analysis and Triage
+Branch: phase4-live-demo
+
+### Status
+Completed — JaCoCo was added to the normal Maven test lifecycle, the untouched 132-test baseline was measured, and coverage gaps were triaged without adding tests or changing production behavior.
+
+### Starting state
+- Commit: `ac81e06b34a210ad8233a3093c7d8143d9c67c18`.
+- Starting worktree: clean (`git status --short` produced no output).
+- Runtime: Java 26.0.2; Maven compiler release 25.
+- Baseline command: `.\mvnw.cmd -B -ntp clean test`.
+- Baseline result: BUILD SUCCESS; **132 tests run, 0 failures, 0 errors, 0 skipped in 38.247 seconds**.
+- `pom.xml` contained SpotBugs and PMD configuration but no JaCoCo configuration.
+
+### Tooling change
+- Added `jacoco-maven-plugin` 0.8.15 using the `jacoco.version` property.
+- Configured `prepare-agent` to populate `jacocoArgLine` and composed it with the existing Surefire Mockito agent using late property evaluation.
+- Bound `report` to the `test` phase with HTML, XML, and CSV formats.
+- Added no JaCoCo `check` execution, minimum threshold, package exclusion, or class exclusion.
+- Left SpotBugs and PMD configuration unchanged.
+
+### Coverage execution
+- Command: `.\mvnw.cmd -B -ntp clean test`.
+- Result: BUILD SUCCESS; **132 tests run, 0 failures, 0 errors, 0 skipped in 50.454 seconds**.
+- JaCoCo analyzed 45 production classes.
+- Instructions: 4,578/4,891 covered (**93.60%**); 313 missed.
+- Lines: 694/754 covered (**92.04%**); 60 missed.
+- Branches: 365/441 covered (**82.77%**); 76 missed.
+- Methods: 173/187 covered (**92.51%**); 14 missed.
+- Classes: 45/45 covered (**100.00%**); 0 missed.
+- Reports generated at `target/site/jacoco/index.html`, `target/site/jacoco/jacoco.xml`, and `target/site/jacoco/jacoco.csv`.
+
+### Analysis
+- Highest-risk uncovered paths are history pagination token repetition, partial stale-history recovery, duplicate history-event accounting/progress fallback, malformed Gmail watch/profile responses, and the currently unexecuted Pub/Sub-to-history listener orchestration seam.
+- `RuleBasedEmailClassificationService` has 98.3% line but 85.3% branch coverage; the clearest specification-backed gaps are subject-side negation and the composite subject event rule (`film`/`dance`/`activity` plus time/location).
+- `CategoryScoreService` has 100% line but 76.9% branch coverage; alternative programme/department conditions are not independently asserted.
+- `GmailApiClient` has 94.7% line but 78.3% branch coverage; invalid watch/profile responses and nonblank history page-token serialization are untested.
+- `GmailMessageMapper` has 92.3% line but 79.5% branch coverage; disposition-only attachments, malformed headers/senders, null parts, and invalid charset fallback remain characterization gaps.
+- `GmailCommand` has 100% line but 85.7% branch coverage because successful retrieval exit status is not exercised.
+- No production class is wholly uncovered. Fourteen compiled methods/lambdas are wholly uncovered, mainly application bootstrap, blocking Google subscriber/OAuth client assembly, passive entity getters, listener orchestration, and exception-supplier lambdas.
+- Blocking subscriber lifecycle, browser OAuth, JVM bootstrap/`System.exit`, repository interfaces, and passive getters were classified as integration/manual, framework/bootstrap, or intentionally not unit-tested rather than targets for percentage-only tests.
+- Existing tests contain meaningful behavioral assertions around persistence idempotency/concurrency, Gmail request details, history progress, safe logging, classifier category/confidence, API validation, and category-score components. JaCoCo measures execution, not correctness; repeated classifier and API plumbing paths contribute substantially to the global percentage.
+
+### Files
+- Maven: `pom.xml`.
+- Documentation: new `docs/COVERAGE_LOG.md`; appended `docs/AGENT_PROMPTS.md` and `docs/WORK_LOG.md`.
+- Production Java: unchanged.
+- Test Java: unchanged.
+- `docs/BUG_LOG.md`: unchanged because uncovered code is not automatically a defect.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next step
+Add only three focused Gmail history safety integration tests: repeated history page token must throw without advancing state; partial stale-history recovery must throw without advancing or reading the new current history ID; and an already-persisted message on a page without an aggregate history ID must count as existing and advance to the notification ID. Run the focused realtime test, then `.\mvnw.cmd -B -ntp clean test`, and compare JaCoCo XML branch counters before selecting another batch.
+
+---
