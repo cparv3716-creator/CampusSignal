@@ -721,3 +721,51 @@ Report exactly:
 Do not claim the migration is complete unless every required September milestone component listed above is implemented and tested.
 
 ---
+
+## Prompt Entry
+Date: 2026-10-06 13:14:11 +05:30
+Contributor: Codex
+Branch: phase4-live-demo
+Milestone: Email Classification Discovery and Validation
+Task: Mailbox Evidence Analysis and Classifier Specification
+
+### Prompt summary
+Asked Codex to analyse approximately 70 recent IIT Madras Smail messages in read-only mode, split them into discovery and validation samples, infer and freeze a compact deterministic classifier taxonomy from discovery evidence, validate it, identify ambiguity and false-positive/false-negative risks, propose anonymised tests, and document findings without changing implementation or exposing private mailbox data. Required outputs include EMAIL_CLASSIFICATION_DISCOVERY.md, TEST_LOG.md, BUG_LOG.md, an appended work log, and a human-approval gate before Java implementation.
+
+---
+
+## Prompt Entry
+Date: 2026-10-06 13:34:49 +05:30
+Contributor: Codex
+Branch: phase4-live-demo
+Milestone: Deterministic Email Classification
+Task: Classification Specification V1 Approval
+
+### Prompt summary
+Asked Codex to convert the mailbox discovery findings and human-approved category, scoring, confidence, precedence, filtering, normalisation, negation, quote, attachment, and fallback decisions into Classification Specification V1; mark the corresponding classifier tests as planned; update traceability; verify the existing Java suite; and make no production or test-code changes.
+
+---
+
+## Prompt Entry
+Date: 2026-10-06 13:44:04 +05:30
+Contributor: Codex
+Branch: phase4-live-demo
+Milestone: Deterministic Email Classification
+Task: Classifier Test Batch 1 — RED Phase
+
+### Prompt summary
+Asked Codex to inspect the approved V1 specification and Java conventions, preserve the 77-test baseline, create exactly 20 deterministic synthetic JUnit classifier tests before business logic, add only the minimal compile contract needed to execute them in an intentional RED state, keep unrelated tests green, and update test/work traceability without changing Gmail, persistence, ranking, or other unrelated behavior.
+
+---
+
+## Prompt Entry
+Date: 2026-10-06 15:50:36 +05:30
+Contributor: Codex
+Branch: phase4-live-demo
+Milestone: Deterministic Email Classification
+Task: Classifier Test Batch 1 — GREEN Phase
+
+### Prompt summary
+Asked Codex to implement the smallest V1-compliant deterministic rule-based email classifier needed to move the existing 20 Batch-1 JUnit tests from RED to GREEN without changing the tests or integrating Gmail, persistence, profile scoring, or ranking; then run focused and full regression suites and update project traceability.
+
+---
