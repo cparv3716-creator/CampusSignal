@@ -452,3 +452,61 @@ PR created by: Pending
 Create the next approved test-first robustness batch before expanding the rules, prioritising signature/footer/URL filtering, simple negation, exact ties and duplicate evidence, normal wellness activities versus support services, facility surveys, selective versus non-selective academic registration, HTML text, and a dedicated reply/forward-prefix regression test.
 
 ---
+
+## Work Entry
+Date: 2026-10-06
+Contributor: Codex
+Milestone: Deterministic Email Classification
+Stage: Classifier Robustness Test Batch 2 — Initial RED/GREEN Baseline
+Branch: phase4-live-demo
+
+### Status
+Completed — 20 robustness tests added and executed against the unchanged Batch-1 classifier.
+
+### Starting state
+- Starting commit: `cdce087bfc7b05222a1fa10caf0762e5223fb7b5`.
+- Working tree before this task: clean; the previous Batch-1 GREEN state was committed.
+- Baseline command: `.\\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -Ddebug=false test`.
+- Baseline result: BUILD SUCCESS; 97 tests run, 0 failures, 0 errors, 0 skipped in 27.274 seconds.
+- Existing composition: 77 original Java tests plus 20 Batch-1 classifier tests.
+
+### Work completed
+- Re-read the human-approved V1 specification, discovery evidence, test/bug logs, existing 20 tests, and current Batch-1 implementation.
+- Added exactly 20 individual deterministic JUnit 5 tests to the existing classifier test class.
+- Covered reply/forward prefix normalisation, signature/footer/URL/address filtering, simple negation, future-recognition boundaries, unresolved ties, repeated evidence, simple HTML, facility surveys, academic-registration selection boundaries, and wellbeing/event boundaries.
+- Used synthetic/anonymised inputs only; no Gmail, database, network, private mailbox, or time-dependent data is involved.
+- Did not modify any Batch-1 test or any production source.
+
+### Files changed
+- `src/test/java/edu/campussignal/RuleBasedEmailClassificationServiceTest.java` (20 Batch-2 methods appended; original 20 preserved)
+- `docs/AGENT_PROMPTS.md`
+- `docs/TEST_LOG.md`
+- `docs/WORK_LOG.md`
+
+### Initial Batch-2 result
+- Focused command: `.\\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" "-Dtest=RuleBasedEmailClassificationServiceTest" -Ddebug=false test`.
+- Combined classifier result: BUILD FAILURE; 40 tests run, 6 failures, 0 errors, 0 skipped in 18.771 seconds.
+- Batch-2 result: 14 passing, 6 failing, 0 erroring.
+- Failing tests: `urlKeywordIgnored`, `negatedInternship`, `negatedEvent`, `exactTieFallsBackToGeneral`, `facilityFeedbackIsAdministrative`, and `publicYogaActivityIsEvent`.
+- Failure patterns: missing facility-feedback qualification, missing nearby-negation suppression, no genuine-tie detection, and wellbeing false positives from negated support wording. `negatedEvent` already returns the correct academic category but produces `HIGH` instead of approved `MEDIUM` confidence.
+
+### Regression verification
+- Original Batch-1 tests were run in isolation after the combined run.
+- Result: BUILD SUCCESS; 20 tests run, 0 failures, 0 errors, 0 skipped in 12.092 seconds.
+- The 77 original non-classifier tests were green in the pre-change full-suite baseline; production code remained unchanged afterward.
+
+### Scope and implementation status
+- Production classifier logic: **UNCHANGED**.
+- Gmail integration, persistence/entities, database schema, controllers, profile/category scoring, ranking, and Python reference code: unchanged.
+- `docs/BUG_LOG.md`: unchanged; newly exposed V1 gaps are test-first specification gaps, not implementation bugs at this stage.
+- No commit or push was created.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next step
+In a separate GREEN implementation task, make the smallest V1-compliant production changes for the six failing Batch-2 cases: add facility/service-feedback evidence, simple nearby-negation suppression, explicit unresolved-tie fallback, and correct confidence handling; then rerun all 40 classifier tests followed by the complete Java suite without changing test expectations.
+
+---

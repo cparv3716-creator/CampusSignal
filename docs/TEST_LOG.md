@@ -199,3 +199,54 @@ Initial RED state: the tests compiled and executed against a minimal API/skeleto
 - Batch-1 tests: **20/20 PASS**.
 - Next step: add the next approved test-first robustness batch for filtering, negation, ties, academic registration, facility surveys, wellbeing/event boundaries, HTML, and dedicated reply/forward-prefix handling before broadening the implementation.
 
+## 2026-10-06 — Classifier Robustness Test Batch 2 initial run
+
+Test class: `src/test/java/edu/campussignal/RuleBasedEmailClassificationServiceTest.java`
+New tests: **20 individual JUnit 5 tests**
+Total classifier tests: **40**
+Production classifier during run: **unchanged Batch-1 implementation**
+
+| Test name | Specification behaviour | Origin | Expected result | Initial status |
+|---|---|---|---|---|
+| `replyPrefixNormalization` | Ignore `Re:` while retaining academic subject evidence | Observed | `ACADEMIC_RESEARCH` / `HIGH` | PASS |
+| `forwardPrefixNormalization` | Ignore `Fwd:` while retaining employment subject evidence | Observed | `CAREER` / `HIGH` | PASS |
+| `signatureKeywordIgnored` | Ignore misleading career wording in a signature | Observed | `ADMINISTRATIVE_NOTICE` / `HIGH` | PASS |
+| `footerKeywordIgnored` | Ignore research/event/opportunity wording in a mailing-list footer | Observed | `ADMINISTRATIVE_NOTICE` / `HIGH` | PASS |
+| `urlKeywordIgnored` | Ignore a career-looking URL while using facility-service feedback evidence | Extension | `ADMINISTRATIVE_NOTICE` / `MEDIUM` | FAIL |
+| `emailAddressKeywordIgnored` | Ignore research wording inside an email address | Extension | `ADMINISTRATIVE_NOTICE` / `HIGH` | PASS |
+| `negatedInternship` | Suppress negated job/internship hits and retain volunteer application purpose | Extension | `CALL_FOR_PARTICIPATION` / `MEDIUM` | FAIL |
+| `negatedEvent` | Suppress negated event wording for an asynchronous academic resource | Extension | `ACADEMIC_RESEARCH` / `MEDIUM` | FAIL |
+| `futureAwardNotRecognition` | Treat a future award application as a participation call | Validation | `CALL_FOR_PARTICIPATION` / `HIGH` | PASS |
+| `exactTieFallsBackToGeneral` | Return fallback for equally supported co-primary academic/event purposes | Extension | `GENERAL_OTHER` / `LOW` | FAIL |
+| `repeatedQuotedEvidenceDoesNotBoost` | Prevent repeated quoted internship wording from overriding a current event | Observed | `EVENT_ACTIVITY` / `MEDIUM` | PASS |
+| `repeatedCurrentKeywordDoesNotArtificiallyBoost` | Prevent repeated generic opportunity wording from manufacturing evidence | Extension | `GENERAL_OTHER` / `LOW` | PASS |
+| `htmlBodyClassification` | Classify visible academic text inside simple HTML | Observed | `ACADEMIC_RESEARCH` / `HIGH` | PASS |
+| `htmlEntitiesDecoded` | Preserve useful academic meaning around HTML entities | Extension | `ACADEMIC_RESEARCH` / `HIGH` | PASS |
+| `facilityFeedbackIsAdministrative` | Treat institute dining-service operation feedback as administrative | Validation | `ADMINISTRATIVE_NOTICE` | FAIL |
+| `genericSurveyIsNotAdministrative` | Keep a generic club/opinion survey out of administration | Extension | `GENERAL_OTHER` / `LOW` | PASS |
+| `nonSelectiveAcademicRegistration` | Keep non-selective course/workshop registration academic | Validation | `ACADEMIC_RESEARCH` / `MEDIUM` | PASS |
+| `selectiveAcademicApplication` | Treat limited-seat academic selection as a participation call | Extension | `CALL_FOR_PARTICIPATION` / `HIGH` | PASS |
+| `publicYogaActivityIsEvent` | Treat an ordinary public yoga activity without support access as an event | Observed | `EVENT_ACTIVITY` / `MEDIUM` | FAIL |
+| `wellbeingServiceEventIsWellbeing` | Prefer explicit counselling/support-service purpose over event structure | Observed | `WELLBEING_SUPPORT` / `HIGH` | PASS |
+
+### Initial Batch-2 verification
+
+- Focused command: `.\\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" "-Dtest=RuleBasedEmailClassificationServiceTest" -Ddebug=false test`
+- Combined result: **BUILD FAILURE — 40 tests run, 6 failures, 0 errors, 0 skipped**.
+- Batch-2 result: **14 PASS, 6 FAIL, 0 ERROR**.
+- Original Batch-1 isolation result: **BUILD SUCCESS — 20 tests run, 0 failures, 0 errors, 0 skipped**.
+- No production classifier change was made before or after this run.
+
+### Initial failures
+
+| Test | Expected | Actual | Likely reason |
+|---|---|---|---|
+| `urlKeywordIgnored` | `ADMINISTRATIVE_NOTICE` / `MEDIUM` | `GENERAL_OTHER` / `LOW` | URL masking works, but facility/service feedback is only contextual and does not yet qualify as administrative evidence. |
+| `negatedInternship` | `CALL_FOR_PARTICIPATION` / `MEDIUM` | `CAREER` / `MEDIUM` | V1 nearby-negation suppression is not implemented, so negated `internship`/`job` tokens still activate career evidence. |
+| `negatedEvent` | `ACADEMIC_RESEARCH` / `MEDIUM` | `ACADEMIC_RESEARCH` / `HIGH` | Category is correct, but the negated event phrase is not suppressed/resolved as limited ambiguity, so confidence remains High. |
+| `exactTieFallsBackToGeneral` | `GENERAL_OTHER` / `LOW` | `ACADEMIC_RESEARCH` / `HIGH` | The current classifier returns the first qualifying purpose gate and has no explicit equal-evidence tie detection. |
+| `facilityFeedbackIsAdministrative` | `ADMINISTRATIVE_NOTICE` | `GENERAL_OTHER` / `LOW` | Institute-service feedback/timing/quality language is not yet a qualifying administrative rule. |
+| `publicYogaActivityIsEvent` | `EVENT_ACTIVITY` / `MEDIUM` | `WELLBEING_SUPPORT` / `HIGH` | The current classifier scores negated counselling/support-service wording as positive wellbeing evidence. |
+
+These six failures are expected test-first specification gaps, not entries for `docs/BUG_LOG.md`. Production implementation work must occur in the next task.
+

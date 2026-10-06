@@ -232,4 +232,236 @@ class RuleBasedEmailClassificationServiceTest {
         assertThat(result.category()).isEqualTo(EmailCategory.CAREER);
         assertThat(result.confidence()).isEqualTo(ClassificationConfidence.HIGH);
     }
+
+    @Test
+    void replyPrefixNormalization() {
+        String subject = "Re: Department Seminar: Reliable Systems";
+        String body = "Speaker: Dr Example. Abstract: dependable systems. Date: Friday.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.ACADEMIC_RESEARCH);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.HIGH);
+    }
+
+    @Test
+    void forwardPrefixNormalization() {
+        String subject = "Fwd: Summer Internship Opportunity — Robotics";
+        String body = "The employer describes the role and its eligibility requirements.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.CAREER);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.HIGH);
+    }
+
+    @Test
+    void signatureKeywordIgnored() {
+        String subject = "Pool reopened";
+        String body = "The pool reopens today and normal facility operation resumes.\n\n"
+                + "--\nCareer Office volunteer";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.ADMINISTRATIVE_NOTICE);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.HIGH);
+    }
+
+    @Test
+    void footerKeywordIgnored() {
+        String subject = "Service unavailable";
+        String body = "The campus network service is unavailable during maintenance.\n\n"
+                + "Mailing-list footer\nUpcoming research events and opportunities";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.ADMINISTRATIVE_NOTICE);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.HIGH);
+    }
+
+    @Test
+    void urlKeywordIgnored() {
+        String subject = "Facility feedback";
+        String body = "Please comment on the operating hours and service quality of the campus facility: "
+                + "https://career.example/survey";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.ADMINISTRATIVE_NOTICE);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.MEDIUM);
+    }
+
+    @Test
+    void emailAddressKeywordIgnored() {
+        String subject = "Holiday circular";
+        String body = "Students must follow the official holiday policy. Contact research-office@example.edu.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.ADMINISTRATIVE_NOTICE);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.HIGH);
+    }
+
+    @Test
+    void negatedInternship() {
+        String subject = "Volunteer project";
+        String body = "This is not an internship or job. Applications are open for student volunteers.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.CALL_FOR_PARTICIPATION);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.MEDIUM);
+    }
+
+    @Test
+    void negatedEvent() {
+        String subject = "Online academic resource";
+        String body = "This is not an event. Course materials and lecture resources are available asynchronously.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.ACADEMIC_RESEARCH);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.MEDIUM);
+    }
+
+    @Test
+    void futureAwardNotRecognition() {
+        String subject = "Applications open for Student Excellence Award";
+        String body = "Eligible students may submit an application before the deadline for the future award process.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.CALL_FOR_PARTICIPATION);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.HIGH);
+    }
+
+    @Test
+    void exactTieFallsBackToGeneral() {
+        String subject = "Research seminar and film screening";
+        String body = "This message gives equal prominence to two separate Friday activities: "
+                + "a research seminar with a speaker and abstract, and a film screening in Hall A. "
+                + "Students may attend either activity.";
+
+        // The two independent purposes have equally strong subject/body evidence.
+        // Neither activity is presented as the primary purpose of this combined message.
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.GENERAL_OTHER);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.LOW);
+    }
+
+    @Test
+    void repeatedQuotedEvidenceDoesNotBoost() {
+        String subject = "Update";
+        String body = "Students are invited to an exhibition on Friday in Hall A.\n\n"
+                + "On Thursday, a previous sender wrote:\n"
+                + "> internship internship internship internship internship internship";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.EVENT_ACTIVITY);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.MEDIUM);
+    }
+
+    @Test
+    void repeatedCurrentKeywordDoesNotArtificiallyBoost() {
+        String subject = "Opportunity opportunity opportunity";
+        String body = "Opportunity opportunity opportunity. Thank you for reading this update.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.GENERAL_OTHER);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.LOW);
+    }
+
+    @Test
+    void htmlBodyClassification() {
+        String subject = "Seminar";
+        String body = "<div>Research seminar<br>Speaker: Dr Example<br>"
+                + "Abstract: reliable systems<br>Date: Friday</div>";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.ACADEMIC_RESEARCH);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.HIGH);
+    }
+
+    @Test
+    void htmlEntitiesDecoded() {
+        String subject = "Research &amp; Innovation Seminar";
+        String body = "<p>Speaker: Dr Example<br>Abstract: responsible innovation<br>Date: Monday</p>";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.ACADEMIC_RESEARCH);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.HIGH);
+    }
+
+    @Test
+    void facilityFeedbackIsAdministrative() {
+        String subject = "Campus Dining Service Feedback";
+        String body = "Students are asked to comment on the operation, timings, and quality of this institute facility.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.ADMINISTRATIVE_NOTICE);
+    }
+
+    @Test
+    void genericSurveyIsNotAdministrative() {
+        String subject = "Student Opinion Survey";
+        String body = "A campus club invites students to complete a general opinion questionnaire.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.GENERAL_OTHER);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.LOW);
+    }
+
+    @Test
+    void nonSelectiveAcademicRegistration() {
+        String subject = "Registration Open: Introduction to Data Analysis";
+        String body = "This academic course workshop covers data analysis learning outcomes and meets every Friday. "
+                + "All students may register; there is no selection process.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.ACADEMIC_RESEARCH);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.MEDIUM);
+    }
+
+    @Test
+    void selectiveAcademicApplication() {
+        String subject = "Applications Open: Summer Research Programme";
+        String body = "The programme has limited seats, eligibility rules, a selection process, and a Friday deadline.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.CALL_FOR_PARTICIPATION);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.HIGH);
+    }
+
+    @Test
+    void publicYogaActivityIsEvent() {
+        String subject = "Yoga for Wellness — Saturday Morning";
+        String body = "Join this one-hour public campus activity at 8 AM on Saturday in Hall C. "
+                + "No counselling or support-service access is provided.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.EVENT_ACTIVITY);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.MEDIUM);
+    }
+
+    @Test
+    void wellbeingServiceEventIsWellbeing() {
+        String subject = "Counselling Access Day";
+        String body = "Licensed counsellors provide walk-in appointments and mental-health support "
+                + "from 10 AM in Hall D.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.WELLBEING_SUPPORT);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.HIGH);
+    }
 }

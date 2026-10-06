@@ -769,3 +769,15 @@ Task: Classifier Test Batch 1 — GREEN Phase
 Asked Codex to implement the smallest V1-compliant deterministic rule-based email classifier needed to move the existing 20 Batch-1 JUnit tests from RED to GREEN without changing the tests or integrating Gmail, persistence, profile scoring, or ranking; then run focused and full regression suites and update project traceability.
 
 ---
+
+## Prompt Entry
+Date: 2026-10-06 16:06:05 +05:30
+Contributor: Codex
+Branch: phase4-live-demo
+Milestone: Deterministic Email Classification
+Task: Classifier Robustness Test Batch 2
+
+### Prompt summary
+Asked Codex to preserve the 97-test GREEN baseline, add exactly 20 synthetic JUnit robustness tests for V1 normalisation, filtering, negation, recognition, ties, repetition, HTML, facility surveys, academic registration, and wellbeing/event boundaries, run them against the unchanged Batch-1 classifier, record actual PASS/FAIL results, and stop before production-rule changes.
+
+---
