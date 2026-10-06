@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import edu.campussignal.dto.IncomingEmail;
+import edu.campussignal.entity.Email;
 import edu.campussignal.gmail.GmailApiClient;
 import edu.campussignal.gmail.StaleGmailHistoryException;
 import edu.campussignal.repository.EmailRepository;
@@ -133,6 +134,27 @@ class GmailRealtimeServiceTest {
     }
 
     @Test
+    void repeatedHistoryPageTokenFailsWithoutAdvancingProgress() throws Exception {
+        state.recordWatch("100", Instant.parse("2026-09-17T08:00:00Z"));
+        var firstPage = new ListHistoryResponse().setNextPageToken("page2")
+                .setHistoryId(new BigInteger("105"));
+        var repeatedPage = new ListHistoryResponse().setNextPageToken("page2")
+                .setHistoryId(new BigInteger("106"));
+        var client = mock(GmailApiClient.class);
+        when(client.listHistoryPage("100", null)).thenReturn(firstPage);
+        when(client.listHistoryPage("100", "page2")).thenReturn(repeatedPage);
+
+        assertThatThrownBy(() -> history.sync(client, "110", 10))
+                .isInstanceOf(IOException.class)
+                .hasMessage("Gmail history pagination repeated a page token");
+
+        assertThat(state.get().orElseThrow().lastHistoryId()).isEqualTo("100");
+        verify(client, times(1)).listHistoryPage("100", null);
+        verify(client, times(1)).listHistoryPage("100", "page2");
+        verify(client, never()).fetch(anyString());
+    }
+
+    @Test
     void failedMessageDoesNotAdvanceHistorySoRedeliveryCanRetry() throws Exception {
         state.recordWatch("100", Instant.parse("2026-09-17T08:00:00Z"));
         var client = mock(GmailApiClient.class);
@@ -155,6 +177,48 @@ class GmailRealtimeServiceTest {
         assertThat(summary.recoveredFromStaleHistory()).isTrue();
         assertThat(summary.created()).isEqualTo(1);
         assertThat(state.get().orElseThrow().lastHistoryId()).isEqualTo("200");
+    }
+
+    @Test
+    void partialStaleHistoryRecoveryFailureDoesNotAdvanceProgress() throws Exception {
+        state.recordWatch("100", Instant.parse("2026-09-17T08:00:00Z"));
+        var client = mock(GmailApiClient.class);
+        when(client.listHistoryPage("100", null)).thenThrow(new StaleGmailHistoryException());
+        when(client.listMessageIds(10)).thenReturn(List.of("recovered", "failed"));
+        when(client.fetch("recovered")).thenReturn(email("recovered"));
+        when(client.fetch("failed")).thenThrow(new IOException("synthetic recovery failure"));
+
+        assertThatThrownBy(() -> history.sync(client, "150", 10))
+                .isInstanceOf(IOException.class)
+                .hasMessage("Bounded Gmail recovery synchronization failed");
+
+        assertThat(emailRepository.findByGmailMessageId("recovered")).isPresent();
+        assertThat(emailRepository.count()).isEqualTo(1);
+        assertThat(state.get().orElseThrow().lastHistoryId()).isEqualTo("100");
+        verify(client, never()).currentHistoryId();
+    }
+
+    @Test
+    void duplicateMessageWithoutPageHistoryIdUsesNotificationProgress() throws Exception {
+        state.recordWatch("100", Instant.parse("2026-09-17T08:00:00Z"));
+        emailRepository.saveAndFlush(new Email(email("existing")));
+        var historyRecord = new History().setId(new BigInteger("105")).setMessagesAdded(List.of(
+                new HistoryMessageAdded().setMessage(new Message().setId("existing"))));
+        var pageWithoutHistoryId = new ListHistoryResponse().setHistory(List.of(historyRecord));
+        var client = mock(GmailApiClient.class);
+        when(client.listHistoryPage("100", null)).thenReturn(pageWithoutHistoryId);
+        when(client.fetch("existing")).thenReturn(email("existing"));
+
+        var summary = history.sync(client, "110", 10);
+
+        assertThat(summary.historyRecords()).isEqualTo(1);
+        assertThat(summary.messagesFound()).isEqualTo(1);
+        assertThat(summary.created()).isZero();
+        assertThat(summary.alreadyExisted()).isEqualTo(1);
+        assertThat(summary.recoveredFromStaleHistory()).isFalse();
+        assertThat(emailRepository.count()).isEqualTo(1);
+        assertThat(state.get().orElseThrow().lastHistoryId()).isEqualTo("110");
+        verify(client, times(1)).fetch("existing");
     }
 
     @Test

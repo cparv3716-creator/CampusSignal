@@ -331,3 +331,30 @@ New JUnit tests: **10**. Baseline: 122 tests. Final total: **132 tests**.
 - Final result: **BUILD SUCCESS — 132 tests run, 0 failures, 0 errors, 0 skipped in 37.600 seconds**.
 - No expectation was changed, weakened, disabled, or skipped.
 
+---
+
+## 2026-10-06 — Gmail history safety coverage tests
+
+New JUnit tests: **3**. Baseline: 132 tests. Final total: **135 tests**.
+
+| Test | Behavioral purpose | First-run result |
+|---|---|---|
+| `repeatedHistoryPageTokenFailsWithoutAdvancingProgress` | Prevent infinite history pagination: a repeated nonblank token fails safely after two page calls, fetches no messages, and preserves stored progress. | PASS |
+| `partialStaleHistoryRecoveryFailureDoesNotAdvanceProgress` | Protect incomplete bounded recovery: successful partial persistence remains retry-safe, the failure propagates, stored progress is unchanged, and no current profile history ID is read as a false success marker. | PASS |
+| `duplicateMessageWithoutPageHistoryIdUsesNotificationProgress` | Protect idempotent history replay and documented fallback: an existing message is counted but not duplicated, and absent page history ID falls back to the notification history ID. | PASS |
+
+### Test-first execution
+
+- After test 1: `.\mvnw.cmd -B -ntp "-Dtest=GmailRealtimeServiceTest" test` — BUILD SUCCESS; **8 tests, 0 failures, 0 errors, 0 skipped**.
+- After test 2: same command — BUILD SUCCESS; **9 tests, 0 failures, 0 errors, 0 skipped**.
+- After test 3/final focused run: same command — BUILD SUCCESS; **10 tests, 0 failures, 0 errors, 0 skipped**.
+- Every new test passed immediately against the existing implementation. No production defect was exposed, so no production code or `BUG_LOG.md` entry was needed.
+
+### Complete verification
+
+- Command: `.\mvnw.cmd -B -ntp clean test`.
+- Result: **BUILD SUCCESS — 135 tests run, 0 failures, 0 errors, 0 skipped in 47.641 seconds**.
+- No existing test was weakened, modified, disabled, or skipped.
+
+---
+

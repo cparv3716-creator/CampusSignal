@@ -180,3 +180,58 @@ The exact next step is to add only the three Gmail history safety tests in item 
 ## Scope confirmation
 
 This task changed Maven coverage tooling and documentation only. It did not change production Java behavior, classifier rules, Gmail behavior, database schema, ranking, Python code, PMD, or SpotBugs, and it added no percentage-driven tests. No commit or push was created.
+
+---
+
+## 2026-10-06 — Gmail history safety coverage batch
+
+### Scope and starting point
+
+This test-only batch implemented exactly the three history scenarios prioritized above. Starting state: 132 tests; 694/754 lines (92.04%); 365/441 branches (82.77%). `GmailHistorySyncService` started at 62/66 lines (93.94%) and 28/34 branches (82.35%).
+
+### Tests added
+
+| Test | Scenario and assertions | First focused result | Defect? |
+|---|---|---|---|
+| `repeatedHistoryPageTokenFailsWithoutAdvancingProgress` | Two pages return the same nonblank next token. Synchronization throws the established safe `IOException`, makes exactly two page calls, performs no fetch, and retains progress `100`. | PASS — focused class 8/8 | No |
+| `partialStaleHistoryRecoveryFailureDoesNotAdvanceProgress` | Stale recovery stores one successfully fetched message but another fetch fails. The bounded-recovery failure propagates, prior progress remains `100`, and `currentHistoryId()` is never called. | PASS — focused class 9/9 | No |
+| `duplicateMessageWithoutPageHistoryIdUsesNotificationProgress` | A page without an aggregate history ID references an already-persisted message. The summary reports one existing message and zero created, repository count remains one, and progress advances to notification ID `110`. | PASS — focused class 10/10 | No |
+
+All three tests passed against the existing implementation on their first focused run. No production defect was demonstrated and no production file was changed.
+
+### Verification
+
+- Focused command after each addition: `.\mvnw.cmd -B -ntp "-Dtest=GmailRealtimeServiceTest" test`.
+- Ordered focused results: 8/8, 9/9, and 10/10; all with 0 failures, 0 errors, and 0 skipped.
+- Full command: `.\mvnw.cmd -B -ntp clean test`.
+- Full result: BUILD SUCCESS — 135 tests, 0 failures, 0 errors, 0 skipped in 47.641 seconds.
+- No JaCoCo threshold was introduced.
+
+### Coverage comparison
+
+| Metric | Before | After | Change |
+|---|---:|---:|---:|
+| Overall instructions | 4,578/4,891 (93.60%) | 4,589/4,891 (93.83%) | +11 instructions, +0.23 pp |
+| Overall lines | 694/754 (92.04%) | 697/754 (92.44%) | +3 lines, +0.40 pp |
+| Overall branches | 365/441 (82.77%) | 369/441 (83.67%) | +4 branches, +0.90 pp |
+| Overall methods | 173/187 (92.51%) | 173/187 (92.51%) | unchanged |
+| Overall classes | 45/45 (100%) | 45/45 (100%) | unchanged |
+| `GmailHistorySyncService` lines | 62/66 (93.94%) | 65/66 (98.48%) | +3 lines, +4.54 pp |
+| `GmailHistorySyncService` branches | 28/34 (82.35%) | 32/34 (94.12%) | +4 branches, +11.77 pp |
+
+Percentages in the original baseline were rounded to two decimal places; the comparison uses exact JaCoCo counters.
+
+### Newly covered behavior
+
+- `sync`, lines 55-58: the `created == false` outcome now verifies duplicate accounting through `alreadyExisted`.
+- `sync`, lines 64-65: the `page.getHistoryId() == null` outcome now verifies fallback to the notification history ID.
+- `loadAllPages`, lines 83-84: the repeated-token outcome now verifies finite failure and unchanged progress.
+- `recoverFromStaleHistory`, lines 93-94: the `recovery.failed() != 0` outcome now verifies failure propagation before profile history lookup or state advance.
+
+The remaining two history branches are blank-token short-circuit/termination outcomes at lines 83 and 86; the only remaining uncovered history line is the missing-watch-state exception at line 37. They were deliberately left outside this exact three-test batch.
+
+### Interpretation and next coverage target
+
+The increase is useful because it represents four data-loss/error-handling decisions, not because it raises the global percentage. The existing production contract was confirmed: partial recovery may persist successful messages for idempotent retry, but progress advances only after complete recovery; page-level history ID is optional and the notification ID is the fallback.
+
+The next bounded batch should cover the adapter/orchestration scenarios already ranked second: nonblank Gmail history page-token serialization, invalid watch/profile responses, successful retrieve command exit status, and the captured `GmailListenerService` handler. Keep that as a separate task and continue to avoid a coverage gate.

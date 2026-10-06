@@ -946,3 +946,59 @@ PR created by: Pending
 Add only three focused Gmail history safety integration tests: repeated history page token must throw without advancing state; partial stale-history recovery must throw without advancing or reading the new current history ID; and an already-persisted message on a page without an aggregate history ID must count as existing and advance to the notification ID. Run the focused realtime test, then `.\mvnw.cmd -B -ntp clean test`, and compare JaCoCo XML branch counters before selecting another batch.
 
 ---
+
+## Work Entry
+Date: 2026-10-06
+Contributor: Codex
+Milestone: CS5013 Code Coverage
+Stage: Gmail History Safety Test Batch
+Branch: phase4-live-demo
+
+### Status
+Completed — exactly three focused Gmail history synchronization tests were added and all existing production behavior was confirmed correct.
+
+### Starting state
+- Commit: `48b510514d8666db51bb29aaac008ed08c7eac0c`.
+- Starting worktree: clean.
+- Tests: 132 passing; 0 failures, 0 errors, 0 skipped.
+- Overall coverage: 4,578/4,891 instructions (93.60%), 694/754 lines (92.04%), and 365/441 branches (82.77%).
+- `GmailHistorySyncService`: 62/66 lines (93.94%) and 28/34 branches (82.35%).
+
+### Test-first execution
+- Added `repeatedHistoryPageTokenFailsWithoutAdvancingProgress`; first focused run passed: 8 tests, 0 failures, 0 errors, 0 skipped.
+- Added `partialStaleHistoryRecoveryFailureDoesNotAdvanceProgress`; first focused run passed: 9 tests, 0 failures, 0 errors, 0 skipped.
+- Added `duplicateMessageWithoutPageHistoryIdUsesNotificationProgress`; first focused run passed: 10 tests, 0 failures, 0 errors, 0 skipped.
+- Focused command after each test: `.\mvnw.cmd -B -ntp "-Dtest=GmailRealtimeServiceTest" test`.
+- The tests assert finite repeated-token failure, unchanged progress on both error paths, no profile history lookup after incomplete recovery, duplicate accounting without duplicate persistence, and notification-ID fallback when page history ID is absent.
+- All three tests passed immediately. No genuine production defect was found, so no production file or `docs/BUG_LOG.md` was changed.
+
+### Complete verification
+- Command: `.\mvnw.cmd -B -ntp clean test`.
+- Result: BUILD SUCCESS — **135 tests run, 0 failures, 0 errors, 0 skipped in 47.641 seconds**.
+- JaCoCo report regenerated for all 45 production classes.
+
+### Coverage result
+- Overall instructions: 4,589/4,891 (**93.83%**), up from 93.60%.
+- Overall lines: 697/754 (**92.44%**), up from 92.04%.
+- Overall branches: 369/441 (**83.67%**), up from 82.77%.
+- Overall methods/classes unchanged at 173/187 (92.51%) and 45/45 (100%).
+- `GmailHistorySyncService` lines: 65/66 (**98.48%**), up from 62/66 (93.94%).
+- `GmailHistorySyncService` branches: 32/34 (**94.12%**), up from 28/34 (82.35%).
+- Newly covered outcomes: `created == false`; missing aggregate page history ID; repeated next-page token; and failed bounded stale-history recovery.
+- Remaining history gaps: missing-watch-state exception line and blank-token short-circuit/termination branches, deliberately outside this three-test scope.
+
+### Files
+- Tests: `src/test/java/edu/campussignal/GmailRealtimeServiceTest.java`.
+- Documentation: `docs/COVERAGE_LOG.md`, `docs/TEST_LOG.md`, `docs/AGENT_PROMPTS.md`, and `docs/WORK_LOG.md`.
+- Production Java: unchanged.
+- `docs/BUG_LOG.md`: unchanged.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next step
+Create a separate small adapter/orchestration batch for nonblank Gmail history page-token serialization, invalid watch/profile responses, successful retrieve command exit status, and the captured `GmailListenerService` handler. Continue to require behavioral assertions and leave the JaCoCo gate unset.
+
+---

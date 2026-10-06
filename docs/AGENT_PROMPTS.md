@@ -1826,3 +1826,188 @@ The exact remediation prompt is recorded above under “PMD test-first maintaina
 The exact task prompt is recorded above under “CS5013 JaCoCo baseline analysis and triage.” The task required a clean 132-test baseline, JaCoCo HTML/XML/CSV reporting in the normal Maven test lifecycle without a coverage gate, package/class/branch analysis with risk-based gap triage, no production behavior changes or percentage-driven tests, full documentation, and a small prioritized next test batch.
 
 ---
+
+## 2026-10-06 — Gmail history synchronization coverage batch
+
+### Exact task prompt
+
+> We have completed the initial JaCoCo baseline analysis for CampusSignal.
+>
+> Current verified baseline:
+>
+> - Branch: `phase4-live-demo`
+> - Java tests: 132
+> - Failures: 0
+> - Errors: 0
+> - Skipped: 0
+> - Instruction coverage: 93.60%
+> - Line coverage: 92.04%
+> - Branch coverage: 82.77%
+> - Method coverage: 92.51%
+> - Class coverage: 100%
+>
+> JaCoCo is being used to identify meaningful missing behavior, NOT to maximize a percentage.
+>
+> This task is a very small TEST-ONLY coverage improvement batch.
+>
+> Do not modify production code unless a newly added test exposes a genuine behavioral defect.
+>
+> ## Scope
+>
+> Add exactly the three prioritized Gmail history synchronization tests identified in `docs/COVERAGE_LOG.md`.
+>
+> ### Test 1 — repeated pagination token
+>
+> Create a test proving that when Gmail history pagination returns a page token that repeats instead of making progress:
+>
+> - synchronization fails safely;
+> - the repeated-page situation does not lead to an infinite pagination loop;
+> - persisted Gmail history progress is NOT advanced;
+> - previously stored progress remains unchanged.
+>
+> Use the existing Gmail/history test infrastructure and mocks.
+>
+> Do not change production behavior merely to make the test pass unless the current behavior is genuinely incorrect.
+>
+> ### Test 2 — partial stale-history recovery failure
+>
+> Create a test covering stale-history recovery where recovery begins but fails before completion.
+>
+> Verify that:
+>
+> - the failure propagates according to the existing contract;
+> - persisted synchronization progress is NOT advanced;
+> - the current Gmail profile/history ID is not read or used as a false success marker after incomplete recovery;
+> - existing prior progress remains intact.
+>
+> This test should specifically protect against partially successful recovery being mistaken for completed synchronization.
+>
+> ### Test 3 — duplicate message with missing aggregate page history ID
+>
+> Create a test for a history page containing an already-existing/duplicate message where the aggregate page history ID is missing.
+>
+> Verify that:
+>
+> - the duplicate event is accounted for according to existing synchronization semantics;
+> - no duplicate email is persisted;
+> - synchronization progress still advances using the notification history ID when that is the existing documented fallback;
+> - the final stored progress matches the expected fallback value.
+>
+> Do not invent new fallback semantics. Confirm the current intended contract from the source and existing tests.
+>
+> ## Test-first discipline
+>
+> For each scenario:
+>
+> 1. inspect current production implementation and related tests;
+> 2. write the focused test;
+> 3. run the focused `GmailRealtimeServiceTest`;
+> 4. observe whether it passes or reveals a real defect;
+> 5. only change production code if an actual behavioral defect is demonstrated.
+>
+> Do not weaken existing tests.
+>
+> Do not modify unrelated tests.
+>
+> ## Verification
+>
+> After all three tests:
+>
+> Run the focused history synchronization tests.
+>
+> Then run:
+>
+> `.\mvnw.cmd -B -ntp clean test`
+>
+> Record:
+>
+> - total test count;
+> - failures;
+> - errors;
+> - skipped;
+> - build result.
+>
+> Then inspect the JaCoCo XML/report.
+>
+> Compare before vs after:
+>
+> - overall branch coverage;
+> - `GmailHistorySyncService` line coverage;
+> - `GmailHistorySyncService` branch coverage;
+> - newly covered branches.
+>
+> Do not introduce a coverage threshold.
+>
+> ## Documentation
+>
+> Update:
+>
+> `docs/COVERAGE_LOG.md`
+>
+> with:
+>
+> - the three scenarios;
+> - before coverage;
+> - tests added;
+> - whether each passed immediately or exposed a defect;
+> - after coverage;
+> - newly covered branches;
+> - interpretation.
+>
+> Update:
+>
+> `docs/TEST_LOG.md`
+>
+> with the new tests and their behavioral purpose.
+>
+> Append a concise summary to:
+>
+> `docs/AGENT_PROMPTS.md`
+>
+> Append execution details to:
+>
+> `docs/WORK_LOG.md`
+>
+> Update `docs/BUG_LOG.md` only if a test demonstrates a genuine production defect.
+>
+> ## Restrictions
+>
+> Do NOT:
+>
+> - add arbitrary tests for percentage improvement;
+> - modify classifier behavior;
+> - modify profile/category scoring;
+> - modify controllers;
+> - change database schema;
+> - implement ranking;
+> - refactor production code unnecessarily;
+> - alter PMD or SpotBugs configuration;
+> - add a JaCoCo coverage gate;
+> - test trivial getters solely for coverage;
+> - test JVM/bootstrap/framework code merely for coverage;
+> - commit or push automatically.
+>
+> ## Completion report
+>
+> Report:
+>
+> 1. Starting test count.
+> 2. Tests added.
+> 3. Whether each test passed immediately.
+> 4. Any genuine defects discovered.
+> 5. Production files changed, if any.
+> 6. Focused Gmail history test result.
+> 7. Full Java-suite result.
+> 8. Overall JaCoCo line/branch coverage before vs after.
+> 9. GmailHistorySyncService coverage before vs after.
+> 10. Important branches newly covered.
+> 11. Files changed.
+> 12. Exact recommended next step.
+>
+> Stop after these three Gmail history coverage tests.
+
+### Prompt summary
+
+Add exactly three behavior-focused Gmail history synchronization integration tests for repeated page-token failure, partial stale-history recovery failure, and duplicate handling with missing page history ID fallback; run the focused class after each addition; change production only for a demonstrated defect; rerun the 135-test suite with JaCoCo; document before/after coverage and protected branches; and stop without a coverage gate, unrelated changes, commit, or push.
+
+---
