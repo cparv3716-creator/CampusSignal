@@ -206,28 +206,28 @@ New tests: **20 individual JUnit 5 tests**
 Total classifier tests: **40**
 Production classifier during run: **unchanged Batch-1 implementation**
 
-| Test name | Specification behaviour | Origin | Expected result | Initial status |
-|---|---|---|---|---|
-| `replyPrefixNormalization` | Ignore `Re:` while retaining academic subject evidence | Observed | `ACADEMIC_RESEARCH` / `HIGH` | PASS |
-| `forwardPrefixNormalization` | Ignore `Fwd:` while retaining employment subject evidence | Observed | `CAREER` / `HIGH` | PASS |
-| `signatureKeywordIgnored` | Ignore misleading career wording in a signature | Observed | `ADMINISTRATIVE_NOTICE` / `HIGH` | PASS |
-| `footerKeywordIgnored` | Ignore research/event/opportunity wording in a mailing-list footer | Observed | `ADMINISTRATIVE_NOTICE` / `HIGH` | PASS |
-| `urlKeywordIgnored` | Ignore a career-looking URL while using facility-service feedback evidence | Extension | `ADMINISTRATIVE_NOTICE` / `MEDIUM` | FAIL |
-| `emailAddressKeywordIgnored` | Ignore research wording inside an email address | Extension | `ADMINISTRATIVE_NOTICE` / `HIGH` | PASS |
-| `negatedInternship` | Suppress negated job/internship hits and retain volunteer application purpose | Extension | `CALL_FOR_PARTICIPATION` / `MEDIUM` | FAIL |
-| `negatedEvent` | Suppress negated event wording for an asynchronous academic resource | Extension | `ACADEMIC_RESEARCH` / `MEDIUM` | FAIL |
-| `futureAwardNotRecognition` | Treat a future award application as a participation call | Validation | `CALL_FOR_PARTICIPATION` / `HIGH` | PASS |
-| `exactTieFallsBackToGeneral` | Return fallback for equally supported co-primary academic/event purposes | Extension | `GENERAL_OTHER` / `LOW` | FAIL |
-| `repeatedQuotedEvidenceDoesNotBoost` | Prevent repeated quoted internship wording from overriding a current event | Observed | `EVENT_ACTIVITY` / `MEDIUM` | PASS |
-| `repeatedCurrentKeywordDoesNotArtificiallyBoost` | Prevent repeated generic opportunity wording from manufacturing evidence | Extension | `GENERAL_OTHER` / `LOW` | PASS |
-| `htmlBodyClassification` | Classify visible academic text inside simple HTML | Observed | `ACADEMIC_RESEARCH` / `HIGH` | PASS |
-| `htmlEntitiesDecoded` | Preserve useful academic meaning around HTML entities | Extension | `ACADEMIC_RESEARCH` / `HIGH` | PASS |
-| `facilityFeedbackIsAdministrative` | Treat institute dining-service operation feedback as administrative | Validation | `ADMINISTRATIVE_NOTICE` | FAIL |
-| `genericSurveyIsNotAdministrative` | Keep a generic club/opinion survey out of administration | Extension | `GENERAL_OTHER` / `LOW` | PASS |
-| `nonSelectiveAcademicRegistration` | Keep non-selective course/workshop registration academic | Validation | `ACADEMIC_RESEARCH` / `MEDIUM` | PASS |
-| `selectiveAcademicApplication` | Treat limited-seat academic selection as a participation call | Extension | `CALL_FOR_PARTICIPATION` / `HIGH` | PASS |
-| `publicYogaActivityIsEvent` | Treat an ordinary public yoga activity without support access as an event | Observed | `EVENT_ACTIVITY` / `MEDIUM` | FAIL |
-| `wellbeingServiceEventIsWellbeing` | Prefer explicit counselling/support-service purpose over event structure | Observed | `WELLBEING_SUPPORT` / `HIGH` | PASS |
+| Test name | Specification behaviour | Origin | Expected result | Initial status | Final status |
+|---|---|---|---|---|---|
+| `replyPrefixNormalization` | Ignore `Re:` while retaining academic subject evidence | Observed | `ACADEMIC_RESEARCH` / `HIGH` | PASS | PASS |
+| `forwardPrefixNormalization` | Ignore `Fwd:` while retaining employment subject evidence | Observed | `CAREER` / `HIGH` | PASS | PASS |
+| `signatureKeywordIgnored` | Ignore misleading career wording in a signature | Observed | `ADMINISTRATIVE_NOTICE` / `HIGH` | PASS | PASS |
+| `footerKeywordIgnored` | Ignore research/event/opportunity wording in a mailing-list footer | Observed | `ADMINISTRATIVE_NOTICE` / `HIGH` | PASS | PASS |
+| `urlKeywordIgnored` | Ignore a career-looking URL while using facility-service feedback evidence | Extension | `ADMINISTRATIVE_NOTICE` / `MEDIUM` | FAIL | PASS |
+| `emailAddressKeywordIgnored` | Ignore research wording inside an email address | Extension | `ADMINISTRATIVE_NOTICE` / `HIGH` | PASS | PASS |
+| `negatedInternship` | Suppress negated job/internship hits and retain volunteer application purpose | Extension | `CALL_FOR_PARTICIPATION` / `MEDIUM` | FAIL | PASS |
+| `negatedEvent` | Suppress negated event wording for an asynchronous academic resource | Extension | `ACADEMIC_RESEARCH` / `MEDIUM` | FAIL | PASS |
+| `futureAwardNotRecognition` | Treat a future award application as a participation call | Validation | `CALL_FOR_PARTICIPATION` / `HIGH` | PASS | PASS |
+| `exactTieFallsBackToGeneral` | Return fallback for equally supported co-primary academic/event purposes | Extension | `GENERAL_OTHER` / `LOW` | FAIL | PASS |
+| `repeatedQuotedEvidenceDoesNotBoost` | Prevent repeated quoted internship wording from overriding a current event | Observed | `EVENT_ACTIVITY` / `MEDIUM` | PASS | PASS |
+| `repeatedCurrentKeywordDoesNotArtificiallyBoost` | Prevent repeated generic opportunity wording from manufacturing evidence | Extension | `GENERAL_OTHER` / `LOW` | PASS | PASS |
+| `htmlBodyClassification` | Classify visible academic text inside simple HTML | Observed | `ACADEMIC_RESEARCH` / `HIGH` | PASS | PASS |
+| `htmlEntitiesDecoded` | Preserve useful academic meaning around HTML entities | Extension | `ACADEMIC_RESEARCH` / `HIGH` | PASS | PASS |
+| `facilityFeedbackIsAdministrative` | Treat institute dining-service operation feedback as administrative | Validation | `ADMINISTRATIVE_NOTICE` | FAIL | PASS |
+| `genericSurveyIsNotAdministrative` | Keep a generic club/opinion survey out of administration | Extension | `GENERAL_OTHER` / `LOW` | PASS | PASS |
+| `nonSelectiveAcademicRegistration` | Keep non-selective course/workshop registration academic | Validation | `ACADEMIC_RESEARCH` / `MEDIUM` | PASS | PASS |
+| `selectiveAcademicApplication` | Treat limited-seat academic selection as a participation call | Extension | `CALL_FOR_PARTICIPATION` / `HIGH` | PASS | PASS |
+| `publicYogaActivityIsEvent` | Treat an ordinary public yoga activity without support access as an event | Observed | `EVENT_ACTIVITY` / `MEDIUM` | FAIL | PASS |
+| `wellbeingServiceEventIsWellbeing` | Prefer explicit counselling/support-service purpose over event structure | Observed | `WELLBEING_SUPPORT` / `HIGH` | PASS | PASS |
 
 ### Initial Batch-2 verification
 
@@ -248,5 +248,15 @@ Production classifier during run: **unchanged Batch-1 implementation**
 | `facilityFeedbackIsAdministrative` | `ADMINISTRATIVE_NOTICE` | `GENERAL_OTHER` / `LOW` | Institute-service feedback/timing/quality language is not yet a qualifying administrative rule. |
 | `publicYogaActivityIsEvent` | `EVENT_ACTIVITY` / `MEDIUM` | `WELLBEING_SUPPORT` / `HIGH` | The current classifier scores negated counselling/support-service wording as positive wellbeing evidence. |
 
-These six failures are expected test-first specification gaps, not entries for `docs/BUG_LOG.md`. Production implementation work must occur in the next task.
+At the test-creation stage these six failures were treated as test-first specification gaps rather than six fabricated bugs. Subsequent implementation confirmed three shared root-cause defects: `CS-CLS-002`, `CS-CLS-003`, and `CS-CLS-004`.
+
+### Batch-2 GREEN verification
+
+- Facility-feedback group: **3 tests run, 0 failures, 0 errors** (`facilityFeedbackIsAdministrative`, `urlKeywordIgnored`, `genericSurveyIsNotAdministrative`).
+- Negation plus career/event regressions: **6 tests run, 0 failures, 0 errors**.
+- Equal-purpose tie plus precedence regressions: **4 tests run, 0 failures, 0 errors**.
+- Wellbeing/event boundary plus wellbeing regressions: **4 tests run, 0 failures, 0 errors**.
+- Final classifier result: **BUILD SUCCESS — 40 tests run, 0 failures, 0 errors, 0 skipped** in 7.277 seconds.
+- Final complete Java result: **BUILD SUCCESS — 117 tests run, 0 failures, 0 errors, 0 skipped** in 26.634 seconds.
+- No Batch-1 or Batch-2 test expectation was changed, weakened, disabled, or skipped.
 

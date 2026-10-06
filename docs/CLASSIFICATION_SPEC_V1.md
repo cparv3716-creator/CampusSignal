@@ -2,7 +2,7 @@
 
 Status: **Human-approved specification**  
 Approved: 2026-10-06  
-Implementation status: **IN PROGRESS — Batch 1 GREEN; remaining V1 cases are not yet implemented**  
+Implementation status: **IN PROGRESS — Batches 1 and 2 GREEN; remaining V1 cases are not yet implemented**
 Evidence source: `docs/EMAIL_CLASSIFICATION_DISCOVERY.md`
 
 This document is the source of truth for the first deterministic Java email classifier. If the earlier discovery document conflicts with this specification, this document controls V1 behavior.
@@ -292,7 +292,7 @@ If the subject/body is insufficient and the useful meaning exists only in an att
 
 ## 14. Approved V1 test plan
 
-All test inputs must remain synthetic/anonymised. Detailed implementation status is recorded in `docs/TEST_LOG.md`; all 20 Test Batch 1 cases are GREEN, while remaining V1 cases are still planned.
+All test inputs must remain synthetic/anonymised. Detailed implementation status is recorded in `docs/TEST_LOG.md`; all 40 tests across Batches 1 and 2 are GREEN, while remaining V1 cases are still planned.
 
 ### Positive category coverage
 

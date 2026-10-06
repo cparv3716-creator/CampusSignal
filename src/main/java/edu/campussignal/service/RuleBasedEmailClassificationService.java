@@ -54,56 +54,66 @@ public final class RuleBasedEmailClassificationService implements EmailClassific
     }
 
     private EmailClassificationResult classifyCurrent(String subject, String body) {
+        boolean resolvedNegation = hasNegatedCategoryCue(subject) || hasNegatedCategoryCue(body);
         Evidence career = careerEvidence(subject, body);
         if (career.qualifies()) {
-            return result(EmailCategory.CAREER, career);
+            return result(EmailCategory.CAREER, career, resolvedNegation);
         }
 
         Evidence administrative = administrativeEvidence(subject, body);
         if (administrative.qualifies()) {
-            return result(EmailCategory.ADMINISTRATIVE_NOTICE, administrative);
+            return result(EmailCategory.ADMINISTRATIVE_NOTICE, administrative, resolvedNegation);
         }
 
         // Completed-state evidence is a hard gate. This is checked before the
         // setting (academic/event) because the completed achievement is the purpose.
         Evidence recognition = recognitionEvidence(subject, body);
         if (recognition.qualifies()) {
-            return result(EmailCategory.RECOGNITION_ACHIEVEMENT, recognition);
+            return result(EmailCategory.RECOGNITION_ACHIEVEMENT, recognition, resolvedNegation);
         }
 
         Evidence academic = academicEvidence(subject, body);
+        Evidence event = eventEvidence(subject, body);
+        if (isUnresolvedEqualPurpose(academic, event)) {
+            return new EmailClassificationResult(EmailCategory.GENERAL_OTHER, ClassificationConfidence.LOW);
+        }
         if (academic.qualifies()) {
-            return result(EmailCategory.ACADEMIC_RESEARCH, academic);
+            return result(EmailCategory.ACADEMIC_RESEARCH, academic, resolvedNegation);
         }
 
         Evidence wellbeing = wellbeingEvidence(subject, body);
         if (wellbeing.qualifies()) {
-            return result(EmailCategory.WELLBEING_SUPPORT, wellbeing);
+            return result(EmailCategory.WELLBEING_SUPPORT, wellbeing, resolvedNegation);
         }
 
         Evidence participation = participationEvidence(subject, body);
         if (participation.qualifies()) {
-            return result(EmailCategory.CALL_FOR_PARTICIPATION, participation);
+            return result(EmailCategory.CALL_FOR_PARTICIPATION, participation, resolvedNegation);
         }
 
-        Evidence event = eventEvidence(subject, body);
         if (event.qualifies()) {
-            return result(EmailCategory.EVENT_ACTIVITY, event);
+            return result(EmailCategory.EVENT_ACTIVITY, event, resolvedNegation);
         }
 
         Evidence knownGeneralPurpose = generalPurposeEvidence(subject, body);
         if (knownGeneralPurpose.qualifies()) {
-            return result(EmailCategory.GENERAL_OTHER, knownGeneralPurpose);
+            return result(EmailCategory.GENERAL_OTHER, knownGeneralPurpose, resolvedNegation);
         }
 
         return new EmailClassificationResult(EmailCategory.GENERAL_OTHER, ClassificationConfidence.LOW);
     }
 
+    private boolean isUnresolvedEqualPurpose(Evidence first, Evidence second) {
+        return first.independentlyStrong()
+                && second.independentlyStrong()
+                && first.score() == second.score();
+    }
+
     private Evidence careerEvidence(String subject, String body) {
-        boolean subjectStrong = containsAny(subject,
+        boolean subjectStrong = containsAnyUnnegated(subject,
                 "internship", "placement", "pre placement", "job", "hiring", "graduate role")
                 || containsAll(subject, "graduate", "role");
-        boolean bodyStrong = containsAny(body,
+        boolean bodyStrong = containsAnyUnnegated(body,
                 "internship", "placement", "job", "hiring", "employer")
                 || (containsAll(body, "graduate", "role")
                 && containsAny(body, "application", "resume", "salary", "stipend", "eligibility"));
@@ -120,11 +130,28 @@ public final class RuleBasedEmailClassificationService implements EmailClassific
         boolean bodyStrong = containsAny(body,
                 "mandatory", "must follow", "closed", "closure", "unavailable", "outage",
                 "will resume", "reopens", "reopened", "service suspended");
+        if (!subjectStrong && !bodyStrong && isFacilityFeedback(subject, body)) {
+            // Operational feedback is specific enough to qualify as administrative,
+            // but without policy/status evidence it remains medium confidence.
+            return new Evidence(false, true, false, true);
+        }
+
         boolean subjectContext = containsAny(subject,
                 "status", "facility", "service", "pool", "laboratory", "library", "hostel");
         boolean bodyContext = containsAny(body,
                 "instructions", "access", "effective", "operating hours", "service", "facility");
         return new Evidence(subjectStrong, bodyStrong, subjectContext, bodyContext);
+    }
+
+    private boolean isFacilityFeedback(String subject, String body) {
+        String currentMessage = subject + " " + body;
+        boolean asksForFeedback = containsAny(currentMessage,
+                "feedback", "survey", "comment", "questionnaire");
+        boolean identifiesInstituteService = containsAny(currentMessage,
+                "facility", "service", "dining", "hostel internet", "library");
+        boolean concernsOperation = containsAny(currentMessage,
+                "operation", "operating hours", "timings", "quality", "service", "facility");
+        return asksForFeedback && identifiesInstituteService && concernsOperation;
     }
 
     private Evidence recognitionEvidence(String subject, String body) {
@@ -156,10 +183,10 @@ public final class RuleBasedEmailClassificationService implements EmailClassific
     }
 
     private Evidence wellbeingEvidence(String subject, String body) {
-        boolean subjectStrong = containsAny(subject,
+        boolean subjectStrong = containsAnyUnnegated(subject,
                 "counselling", "counseling", "mental health", "wellbeing support",
                 "wellness centre", "wellness center", "stress support");
-        boolean bodyStrong = containsAny(body,
+        boolean bodyStrong = containsAnyUnnegated(body,
                 "counselling", "counseling", "counsellor", "counselor", "mental health",
                 "wellness centre", "wellness center", "stress support");
         boolean subjectContext = containsAny(subject, "appointment", "support service", "wellbeing", "wellness");
@@ -174,7 +201,7 @@ public final class RuleBasedEmailClassificationService implements EmailClassific
                 || (containsAny(subject, "hackathon", "contest", "competition")
                 && containsAny(subject, "registration", "registrations", "register"));
         boolean bodyStrong = containsAny(body,
-                "audition", "auditions", "selection criteria", "applications open")
+                "audition", "auditions", "selection criteria", "applications open", "applications are open")
                 || (containsAny(body, "apply", "application")
                 && containsAny(body, "deadline", "eligibility", "eligible", "selection", "form"))
                 || (containsAny(body, "register", "registration", "registrations", "submit", "submission")
@@ -187,11 +214,11 @@ public final class RuleBasedEmailClassificationService implements EmailClassific
     }
 
     private Evidence eventEvidence(String subject, String body) {
-        boolean subjectStrong = containsAny(subject,
+        boolean subjectStrong = containsAnyUnnegated(subject,
                 "screening", "exhibition", "tutorial", "invitation")
                 || (containsAny(subject, "film", "dance", "activity")
                 && containsAny(subject, "friday", "monday", "pm", "am", "hall"));
-        boolean bodyStrong = containsAny(body, "screening", "exhibition", "tutorial")
+        boolean bodyStrong = containsAnyUnnegated(body, "screening", "exhibition", "tutorial")
                 || (containsAny(body, "attend", "invited", "join")
                 && containsAny(body, "venue", "hall", "friday", "monday", "pm", "am"));
         boolean subjectContext = containsAny(subject, "event", "attend", "venue", "hall", "friday", "pm", "am");
@@ -207,7 +234,10 @@ public final class RuleBasedEmailClassificationService implements EmailClassific
         return new Evidence(subjectStrong, bodyStrong, subjectContext, bodyContext);
     }
 
-    private EmailClassificationResult result(EmailCategory category, Evidence evidence) {
+    private EmailClassificationResult result(
+            EmailCategory category,
+            Evidence evidence,
+            boolean resolvedNegation) {
         ClassificationConfidence confidence;
         if (evidence.corroborated()) {
             confidence = ClassificationConfidence.HIGH;
@@ -215,6 +245,9 @@ public final class RuleBasedEmailClassificationService implements EmailClassific
             confidence = ClassificationConfidence.MEDIUM;
         } else {
             confidence = ClassificationConfidence.LOW;
+        }
+        if (resolvedNegation && confidence == ClassificationConfidence.HIGH) {
+            confidence = ClassificationConfidence.MEDIUM;
         }
         return new EmailClassificationResult(category, confidence);
     }
@@ -230,6 +263,70 @@ public final class RuleBasedEmailClassificationService implements EmailClassific
         for (String phrase : phrases) {
             String normalizedPhrase = normalizeEvidence(phrase);
             if (!normalizedPhrase.isBlank() && paddedText.contains(" " + normalizedPhrase + " ")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsAnyUnnegated(String text, String... phrases) {
+        for (String phrase : phrases) {
+            String normalizedPhrase = normalizeEvidence(phrase);
+            if (hasUnnegatedOccurrence(text, normalizedPhrase)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasNegatedCategoryCue(String text) {
+        for (String phrase : new String[] {
+                "internship", "job", "placement", "employment", "event",
+                "counselling", "counseling", "mental health", "support service",
+                "wellbeing support", "wellness centre", "wellness center"}) {
+            if (hasNegatedOccurrence(text, normalizeEvidence(phrase))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasUnnegatedOccurrence(String text, String phrase) {
+        String paddedText = " " + text + " ";
+        String target = " " + phrase + " ";
+        int occurrence = paddedText.indexOf(target);
+        while (occurrence >= 0) {
+            if (!isNegatedByNearbyWord(paddedText.substring(0, occurrence))) {
+                return true;
+            }
+            occurrence = paddedText.indexOf(target, occurrence + target.length());
+        }
+        return false;
+    }
+
+    private boolean hasNegatedOccurrence(String text, String phrase) {
+        String paddedText = " " + text + " ";
+        String target = " " + phrase + " ";
+        int occurrence = paddedText.indexOf(target);
+        while (occurrence >= 0) {
+            if (isNegatedByNearbyWord(paddedText.substring(0, occurrence))) {
+                return true;
+            }
+            occurrence = paddedText.indexOf(target, occurrence + target.length());
+        }
+        return false;
+    }
+
+    private boolean isNegatedByNearbyWord(String precedingText) {
+        String normalizedPrefix = precedingText.strip();
+        if (normalizedPrefix.isEmpty()) {
+            return false;
+        }
+
+        String[] words = normalizedPrefix.split(" ");
+        int firstNearbyWord = Math.max(0, words.length - 4);
+        for (int index = words.length - 1; index >= firstNearbyWord; index--) {
+            if (words[index].equals("not") || words[index].equals("no") || words[index].equals("non")) {
                 return true;
             }
         }
@@ -307,6 +404,10 @@ public final class RuleBasedEmailClassificationService implements EmailClassific
         boolean corroborated() {
             return (subjectStrong && (bodyStrong || bodyContext))
                     || (bodyStrong && subjectContext);
+        }
+
+        boolean independentlyStrong() {
+            return subjectStrong && bodyStrong;
         }
     }
 }

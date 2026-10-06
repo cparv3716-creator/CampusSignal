@@ -510,3 +510,70 @@ PR created by: Pending
 In a separate GREEN implementation task, make the smallest V1-compliant production changes for the six failing Batch-2 cases: add facility/service-feedback evidence, simple nearby-negation suppression, explicit unresolved-tie fallback, and correct confidence handling; then rerun all 40 classifier tests followed by the complete Java suite without changing test expectations.
 
 ---
+
+## Work Entry
+Date: 2026-10-06
+Contributor: Codex
+Milestone: Deterministic Email Classification
+Stage: Classifier Test Batch 2 — GREEN Phase
+Branch: phase4-live-demo
+
+### Status
+Completed — all 40 classifier tests and all 117 Java tests are GREEN.
+
+### Starting state
+- Task-start commit: `fdaf5258cfdb50eb94dd7a5f49f5d6ade3da8059`.
+- Historical commit before the Batch-2 tests: `cdce087bfc7b05222a1fa10caf0762e5223fb7b5`.
+- Working tree at task start: clean; the 20 Batch-2 tests and their initial-result documentation had been committed.
+- Reproduction command: `.\\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" "-Dtest=RuleBasedEmailClassificationServiceTest" -Ddebug=false test`.
+- Reproduced result: BUILD FAILURE; 40 tests run, 6 failures, 0 errors, 0 skipped in 8.352 seconds.
+- Reproduced failures: `urlKeywordIgnored`, `negatedInternship`, `negatedEvent`, `exactTieFallsBackToGeneral`, `facilityFeedbackIsAdministrative`, and `publicYogaActivityIsEvent`; actual and expected results matched the recorded Batch-2 baseline.
+
+### Root-cause analysis
+- `CS-CLS-002`: URL/address masking was already correct. Two failures shared a missing rule that promotes specific institute facility/service operational feedback to administrative evidence while excluding generic surveys.
+- `CS-CLS-003`: three failures shared absent nearby-negation handling. Negated career/wellbeing cues were counted positively, and resolved negation did not cap confidence at `MEDIUM`.
+- `CS-CLS-004`: equal independent academic/event evidence was resolved by early rule order instead of the approved `GENERAL_OTHER`/`LOW` tie fallback.
+- No separate generic-wellness defect was found: `wellness` and `yoga` alone already did not qualify as wellbeing; the false positive came from negated counselling/support wording.
+
+### Implementation iterations
+1. Added a conjunctive facility-feedback rule requiring feedback, an institute facility/service, and operational context. Focused result: 3 tests run, 0 failures, 0 errors, including the generic-survey negative control.
+2. Added a small nearby-negation window, unnegated matching for affected evidence, `applications are open` participation wording, and a `MEDIUM` cap for results involving resolved negation. Negation regression result: 6 tests run, 0 failures, 0 errors.
+3. Added explicit equal-score fallback when academic and event purposes both have independent strong subject/body evidence. Tie/precedence result: 4 tests run, 0 failures, 0 errors.
+4. Verified the wellbeing/event boundary after the negation fix; no additional production patch was required. Result: 4 tests run, 0 failures, 0 errors.
+
+### Files modified
+- `src/main/java/edu/campussignal/service/RuleBasedEmailClassificationService.java`
+- `docs/AGENT_PROMPTS.md`
+- `docs/BUG_LOG.md`
+- `docs/TEST_LOG.md`
+- `docs/WORK_LOG.md`
+- `docs/CLASSIFICATION_SPEC_V1.md` (implementation-status metadata only; approved behavior unchanged)
+
+### Final verification
+- Classifier command: `.\\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" "-Dtest=RuleBasedEmailClassificationServiceTest" -Ddebug=false test`.
+- Classifier result: BUILD SUCCESS; 40 tests run, 0 failures, 0 errors, 0 skipped in 7.277 seconds.
+- Complete command: `.\\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -Ddebug=false test`.
+- Complete result: BUILD SUCCESS; 117 tests run, 0 failures, 0 errors, 0 skipped in 26.634 seconds.
+- Existing expected negative-test log messages and JVM/deprecation warnings appeared but caused no failures.
+
+### Scope and implementation status
+- No Batch-1 or Batch-2 test was modified, weakened, disabled, renamed, or skipped.
+- Gmail integration, persistence/entities, database schema, controllers/API, profile/category scoring, relevance ranking, and Python reference code were untouched.
+- No external NLP library, ML/LLM classifier, rule framework, or unrelated refactor was introduced.
+- No commit or push was created.
+
+### Remaining limitations
+- Negation handling is deliberately bounded to a small nearby-token window and approved category cues; it is not general language understanding.
+- Tie detection currently addresses independently strong equal academic/event purposes exercised by V1 tests; broader multi-category combinations need additional test-first evidence before expansion.
+- HTML handling remains basic normalisation rather than a full MIME/HTML extraction layer.
+- Attachment-only meaning remains outside V1 and falls back to `GENERAL_OTHER`/`LOW`.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next step
+Create the next test-first V1 coverage batch for the still-planned cases—especially attachment-only fallback, unusual whitespace/case variants, footer/signature variants, additional completed-recognition boundaries, and broader conflict combinations—before classifier integration with ingestion or persistence.
+
+---

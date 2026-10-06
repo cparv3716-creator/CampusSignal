@@ -781,3 +781,15 @@ Task: Classifier Robustness Test Batch 2
 Asked Codex to preserve the 97-test GREEN baseline, add exactly 20 synthetic JUnit robustness tests for V1 normalisation, filtering, negation, recognition, ties, repetition, HTML, facility surveys, academic registration, and wellbeing/event boundaries, run them against the unchanged Batch-1 classifier, record actual PASS/FAIL results, and stop before production-rule changes.
 
 ---
+
+## Prompt Entry
+Date: 2026-10-06 16:15:54 +05:30
+Contributor: Codex
+Branch: phase4-live-demo
+Milestone: Deterministic Email Classification
+Task: Classifier Test Batch 2 — GREEN Phase
+
+### Prompt summary
+Asked Codex to reproduce the six Batch-2 classifier failures, diagnose shared root causes, make the smallest V1-compliant production changes for facility feedback, nearby negation/confidence, unresolved ties, and the wellbeing/event boundary, preserve all test expectations, run focused and full verification, and update traceability without touching unrelated modules.
+
+---
