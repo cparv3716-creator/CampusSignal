@@ -1,5 +1,6 @@
 package edu.campussignal.pubsub;
 
+import java.io.IOException;
 import com.google.cloud.pubsub.v1.AckReplyConsumer;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
@@ -27,6 +28,19 @@ class PubSubPullSubscriberTest {
         var handler = mock(PubSubPullSubscriber.Handler.class);
         doThrow(new IllegalStateException("private detail")).when(handler).handle(any());
         subscriber.dispatch(message, consumer, handler);
+        verify(consumer).nack();
+        verify(consumer, never()).ack();
+    }
+
+    @Test
+    void nacksCheckedIoFailure() throws Exception {
+        var consumer = mock(AckReplyConsumer.class);
+        var message = PubsubMessage.newBuilder().setData(ByteString.copyFromUtf8("private")).build();
+        var handler = mock(PubSubPullSubscriber.Handler.class);
+        doThrow(new IOException("private provider detail")).when(handler).handle(any());
+
+        subscriber.dispatch(message, consumer, handler);
+
         verify(consumer).nack();
         verify(consumer, never()).ack();
     }

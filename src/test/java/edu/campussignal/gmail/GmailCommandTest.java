@@ -3,8 +3,12 @@ package edu.campussignal.gmail;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
@@ -81,6 +85,35 @@ class GmailCommandTest {
         command.run(new DefaultApplicationArguments());
         assertThat(command.getExitCode()).isEqualTo(1);
         assertThat(output.getErr()).contains("Gmail command failed").doesNotContain("synthetic-private-detail");
+    }
+
+    @Test
+    void unexpectedRuntimeFailureIsDiagnosableWithoutLeakingSensitiveDetails(CapturedOutput output)
+            throws Exception {
+        when(authorization.client()).thenThrow(
+                new IllegalStateException("synthetic-token-and-private-mailbox-detail"));
+        var command = command("retrieve");
+        var logger = (Logger) LoggerFactory.getLogger(GmailCommand.class);
+        var appender = new ListAppender<ILoggingEvent>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            command.run(new DefaultApplicationArguments());
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+
+        assertThat(command.getExitCode()).isEqualTo(1);
+        assertThat(output.getErr())
+                .contains("Gmail command failed")
+                .doesNotContain("synthetic-token-and-private-mailbox-detail");
+        assertThat(appender.list).extracting(ILoggingEvent::getFormattedMessage)
+                .containsExactly("Unexpected Gmail command failure in 'retrieve': IllegalStateException")
+                .allSatisfy(message -> assertThat(message)
+                        .doesNotContain("synthetic-token-and-private-mailbox-detail"));
+        assertThat(output.getOut()).doesNotContain("fetched=");
     }
 
     @Test

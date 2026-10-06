@@ -1,5 +1,6 @@
 package edu.campussignal.pubsub;
 
+import java.io.IOException;
 import com.google.api.gax.batching.FlowControlSettings;
 import com.google.cloud.pubsub.v1.AckReplyConsumer;
 import com.google.cloud.pubsub.v1.MessageReceiver;
@@ -15,7 +16,7 @@ public class PubSubPullSubscriber {
 
     @FunctionalInterface
     public interface Handler {
-        void handle(byte[] data) throws Exception;
+        void handle(byte[] data) throws IOException;
     }
 
     public void listen(String subscriptionPath, Handler handler) {
@@ -39,7 +40,7 @@ public class PubSubPullSubscriber {
         try {
             handler.handle(message.getData().toByteArray());
             consumer.ack();
-        } catch (Exception exception) {
+        } catch (IOException | RuntimeException exception) {
             // Never log Pub/Sub payloads or provider exception messages: they can contain private data.
             LOGGER.error("Gmail notification processing failed: {}", exception.getClass().getSimpleName());
             consumer.nack();

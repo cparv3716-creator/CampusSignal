@@ -117,13 +117,16 @@ public class GmailApiClient implements EmailSource {
     }
 
     static BigInteger historyId(String value) {
+        if (value == null) {
+            throw new IllegalArgumentException("Gmail history ID must be an integer string");
+        }
         try {
             var parsed = new BigInteger(value);
             if (parsed.signum() < 0) {
                 throw new IllegalArgumentException("Gmail history ID must not be negative");
             }
             return parsed;
-        } catch (NullPointerException | NumberFormatException exception) {
+        } catch (NumberFormatException exception) {
             throw new IllegalArgumentException("Gmail history ID must be an integer string", exception);
         }
     }

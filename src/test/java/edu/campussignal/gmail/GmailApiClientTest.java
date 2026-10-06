@@ -1,6 +1,7 @@
 package edu.campussignal.gmail;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.time.Instant;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.gmail.Gmail;
@@ -89,5 +90,21 @@ class GmailApiClientTest {
     void refusesMismatchedMessageIdentity() {
         var transport = new QueuedHttpTransport().enqueue("{\"id\":\"wrong\"}");
         assertThatThrownBy(() -> client(transport).fetch("expected")).isInstanceOf(IOException.class);
+    }
+
+    @Test
+    void parsesValidHistoryIdWithoutLosingPrecision() {
+        assertThat(GmailApiClient.historyId("18446744073709551616"))
+                .isEqualTo(new BigInteger("18446744073709551616"));
+    }
+
+    @Test
+    void rejectsMissingMalformedAndNegativeHistoryIds() {
+        assertThatIllegalArgumentException().isThrownBy(() -> GmailApiClient.historyId(null))
+                .withMessage("Gmail history ID must be an integer string");
+        assertThatIllegalArgumentException().isThrownBy(() -> GmailApiClient.historyId("not-a-number"))
+                .withMessage("Gmail history ID must be an integer string");
+        assertThatIllegalArgumentException().isThrownBy(() -> GmailApiClient.historyId("-1"))
+                .withMessage("Gmail history ID must not be negative");
     }
 }

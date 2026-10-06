@@ -113,4 +113,20 @@ class GmailRealtimeServiceTest {
         assertThat(summary.created()).isEqualTo(1);
         assertThat(state.get().orElseThrow().lastHistoryId()).isEqualTo("200");
     }
+
+    @Test
+    void invalidNotificationHistoryIdsFailWithoutAdvancingProgress() {
+        state.recordWatch("100", Instant.parse("2026-09-17T08:00:00Z"));
+        var client = mock(GmailApiClient.class);
+
+        assertThatIllegalArgumentException().isThrownBy(() -> history.sync(client, null, 10))
+                .withMessage("Gmail history ID must be an integer string");
+        assertThatIllegalArgumentException().isThrownBy(() -> history.sync(client, "invalid", 10))
+                .withMessage("Gmail history ID must be an integer string");
+        assertThatIllegalArgumentException().isThrownBy(() -> history.sync(client, "-1", 10))
+                .withMessage("Gmail history ID must not be negative");
+
+        assertThat(state.get().orElseThrow().lastHistoryId()).isEqualTo("100");
+        verifyNoInteractions(client);
+    }
 }

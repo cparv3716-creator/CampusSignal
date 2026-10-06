@@ -577,3 +577,150 @@ PR created by: Pending
 Create the next test-first V1 coverage batch for the still-planned cases—especially attachment-only fallback, unusual whitespace/case variants, footer/signature variants, additional completed-recognition boundaries, and broader conflict combinations—before classifier integration with ingestion or persistence.
 
 ---
+
+## Work Entry
+Date: 2026-10-06
+Contributor: Codex
+Milestone: CS5013 Static Analysis
+Stage: Initial SpotBugs Configuration and Triage
+Branch: phase4-live-demo
+
+### Status
+Completed — initial unsuppressed SpotBugs report generated and every finding triaged; no production fix applied.
+
+### Starting state
+- Starting commit: `cb7bb4f97869a725444bbca5d3751bd22439f953`.
+- Starting working tree: clean.
+- Java runtime: `26.0.2`; project target: Java 25.
+- Baseline command: `.\\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -Ddebug=false test`.
+- Baseline result: BUILD SUCCESS; 117 tests run, 0 failures, 0 errors, 0 skipped in 32.341 seconds.
+
+### Tooling configuration
+- Added `com.github.spotbugs:spotbugs-maven-plugin:4.10.4.1` to `pom.xml`.
+- Configured `effort=Max`, `threshold=Low`, XML output, and `failOnError=true`.
+- Added no exclusion filter, suppression file, detector extension, PMD, JaCoCo, or unrelated plugin.
+- SpotBugs engine version reported by the generated XML: `4.10.4`.
+
+### Analysis execution
+- Command: `.\\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -DskipTests compile spotbugs:spotbugs`.
+- Result: BUILD SUCCESS in 1 minute 12 seconds.
+- Initial report: 6 unsuppressed findings across 50 analysed classes.
+- Categories: 2 `MALICIOUS_CODE`, 3 `STYLE`, 1 `BAD_PRACTICE`.
+- Priorities: 1 Priority 1, 4 Priority 2, 1 Priority 3.
+
+### Triage result
+- TRUE POSITIVE — likely real defect: none confirmed.
+- CODE QUALITY / MAINTAINABILITY: 3 findings — two NPE-catching input parsers and one broad checked-exception functional contract.
+- FALSE POSITIVE: 2 findings — unmodifiable `Stream.toList()` record state and trusted Spring `ObjectMapper` injection.
+- NEEDS FURTHER INVESTIGATION: 1 finding — broad exception handling at the Gmail CLI privacy/error boundary.
+- No warning was suppressed or fixed. Detailed per-finding reasoning, proposed fixes, and test implications are recorded in `docs/STATIC_ANALYSIS_LOG.md`.
+- `docs/BUG_LOG.md` was not modified because static-analysis candidates are not automatically confirmed application bugs.
+
+### Files created/modified
+- `pom.xml` — SpotBugs plugin configuration only.
+- `docs/STATIC_ANALYSIS_LOG.md` — created with the initial report and full triage.
+- `docs/AGENT_PROMPTS.md` — appended concise task summary.
+- `docs/WORK_LOG.md` — appended this entry.
+- Production Java and Java test files: unchanged.
+
+### Implementation status
+- Application behavior: unchanged.
+- Classifier rules, Gmail integration, persistence, schema, controllers, profile scoring, and ranking: unchanged.
+- Static-analysis fixes: not started, pending human review.
+- No commit or push was created.
+
+### Regression verification
+- Command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -Ddebug=false test`
+- Result: BUILD SUCCESS; 117 tests run, 0 failures, 0 errors, 0 skipped in 26.721 seconds.
+- The SpotBugs configuration and documentation changes did not affect existing behaviour.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next step
+Review and approve the SA-003 Gmail command-boundary policy. Then add focused regression tests and implement only approved fixes for SA-002, SA-005, and SA-006; rerun SpotBugs unsuppressed before considering narrow documented suppressions for SA-001 and SA-004.
+
+---
+
+## Work Entry
+Date: 2026-10-06
+Contributor: Codex
+Milestone: CS5013 Static Analysis
+Stage: Test-First SpotBugs Remediation
+Branch: phase4-live-demo
+
+### Status
+Completed — four justified findings removed without blanket suppressions; two documented false positives remain.
+
+### Starting state
+- Verified branch: `phase4-live-demo`.
+- Verified Java baseline: 117 tests, 0 failures, 0 errors, 0 skipped.
+- SpotBugs baseline: plugin 4.10.4.1, engine 4.10.4, 6 unsuppressed findings.
+- The existing uncommitted initial-analysis changes in `pom.xml`, `docs/STATIC_ANALYSIS_LOG.md`, `docs/AGENT_PROMPTS.md`, and `docs/WORK_LOG.md` were preserved.
+- Production Java initially contained no SpotBugs-driven changes.
+
+### Group 1 — history-ID parsing
+- Identified `GmailApiClient.historyId(String)` and `GmailHistorySyncService.historyId(String)` as the two NPE-catching parsers.
+- Confirmed null sources: a direct/missing start history ID at the Gmail client boundary and a missing notification history ID at the synchronization boundary. Malformed and negative values are also invalid under the existing contract.
+- Added two client parser tests and one service-level invalid-notification test before production changes.
+- Pre-change characterization passed 3/3.
+- Replaced caught-NPE control flow with explicit null rejection and retained `NumberFormatException` handling and established `IllegalArgumentException` messages.
+- Post-change focused tests passed 3/3; relevant regression classes passed 14/14.
+
+### Group 2 — Pub/Sub handler contract
+- Inspected the handler and its sole application caller. The only checked implementation failure is `IOException` from Gmail history synchronization; decoder and programming failures are unchecked.
+- Added `nacksCheckedIoFailure` before changing the interface; the existing success and unchecked-failure tests already covered the other dispatch paths.
+- Pre-change `PubSubPullSubscriberTest` passed 3/3.
+- Narrowed `Handler.handle(byte[])` from `throws Exception` to `throws IOException` and narrowed dispatch handling to `IOException | RuntimeException`.
+- Post-change focused test passed 1/1; full Pub/Sub regression class passed 3/3.
+
+### Group 3 — Gmail command privacy/diagnostic boundary
+- Existing `errorsAreReportedWithoutProviderDetails` already proved sanitized handling for an expected checked `IOException`.
+- Added a test requiring unexpected runtime failure to remain non-successful and diagnostically distinguishable without exposing its sensitive message.
+- Initial RED result: 1 test run, 1 failure because the original broad catch emitted no runtime diagnostic.
+- Split expected checked failures (`IOException | GeneralSecurityException`) from unexpected `RuntimeException`.
+- Retained the outer privacy boundary, sanitized user-visible message, and exit code 1.
+- Added safe internal logging containing only the selected command and runtime exception class; exception messages, credentials, tokens, Pub/Sub payloads, and mailbox content are not emitted.
+- The first post-change assertion attempted to read the logger through Spring output capture; the event appeared in the console but was not retained by that capture mechanism. The test was corrected to inspect a temporary Logback appender. No production change was made for this harness issue.
+- Final focused tests passed 2/2; complete `GmailCommandTest` passed 7/7.
+
+### New tests
+- `GmailApiClientTest.parsesValidHistoryIdWithoutLosingPrecision`
+- `GmailApiClientTest.rejectsMissingMalformedAndNegativeHistoryIds`
+- `GmailRealtimeServiceTest.invalidNotificationHistoryIdsFailWithoutAdvancingProgress`
+- `PubSubPullSubscriberTest.nacksCheckedIoFailure`
+- `GmailCommandTest.unexpectedRuntimeFailureIsDiagnosableWithoutLeakingSensitiveDetails`
+
+### Production files changed
+- `src/main/java/edu/campussignal/gmail/GmailApiClient.java`
+- `src/main/java/edu/campussignal/service/GmailHistorySyncService.java`
+- `src/main/java/edu/campussignal/pubsub/PubSubPullSubscriber.java`
+- `src/main/java/edu/campussignal/gmail/GmailCommand.java`
+
+### Complete verification
+- Command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -Ddebug=false test`.
+- Result: BUILD SUCCESS; **122 tests run, 0 failures, 0 errors, 0 skipped in 27.292 seconds**.
+- SpotBugs command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -DskipTests compile spotbugs:spotbugs`.
+- Result: BUILD SUCCESS in 26.579 seconds.
+- Findings before/after: **6 → 2** across 50 analysed classes.
+- Removed: SA-002 and SA-006 (`DCN_NULLPOINTER_EXCEPTION`), SA-005 (`THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION`), and SA-003 (`REC_CATCH_EXCEPTION`).
+- Remaining: SA-001 (`EI_EXPOSE_REP`) and SA-004 (`EI_EXPOSE_REP2`), both still triaged as false positives with no production changes or suppressions.
+
+### Defect and scope record
+- Investigation confirmed one genuine operational behavior defect: unexpected Gmail command runtime failures were silently indistinguishable from expected operational failures. It is recorded as `CS-STA-001` and fixed.
+- The two history parser findings and Pub/Sub signature finding remained maintainability issues rather than observed runtime product defects.
+- Classifier rules, ranking, Gmail retrieval/ingestion semantics, database schema, profiles/scoring, Python, PMD, and JaCoCo were untouched.
+- No broad or narrow SpotBugs suppression was added.
+- No commit or push was created.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next step
+Review and approve narrow, documented per-finding suppressions for SA-001 and SA-004 only if a zero-finding SpotBugs gate is required; otherwise retain the unsuppressed two-finding report as the accepted baseline.
+
+---

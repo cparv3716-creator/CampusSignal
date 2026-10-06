@@ -260,3 +260,38 @@ At the test-creation stage these six failures were treated as test-first specifi
 - Final complete Java result: **BUILD SUCCESS — 117 tests run, 0 failures, 0 errors, 0 skipped** in 26.634 seconds.
 - No Batch-1 or Batch-2 test expectation was changed, weakened, disabled, or skipped.
 
+---
+
+## 2026-10-06 — Test-first SpotBugs remediation
+
+New JUnit tests: **5**
+
+| Test | Class | Behavior protected | Final status |
+|---|---|---|---|
+| `parsesValidHistoryIdWithoutLosingPrecision` | `GmailApiClientTest` | A valid unsigned Gmail history ID is parsed as an arbitrary-precision integer. | PASS |
+| `rejectsMissingMalformedAndNegativeHistoryIds` | `GmailApiClientTest` | Null/missing, malformed, and negative IDs retain their established `IllegalArgumentException` messages. | PASS |
+| `invalidNotificationHistoryIdsFailWithoutAdvancingProgress` | `GmailRealtimeServiceTest` | Invalid notification IDs fail before Gmail access and do not advance stored synchronization progress. | PASS |
+| `nacksCheckedIoFailure` | `PubSubPullSubscriberTest` | A checked `IOException` from notification handling nacks and never acks the Pub/Sub message. | PASS |
+| `unexpectedRuntimeFailureIsDiagnosableWithoutLeakingSensitiveDetails` | `GmailCommandTest` | An unchecked failure exits nonzero, emits sanitized user output, records safe diagnostic metadata, leaks no exception message, and prints no success summary. | PASS |
+
+### Ordered verification
+
+- History characterization before production change: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" "-Dtest=GmailApiClientTest#parsesValidHistoryIdWithoutLosingPrecision+rejectsMissingMalformedAndNegativeHistoryIds,GmailRealtimeServiceTest#invalidNotificationHistoryIdsFailWithoutAdvancingProgress" -Ddebug=false test` — **3 passed**.
+- History focused run after production change: same command — **3 passed**.
+- History regressions: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" "-Dtest=GmailApiClientTest,GmailRealtimeServiceTest" -Ddebug=false test` — **14 passed**.
+- Pub/Sub characterization before signature change: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" "-Dtest=PubSubPullSubscriberTest" -Ddebug=false test` — **3 passed**.
+- Pub/Sub focused run after signature change: `PubSubPullSubscriberTest#nacksCheckedIoFailure` — **1 passed**.
+- Pub/Sub regressions after signature change: `PubSubPullSubscriberTest` — **3 passed**.
+- Gmail command initial policy run: `GmailCommandTest#unexpectedRuntimeFailureIsDiagnosableWithoutLeakingSensitiveDetails` — **RED as intended: 1 test run, 1 failure**, because the original broad catch emitted no safe diagnostic metadata.
+- The first post-change run exposed that Spring output capture did not retain the Logback event even though it appeared in the console. The test was corrected to inspect a temporary logger appender; production behavior was not changed for this harness issue.
+- Gmail command final focused run: `GmailCommandTest#errorsAreReportedWithoutProviderDetails+unexpectedRuntimeFailureIsDiagnosableWithoutLeakingSensitiveDetails` — **2 passed**.
+- Gmail command regressions: `GmailCommandTest` — **7 passed**.
+
+### Complete verification
+
+- Command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -Ddebug=false test`.
+- Result: **BUILD SUCCESS — 122 tests run, 0 failures, 0 errors, 0 skipped in 27.292 seconds**.
+- Baseline comparison: 117 tests before remediation; 122 after adding five focused tests.
+- SpotBugs command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -DskipTests compile spotbugs:spotbugs`.
+- SpotBugs result: **BUILD SUCCESS; findings reduced from 6 to 2**, with only the two documented false positives remaining.
+

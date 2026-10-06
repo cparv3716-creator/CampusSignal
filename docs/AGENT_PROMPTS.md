@@ -214,6 +214,190 @@ If you encounter an architectural conflict with the existing repository, stop an
 ---
 
 ## Prompt Entry
+Date: 2026-10-06
+Contributor: Codex
+Branch: phase4-live-demo
+Milestone: CS5013 Static Analysis
+Task: Test-First SpotBugs Remediation
+
+### Exact task prompt
+
+> We have completed the initial SpotBugs analysis on CampusSignal.
+>
+> Verified state:
+>
+> - Branch: `phase4-live-demo`
+> - Baseline Java suite: 117 tests, 0 failures, 0 errors, 0 skipped
+> - SpotBugs Maven plugin: 4.10.4.1
+> - SpotBugs engine: 4.10.4
+> - Initial findings: 6
+> - Confirmed runtime defects: none
+> - Production Java code has not yet been changed because of SpotBugs
+>
+> The initial triage is documented in:
+>
+> `docs/STATIC_ANALYSIS_LOG.md`
+>
+> This task is a TEST-FIRST remediation of the justified maintainability findings.
+>
+> Do NOT attempt to make SpotBugs report zero findings by blindly modifying code or adding blanket suppressions.
+>
+> ### Approved policy for Gmail command exception boundary
+>
+> The broad outer Gmail-command exception boundary may remain as a user-facing/privacy boundary, but it must not silently hide unexpected programming failures.
+>
+> Expected operational failures may produce sanitized user-facing error messages.
+>
+> Unexpected programming/runtime failures must remain diagnosable through appropriate internal logging/error propagation while still avoiding exposure of credentials, tokens, private mailbox content, or sensitive exception details to the user.
+>
+> Do not expose secrets merely to satisfy static analysis.
+>
+> ### Finding group 1 — history-ID parsing
+>
+> SpotBugs reported `DCN_NULLPOINTER_EXCEPTION` in two history-ID parsing paths.
+>
+> Inspect both locations.
+>
+> The objective is to remove `NullPointerException` as normal control flow.
+>
+> Before changing production code:
+>
+> 1. Identify the two parser methods/paths.
+> 2. Identify current inputs that can produce null/missing history IDs.
+> 3. Write focused JUnit tests for:
+>    - valid history ID;
+>    - missing/null history ID;
+>    - malformed history ID if relevant to current contract;
+>    - existing expected fallback/failure behaviour.
+>
+> Then refactor the parsing logic so null is handled explicitly rather than by catching `NullPointerException`.
+>
+> Preserve existing observable behaviour unless the documented contract requires correction.
+>
+> Use explicit null checks, Optional-style handling, or another simple Java construct appropriate to the existing codebase.
+>
+> Do not over-engineer.
+>
+> ### Finding group 2 — Pub/Sub broad `throws Exception`
+>
+> SpotBugs/triage identified a broad `throws Exception` contract in the Pub/Sub handler path.
+>
+> Inspect the interface and its implementations/callers.
+>
+> Before modifying the signature:
+>
+> 1. Determine which checked exceptions can actually occur.
+> 2. Determine whether those exceptions are implementation details that should be wrapped.
+> 3. Write focused tests for the existing success and failure behaviour.
+>
+> Prefer one of the following, depending on the actual code:
+>
+> - a specific checked exception;
+> - a project-specific exception if several implementation-specific checked exceptions must be abstracted;
+> - an unchecked exception only if that matches the architectural boundary and existing error handling.
+>
+> Do NOT simply replace `throws Exception` with `RuntimeException` without reasoning.
+>
+> The goal is a more precise and understandable contract.
+>
+> ### Finding group 3 — Gmail command exception boundary
+>
+> Do not remove the privacy/error boundary merely because SpotBugs questioned the broad catch.
+>
+> Inspect the current command code and tests.
+>
+> Verify through tests that:
+>
+> - expected Gmail/OAuth/PubSub operational failures result in sanitized user-visible output;
+> - sensitive exception messages are not leaked;
+> - unexpected runtime/programming failures are still diagnosable and do not look like successful execution.
+>
+> If existing tests already prove these behaviours, record that.
+>
+> If a small test is missing, add the minimum focused test.
+>
+> Change production code only if the approved policy is not currently satisfied.
+>
+> ### False positives
+>
+> The two currently triaged false positives are:
+>
+> - unmodifiable `ProfileCreateRequest.interests()`
+> - trusted Spring-injected `ObjectMapper`
+>
+> Do NOT change correct production behaviour merely to silence these findings.
+>
+> Do NOT add blanket SpotBugs exclusions.
+>
+> Leave them documented for a later narrow-suppression decision.
+>
+> ### Verification order
+>
+> After each remediation group:
+>
+> 1. run the focused tests;
+> 2. run the relevant existing regression tests;
+> 3. only then proceed to the next group.
+>
+> When production changes are complete:
+>
+> 1. run all 117+ Java tests;
+> 2. run SpotBugs again;
+> 3. compare the new report against the initial six-finding baseline.
+>
+> Record the actual test count because new focused tests may increase the total above 117.
+>
+> ### Documentation
+>
+> Update `docs/STATIC_ANALYSIS_LOG.md` with:
+>
+> - original finding;
+> - triage decision;
+> - test added;
+> - root cause;
+> - production change;
+> - post-fix SpotBugs status;
+> - whether the finding disappeared or remains;
+> - rationale for any unresolved finding.
+>
+> Update `docs/TEST_LOG.md` with new tests and results.
+>
+> Append a concise task summary to `docs/AGENT_PROMPTS.md`.
+>
+> Append the full execution record to `docs/WORK_LOG.md`.
+>
+> Update `docs/BUG_LOG.md` only if investigation reveals a genuine behavioural defect. Maintainability findings alone are not automatically bugs.
+>
+> ### Restrictions
+>
+> Do not modify classifier rules, ranking, Gmail ingestion behaviour, database schema, profile scoring, or unrelated modules.
+>
+> Do not add PMD or JaCoCo yet.
+>
+> Do not delete Python.
+>
+> Do not add broad SpotBugs suppressions.
+>
+> Do not commit or push automatically.
+>
+> ### Completion report
+>
+> Report:
+>
+> - findings remediated;
+> - tests added;
+> - production files changed;
+> - whether Gmail exception-boundary behaviour changed;
+> - focused test results;
+> - complete Java-suite result;
+> - SpotBugs findings before vs after;
+> - remaining findings and their triage state;
+> - whether any genuine new bugs were discovered;
+> - exact next recommended step.
+
+---
+
+## Prompt Entry
 Date: 2026-09-08
 Contributor: Priyanshi Garg
 Branch: feature/java-springboot-migration
@@ -791,5 +975,29 @@ Task: Classifier Test Batch 2 — GREEN Phase
 
 ### Prompt summary
 Asked Codex to reproduce the six Batch-2 classifier failures, diagnose shared root causes, make the smallest V1-compliant production changes for facility feedback, nearby negation/confidence, unresolved ties, and the wellbeing/event boundary, preserve all test expectations, run focused and full verification, and update traceability without touching unrelated modules.
+
+---
+
+## Prompt Entry
+Date: 2026-10-06 16:39:02 +05:30
+Contributor: Codex
+Branch: phase4-live-demo
+Milestone: CS5013 Static Analysis
+Task: Initial SpotBugs Analysis and Triage
+
+### Prompt summary
+Asked Codex to preserve the 117-test baseline, add only the Maven SpotBugs plugin, run an unsuppressed initial analysis, inspect and triage every finding rather than blindly fixing it, document rule meaning, risk, proposed action, and test implications, rerun the Java suite, and stop before production fixes.
+
+---
+
+## Prompt Entry
+Date: 2026-10-06
+Contributor: Codex
+Branch: phase4-live-demo
+Milestone: CS5013 Static Analysis
+Task: Test-First SpotBugs Remediation
+
+### Prompt summary
+Asked Codex to redo the approved test-first remediation of the six-finding SpotBugs baseline: characterize and explicitly handle null history IDs, narrow the Pub/Sub handler's checked exception contract, preserve the Gmail command privacy boundary while making unexpected runtime failures safely diagnosable, leave the two false positives unchanged and unsuppressed, run focused then complete verification, compare SpotBugs before and after, update all required logs, and avoid unrelated changes, commits, or pushes. The exact detailed task prompt is preserved in this file under the matching task entry.
 
 ---

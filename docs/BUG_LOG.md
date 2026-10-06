@@ -70,3 +70,19 @@ The six validation messages that exposed a missing recognition/achievement type 
 - Focused verification: tie plus precedence group passed 4/4 (`exactTieFallsBackToGeneral`, `careerVsEvent`, `academicVsEvent`, `callVsEvent`).
 - Regression verification: 40 classifier tests and all 117 Java tests passed.
 - Status: Fixed.
+
+---
+
+## CS-STA-001 — Gmail command silently hid unexpected runtime failures
+
+- Date: 2026-10-06
+- Stage: Test-first SpotBugs remediation
+- Symptom: an unexpected `RuntimeException` at the outer Gmail command boundary produced the same sanitized operational message and exit code as an expected provider failure, with no safe diagnostic distinction.
+- Failing test: `unexpectedRuntimeFailureIsDiagnosableWithoutLeakingSensitiveDetails` initially failed because no runtime-failure diagnostic event existed.
+- Expected behaviour: preserve sanitized user-visible output and a nonzero exit while recording enough non-sensitive metadata to distinguish an unexpected programming/runtime failure.
+- Actual behaviour: `catch (Exception)` silently collapsed both expected checked failures and unexpected unchecked failures into one generic response.
+- Root cause: the command privacy boundary did not separate its known checked contract (`IOException` and `GeneralSecurityException`) from unchecked failures.
+- Fix: split the catches; retain sanitized stderr for both paths, and log only the safe command name and runtime exception class for unexpected failures. The exception message and sensitive provider/mailbox data are neither printed nor logged.
+- Regression verification: focused command tests passed 2/2, the complete `GmailCommandTest` class passed 7/7, and the complete Java suite passed 122/122.
+- Scope: operational diagnosability only; no Gmail retrieval, ingestion, persistence, ranking, classifier, or profile behavior changed.
+- Status: Fixed.
