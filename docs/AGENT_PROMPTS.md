@@ -213,6 +213,336 @@ If you encounter an architectural conflict with the existing repository, stop an
 
 ---
 
+## 2026-10-06 — PMD test-first maintainability remediation
+
+### Exact task prompt
+
+> We have completed the initial PMD analysis and triage for CampusSignal.
+>
+> Current verified state:
+>
+> - Branch: `phase4-live-demo`
+> - Complete Java suite: 122 tests, 0 failures, 0 errors, 0 skipped
+> - Maven PMD Plugin: 3.28.0
+> - PMD runtime: 7.27.0
+> - Initial PMD findings: 32 across 13 classes
+> - 5 findings were triaged as genuine maintainability concerns
+> - 8 as minor style issues
+> - 17 as false positives/not applicable
+> - 2 require further investigation
+> - No production/test Java code has yet been changed due to PMD
+>
+> The source of truth for the triage is:
+>
+> `docs/PMD_ANALYSIS_LOG.md`
+>
+> This task is TEST-FIRST, BEHAVIOUR-PRESERVING REFACTORING.
+>
+> Do not attempt to make the PMD report globally clean.
+>
+> Do not modify code merely to reduce a metric.
+>
+> ## 1. Preserve baseline
+>
+> Before production changes:
+>
+> - record branch
+> - record current commit
+> - confirm working tree is clean
+> - run:
+>
+> `.\mvnw.cmd -B -ntp clean test`
+>
+> Record the actual result.
+>
+> Expected current baseline:
+>
+> 122 tests
+> 0 failures
+> 0 errors
+> 0 skipped
+>
+> Then run PMD and preserve the current finding/metric baseline.
+>
+> ## 2. Refactoring priorities
+>
+> Work on the confirmed maintainability findings in this order unless source inspection reveals a safety reason to change the order.
+>
+> ### A. GmailApiClient.listMessageIds
+>
+> Current PMD signal:
+>
+> - Cognitive Complexity: 21
+> - Cyclomatic Complexity: 15
+>
+> Before refactoring:
+>
+> 1. Read the method and all existing GmailApiClient tests.
+> 2. Identify every distinct observable behaviour:
+>    - successful page retrieval
+>    - pagination
+>    - empty results
+>    - null/missing message lists where relevant
+>    - next-page-token handling
+>    - API failure propagation
+>    - maximum-result behavior
+> 3. Determine which behaviours already have tests.
+> 4. Add only missing characterization tests necessary to protect the current behavior.
+>
+> Then refactor the method into smaller cohesive helpers where justified.
+>
+> Possible responsibilities to separate may include:
+>
+> - fetching one page
+> - extracting IDs
+> - pagination-state handling
+> - result-limit handling
+>
+> Do not change Gmail API semantics.
+>
+> Do not add extra network calls.
+>
+> Do not alter public behavior merely to satisfy PMD.
+>
+> After the refactor:
+>
+> - run focused GmailApiClient tests
+> - run complete suite
+> - rerun PMD
+> - record complexity before vs after
+>
+> ### B. GmailNotificationDecoder.decode
+>
+> Current PMD signal:
+>
+> - Cyclomatic Complexity: 18
+>
+> Before refactoring:
+>
+> 1. Inspect existing decoder tests.
+> 2. Characterize:
+>    - valid notification
+>    - malformed Base64
+>    - malformed JSON
+>    - missing fields
+>    - null/blank data if supported
+>    - valid history ID / email-address behavior
+> 3. Add missing tests only where behavior is currently unprotected.
+>
+> Then separate parsing/validation steps where doing so reduces branching and improves readability.
+>
+> Do not weaken validation.
+>
+> Do not change accepted/rejected notification formats unless an actual bug is discovered.
+>
+> Verify focused tests → full suite → PMD.
+>
+> ### C. GmailHistorySyncService.messageAddedIds
+>
+> Current PMD signal:
+>
+> - Cognitive Complexity: 16
+>
+> Characterize existing behavior before refactoring:
+>
+> - empty history
+> - history entries with no messages-added data
+> - valid message-added IDs
+> - duplicate IDs if relevant
+> - null/missing nested Google API structures where currently supported
+>
+> Prefer extraction of small helpers for nested traversal/null handling if that improves clarity.
+>
+> Do not change history-sync semantics.
+>
+> Verify focused tests → full suite → PMD.
+>
+> ## 3. RuleBasedEmailClassificationService
+>
+> PMD reported:
+>
+> `TooManyMethods`
+>
+> The earlier `GodClass` finding was explicitly triaged as NOT APPLICABLE because this class has one cohesive classification responsibility.
+>
+> Do not split the classifier arbitrarily merely to reduce the method count.
+>
+> Inspect whether there is one cohesive sub-responsibility suitable for extraction.
+>
+> The preferred candidate is:
+>
+> - classification text preprocessing
+> - normalisation
+> - quote segmentation
+> - signature/footer/URL filtering
+> - nearby-negation handling
+>
+> If extraction is justified, create a small package-private collaborator dedicated to text preprocessing.
+>
+> Before extraction, add focused characterization tests only for currently under-protected preprocessing behavior, such as:
+>
+> - repeated `Re:`/`Fwd:` prefixes
+> - Unicode whitespace/punctuation normalization
+> - quote boundary handling
+> - four-token negation-window boundary
+> - text filtering behavior
+>
+> Do NOT change:
+>
+> - category evidence lists
+> - evidence scores
+> - primary-purpose precedence
+> - confidence mapping
+> - classification expectations
+>
+> All existing 40 classifier tests must remain unchanged and passing.
+>
+> The refactoring should be behavior-preserving.
+>
+> ## 4. GmailMessageMapper.collectText
+>
+> PMD reported cyclomatic complexity 12.
+>
+> This item is currently marked for further investigation.
+>
+> Do NOT refactor it immediately.
+>
+> First inspect:
+>
+> - current MIME-mapping behavior
+> - current tests
+> - nested multipart behavior
+> - text/plain vs text/html preference
+> - malformed/empty parts
+> - charset handling
+>
+> Decide whether the complexity represents genuine maintainability risk or is inherent, readable MIME traversal.
+>
+> If existing characterization is insufficient, recommend tests.
+>
+> Do not refactor this method in this task unless the evidence clearly supports doing so and its behavior is adequately protected.
+>
+> ## 5. Stale-history exception cause preservation
+>
+> This is also marked for further investigation.
+>
+> Review the privacy/error-boundary implications.
+>
+> Determine whether preserving an underlying exception cause would:
+>
+> - improve diagnosability
+> - expose private Gmail/OAuth information
+> - alter externally visible behavior
+>
+> Do not change it merely because PMD flagged it.
+>
+> Document the decision separately.
+>
+> ## 6. Minor style and false-positive findings
+>
+> Do not spend this task chasing:
+>
+> - the 17 findings already triaged false-positive/not-applicable
+> - cosmetic issues with no meaningful maintainability impact
+> - Google API `LooseCoupling` findings where concrete library model types are required
+> - intentional framework patterns
+>
+> Do not add blanket suppressions.
+>
+> ## 7. Refactoring discipline
+>
+> For every real refactor:
+>
+> 1. tests GREEN before change
+> 2. characterize missing behavior if necessary
+> 3. make one structural change
+> 4. focused tests
+> 5. complete regression suite
+> 6. PMD rerun
+> 7. compare metric/findings before vs after
+>
+> Never combine several major refactors before verification.
+>
+> Do not change code solely because a metric number is high.
+>
+> ## 8. Documentation
+>
+> Update:
+>
+> `docs/PMD_ANALYSIS_LOG.md`
+>
+> For each remediated finding record:
+>
+> - PMD rule/metric
+> - before value
+> - characterization tests
+> - refactoring performed
+> - after value
+> - behavioral verification
+> - whether finding disappeared/remained
+> - justification
+>
+> Update:
+>
+> `docs/TEST_LOG.md`
+>
+> with any new characterization tests.
+>
+> Append a concise summary to:
+>
+> `docs/AGENT_PROMPTS.md`
+>
+> Append execution history to:
+>
+> `docs/WORK_LOG.md`
+>
+> Update:
+>
+> `docs/BUG_LOG.md`
+>
+> only if investigation reveals an actual behavioural defect. Complexity alone is not a bug.
+>
+> ## 9. Restrictions
+>
+> Do NOT:
+>
+> - change classifier specification
+> - change Gmail externally observable behavior
+> - alter database schema
+> - modify profile scoring
+> - implement ranking
+> - add JaCoCo yet
+> - add performance profiling yet
+> - delete Python
+> - chase all PMD warnings
+> - add broad PMD suppressions
+> - commit or push automatically
+>
+> ## 10. Completion report
+>
+> Report:
+>
+> 1. Baseline test result.
+> 2. PMD baseline.
+> 3. Characterization tests added.
+> 4. Production files refactored.
+> 5. Complexity metrics before vs after.
+> 6. Focused test results.
+> 7. Complete Java-suite result.
+> 8. PMD findings before vs after.
+> 9. Findings deliberately left unchanged and why.
+> 10. Any genuine behavioural bugs discovered.
+> 11. Confirmation that externally observable behavior was preserved.
+> 12. Exact next recommended step.
+>
+> Stop after the approved PMD remediation/refactoring phase.
+
+### Prompt summary
+
+Asked Codex to preserve the clean 122-test and 32-finding PMD baselines; add only missing characterization tests; sequentially refactor the confirmed Gmail API pagination, notification decoding, history traversal, and classifier preprocessing maintainability findings with focused/full-suite/PMD verification after each; investigate but not automatically change MIME traversal or stale-history cause preservation; leave style and false-positive findings alone; document exact before/after metrics and verification; and stop without committing or pushing.
+
+---
+
 ## Prompt Entry
 Date: 2026-10-06
 Contributor: Codex
@@ -1227,5 +1557,11 @@ Task: Initial PMD Maintainability Analysis and Triage
 ### Prompt summary
 
 Asked Codex to preserve and verify the 122-test baseline; add reproducible Maven PMD tooling without changing SpotBugs or adding JaCoCo; run an unsuppressed production-Java analysis with explicit maintainability and complexity coverage; inspect and classify every meaningful finding, especially those in `RuleBasedEmailClassificationService`; distinguish control-flow complexity from runtime complexity; make no production/test behavior changes; document the full baseline, configuration, findings, risks, test protection, and next remediation step; rerun all tests; and stop before refactoring, committing, or pushing.
+
+---
+
+## 2026-10-06 — PMD remediation completion summary
+
+The exact remediation prompt is recorded above under “PMD test-first maintainability remediation.” The task preserved the clean 122-test/32-finding baseline, added 10 focused characterization tests, sequentially refactored Gmail pagination, notification validation, history traversal, and classifier text preprocessing, ran focused/full/PMD verification after every group, left MIME traversal and stale-history cause preservation unchanged after investigation, finished with 132 green tests and 27 unsuppressed PMD findings, found no behavioral bug, and made no commit or push.
 
 ---

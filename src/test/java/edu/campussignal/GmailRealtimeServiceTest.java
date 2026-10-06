@@ -90,6 +90,49 @@ class GmailRealtimeServiceTest {
     }
 
     @Test
+    void emptyHistoryAdvancesProgressWithoutFetchingMessages() throws Exception {
+        state.recordWatch("100", Instant.parse("2026-09-17T08:00:00Z"));
+        var client = mock(GmailApiClient.class);
+        when(client.listHistoryPage("100", null)).thenReturn(new ListHistoryResponse()
+                .setHistoryId(new BigInteger("110")));
+
+        var summary = history.sync(client, "110", 10);
+
+        assertThat(summary.historyRecords()).isZero();
+        assertThat(summary.messagesFound()).isZero();
+        assertThat(state.get().orElseThrow().lastHistoryId()).isEqualTo("110");
+        verify(client, never()).fetch(anyString());
+    }
+
+    @Test
+    void ignoresMissingNestedMessagesAndDeduplicatesIdsAcrossPages() throws Exception {
+        state.recordWatch("100", Instant.parse("2026-09-17T08:00:00Z"));
+        var firstPage = new ListHistoryResponse().setHistory(List.of(
+                new History(),
+                new History().setMessagesAdded(List.of(
+                        new HistoryMessageAdded(),
+                        new HistoryMessageAdded().setMessage(new Message()),
+                        new HistoryMessageAdded().setMessage(new Message().setId(" ")),
+                        new HistoryMessageAdded().setMessage(new Message().setId("m1"))))))
+                .setNextPageToken("page2").setHistoryId(new BigInteger("105"));
+        var secondPage = page("110", "m1", "m2");
+        var client = mock(GmailApiClient.class);
+        when(client.listHistoryPage("100", null)).thenReturn(firstPage);
+        when(client.listHistoryPage("100", "page2")).thenReturn(secondPage);
+        when(client.fetch("m1")).thenReturn(email("m1"));
+        when(client.fetch("m2")).thenReturn(email("m2"));
+
+        var summary = history.sync(client, "110", 10);
+
+        assertThat(summary.historyRecords()).isEqualTo(3);
+        assertThat(summary.messagesFound()).isEqualTo(2);
+        assertThat(summary.created()).isEqualTo(2);
+        assertThat(state.get().orElseThrow().lastHistoryId()).isEqualTo("110");
+        verify(client, times(1)).fetch("m1");
+        verify(client, times(1)).fetch("m2");
+    }
+
+    @Test
     void failedMessageDoesNotAdvanceHistorySoRedeliveryCanRetry() throws Exception {
         state.recordWatch("100", Instant.parse("2026-09-17T08:00:00Z"));
         var client = mock(GmailApiClient.class);

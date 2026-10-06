@@ -4,10 +4,13 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
+import com.google.api.services.gmail.model.HistoryMessageAdded;
 import com.google.api.services.gmail.model.ListHistoryResponse;
+import com.google.api.services.gmail.model.Message;
 import edu.campussignal.gmail.GmailApiClient;
 import edu.campussignal.gmail.StaleGmailHistoryException;
 
@@ -96,24 +99,19 @@ public class GmailHistorySyncService {
     }
 
     private static List<String> messageAddedIds(List<ListHistoryResponse> pages) {
-        var ids = new LinkedHashSet<String>();
-        for (var page : pages) {
-            if (page.getHistory() == null) {
-                continue;
-            }
-            for (var record : page.getHistory()) {
-                if (record.getMessagesAdded() == null) {
-                    continue;
-                }
-                for (var addition : record.getMessagesAdded()) {
-                    var message = addition.getMessage();
-                    if (message != null && message.getId() != null && !message.getId().isBlank()) {
-                        ids.add(message.getId());
-                    }
-                }
-            }
-        }
-        return List.copyOf(ids);
+        return pages.stream()
+                .flatMap(page -> stream(page.getHistory()))
+                .flatMap(record -> stream(record.getMessagesAdded()))
+                .map(HistoryMessageAdded::getMessage)
+                .filter(Objects::nonNull)
+                .map(Message::getId)
+                .filter(id -> id != null && !id.isBlank())
+                .distinct()
+                .toList();
+    }
+
+    private static <T> Stream<T> stream(List<T> values) {
+        return values == null ? Stream.empty() : values.stream();
     }
 
     private static BigInteger historyId(String value) {

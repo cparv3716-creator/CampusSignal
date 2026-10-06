@@ -464,4 +464,41 @@ class RuleBasedEmailClassificationServiceTest {
         assertThat(result.category()).isEqualTo(EmailCategory.WELLBEING_SUPPORT);
         assertThat(result.confidence()).isEqualTo(ClassificationConfidence.HIGH);
     }
+
+    @Test
+    void repeatedPrefixesAndUnicodeSpacingNormalizeTogether() {
+        String subject = "Re: FWD: Re: Research\u00a0Workshop — Reliable Systems";
+        String body = "Speaker: Dr Example. Abstract: dependable systems.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.ACADEMIC_RESEARCH);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.HIGH);
+    }
+
+    @Test
+    void forwardedMessageBoundaryKeepsQuotedEvidenceOutOfCurrentMessage() {
+        String subject = "Pool status";
+        String body = "The pool reopens today and normal facility service resumes.\n\n"
+                + "----- Forwarded message -----\n"
+                + "Summer internship applications are open with a stipend.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.ADMINISTRATIVE_NOTICE);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.HIGH);
+    }
+
+    @Test
+    void nearbyNegationWindowIncludesExactlyFourPrecedingTokens() {
+        EmailClassificationResult fourTokens = classifier.classify(
+                "Volunteer project", "This is not a current paid internship.");
+        EmailClassificationResult fiveTokens = classifier.classify(
+                "Volunteer project", "This is not actually a current paid internship.");
+
+        assertThat(fourTokens.category()).isEqualTo(EmailCategory.GENERAL_OTHER);
+        assertThat(fourTokens.confidence()).isEqualTo(ClassificationConfidence.LOW);
+        assertThat(fiveTokens.category()).isEqualTo(EmailCategory.CAREER);
+        assertThat(fiveTokens.confidence()).isEqualTo(ClassificationConfidence.MEDIUM);
+    }
 }

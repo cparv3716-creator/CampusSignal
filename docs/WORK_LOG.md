@@ -806,3 +806,79 @@ PR created by: Pending
 Create a separate test-first classifier remediation task: add focused preprocessing and negation-boundary characterization, extract only text preprocessing/negation into a package-private collaborator, preserve category evidence and precedence, run the 40 classifier tests and full suite, and rerun PMD.
 
 ---
+
+## Work Entry
+Date: 2026-10-06
+Contributor: Codex
+Milestone: CS5013 Static Analysis
+Stage: Test-first PMD Maintainability Remediation
+Branch: phase4-live-demo
+
+### Status
+Completed — four bounded maintainability refactorings were characterized and verified; two investigation-only findings were deliberately left unchanged.
+
+### Starting state
+- Commit: `71e43ca00329ff056e17fca95ed8497b9da9d689`.
+- Starting worktree: clean.
+- Baseline command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" clean test`.
+- Baseline result: BUILD SUCCESS; **122 tests run, 0 failures, 0 errors, 0 skipped in 40.922 seconds**.
+- PMD command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -DskipTests compile pmd:pmd`.
+- Baseline PMD result: BUILD SUCCESS; **32 findings across 13 classes** with Maven PMD Plugin 3.28.0 and PMD 7.27.0.
+
+### Gmail message-list pagination
+- Reviewed all existing `GmailApiClientTest` coverage and identified missing blank/duplicate ID and blank-token characterization.
+- Added two tests; pre-refactor focused result: 11/11 passing.
+- Refactored ID collection and pagination-state validation without adding network calls or changing maximum-result, duplicate, failure, or token behavior.
+- An initial four-helper shape passed tests but raised PMD from 32 to 35 by introducing one `GodClass` and four `LooseCoupling` signals. It was immediately simplified to two cohesive interface-based helpers.
+- Final verification: 11/11 focused; 124/124 complete; both original complexity findings disappeared; PMD 32 → 30.
+
+### Gmail notification decoding
+- Added three tests for blank decoded data, missing required fields with exact established messages, and non-numeric textual history IDs; pre-refactor focused result: 5/5.
+- Confirmed malformed Base64 is outside the decoder boundary because Google Pub/Sub supplies decoded `ByteString` bytes. Malformed decoded payload data remains protected by invalid-JSON handling and Pub/Sub nack tests.
+- Extracted JSON-object parsing, email validation, and history-ID validation while retaining all accepted/rejected formats and sanitized exceptions.
+- Verification: 5/5 focused; 127/127 complete; cyclomatic finding disappeared; PMD 30 → 29.
+
+### Gmail history message-added traversal
+- Added two Spring integration tests covering empty history, missing messages-added lists, null messages/IDs, blank IDs, duplicates across pages, stable progress, and no unnecessary fetches.
+- The first test compilation attempt exposed one missing parenthesis in the new fixture; it was corrected before production modification, after which 7/7 characterization tests passed.
+- Replaced nested null-aware loops with ordered hierarchy traversal, null-to-empty collection handling, ID filtering, and encounter-order deduplication.
+- Verification: 7/7 focused; 129/129 complete; cognitive finding disappeared; PMD 29 → 28.
+
+### Classifier preprocessing extraction
+- Added three behavior-level tests for repeated reply/forward prefixes with Unicode normalization, forwarded-message quote separation, and the exact four-token negation boundary. Pre-refactor result: 43/43.
+- Added package-private `ClassificationTextPreprocessor` and moved only normalization, filtering, quote/footer segmentation, phrase matching, and negation scanning.
+- Category evidence lists, score weights, confidence mapping, tie behavior, and precedence were untouched. All original 40 classifier tests remained unchanged.
+- The first extraction left `TooManyMethods` on both classes. Consolidating duplicate positive/negated occurrence scans removed the collaborator finding without changing behavior.
+- Final classifier verification: 43/43 focused and 132/132 complete.
+- Classifier declared methods reduced from 25 to 14; `TooManyMethods` remains because the threshold is 10. The remaining category/orchestration methods are cohesive, so no metric-driven split was performed. The previously not-applicable `GodClass` finding disappeared.
+
+### Investigation-only decisions
+- `GmailMessageMapper.collectText`: left unchanged at cyclomatic complexity 12. The compact recursive MIME traversal is readable and behavior-sensitive. Future characterization should cover disposition-only attachments, multiple fragments/traversal order, null/empty nested bodies, and invalid charset fallback before reconsidering extraction.
+- Stale-history cause preservation: left unchanged. The domain exception type already diagnoses the expected 404 recovery signal; retaining a provider exception could expose private provider response/request detail through future generic stack logging. Non-404 exceptions still propagate unchanged.
+
+### Final analysis and verification
+- PMD final: **27 findings across 13 classes** — 19 Best Practices, 4 Design, 3 Documentation, 1 Error Prone; two Priority 2 and 25 Priority 3.
+- Five reports disappeared: four targeted complexity findings and the classifier `GodClass` false-positive signal.
+- Remaining target-adjacent reports: classifier `TooManyMethods`, mapper cyclomatic complexity 12, and stale-history `PreserveStackTrace`, each deliberately documented and unsuppressed.
+- Final focused results: Gmail API 11, decoder 5, realtime history 7, classifier 43; all green.
+- Final clean command: `.\mvnw.cmd -B -ntp clean test`.
+- Final complete result: BUILD SUCCESS; **132 tests run, 0 failures, 0 errors, 0 skipped in 37.600 seconds**.
+- No genuine behavioral defect was found, so `docs/BUG_LOG.md` was not changed.
+- No PMD or SpotBugs configuration, suppression, exclusion, threshold, database schema, profile scoring, ranking, Python code, or externally observable Gmail/classifier behavior was changed.
+- No commit or push was created.
+
+### Files
+- Production: `GmailApiClient.java`, `GmailNotificationDecoder.java`, `GmailHistorySyncService.java`, `RuleBasedEmailClassificationService.java`, and new `ClassificationTextPreprocessor.java`.
+- Tests: `GmailApiClientTest.java`, `GmailNotificationDecoderTest.java`, `GmailRealtimeServiceTest.java`, and `RuleBasedEmailClassificationServiceTest.java`.
+- Documentation: `PMD_ANALYSIS_LOG.md`, `TEST_LOG.md`, `AGENT_PROMPTS.md`, and `WORK_LOG.md`.
+- `BUG_LOG.md`: unchanged.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next step
+Add the four recommended MIME mapper characterizations in a separate test-first task, then reassess one small `collectText` extraction; do not preserve the stale provider cause unless an explicitly privacy-reviewed internal diagnostic sink is introduced.
+
+---

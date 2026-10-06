@@ -29,4 +29,29 @@ class GmailNotificationDecoderTest {
         assertThatThrownBy(() -> decoder.decode("{\"emailAddress\":\"a@b.com\",\"historyId\":-1}".getBytes()))
                 .isInstanceOf(InvalidGmailNotificationException.class);
     }
+
+    @Test
+    void rejectsBlankJsonDocument() {
+        assertThatThrownBy(() -> decoder.decode(new byte[0]))
+                .isInstanceOf(InvalidGmailNotificationException.class)
+                .hasMessage("Gmail notification is not a JSON object");
+    }
+
+    @Test
+    void rejectsMissingRequiredFieldsWithTheirExistingMessages() {
+        assertThatThrownBy(() -> decoder.decode("{\"historyId\":1}".getBytes()))
+                .isInstanceOf(InvalidGmailNotificationException.class)
+                .hasMessage("Gmail notification is missing emailAddress");
+        assertThatThrownBy(() -> decoder.decode("{\"emailAddress\":\"a@b.com\"}".getBytes()))
+                .isInstanceOf(InvalidGmailNotificationException.class)
+                .hasMessage("Gmail notification has an invalid historyId");
+    }
+
+    @Test
+    void rejectsNonNumericTextualHistoryId() {
+        assertThatThrownBy(() -> decoder.decode(
+                "{\"emailAddress\":\"a@b.com\",\"historyId\":\"12x\"}".getBytes()))
+                .isInstanceOf(InvalidGmailNotificationException.class)
+                .hasMessage("Gmail notification has an invalid historyId");
+    }
 }

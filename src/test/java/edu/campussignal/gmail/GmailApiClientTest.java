@@ -34,6 +34,26 @@ class GmailApiClientTest {
     }
 
     @Test
+    void ignoresMissingBlankAndDuplicateIdsAcrossPages() throws Exception {
+        var transport = new QueuedHttpTransport()
+                .enqueue("{\"messages\":[{}, {\"id\":\"\"}, {\"id\":\"a\"}],\"nextPageToken\":\"page2\"}")
+                .enqueue("{\"messages\":[{\"id\":\"a\"},{\"id\":\"b\"}],\"nextPageToken\":\"page3\"}");
+
+        assertThat(client(transport).listMessageIds(2)).containsExactly("a", "b");
+        assertThat(transport.urls).hasSize(2);
+        assertThat(transport.urls.getLast()).contains("pageToken=page2", "maxResults=1");
+    }
+
+    @Test
+    void blankNextPageTokenEndsPagination() throws Exception {
+        var transport = new QueuedHttpTransport()
+                .enqueue("{\"messages\":[{\"id\":\"a\"}],\"nextPageToken\":\" \"}");
+
+        assertThat(client(transport).listMessageIds(10)).containsExactly("a");
+        assertThat(transport.urls).hasSize(1);
+    }
+
+    @Test
     void fetchesFullMessageAndMapsItsBody() throws Exception {
         var transport = new QueuedHttpTransport().enqueue("""
                 {"id":"abc","internalDate":"1788861600000","payload":{"mimeType":"text/plain",

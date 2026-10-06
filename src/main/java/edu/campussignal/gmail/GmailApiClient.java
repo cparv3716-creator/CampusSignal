@@ -6,9 +6,12 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.ListHistoryResponse;
+import com.google.api.services.gmail.model.Message;
 import com.google.api.services.gmail.model.WatchRequest;
 import edu.campussignal.dto.IncomingEmail;
 import edu.campussignal.service.EmailSource;
@@ -38,27 +41,38 @@ public class GmailApiClient implements EmailSource {
         var ids = new LinkedHashSet<String>();
         var seenTokens = new HashSet<String>();
         String pageToken = null;
-        do {
+        while (true) {
             var page = gmail.users().messages().list(userId)
                     .setLabelIds(List.of("INBOX"))
                     .setMaxResults((long) (maxResults - ids.size()))
                     .setPageToken(pageToken).execute();
-            if (page.getMessages() != null) {
-                for (var message : page.getMessages()) {
-                    if (message.getId() != null && !message.getId().isBlank()) {
-                        ids.add(message.getId());
-                    }
-                    if (ids.size() == maxResults) {
-                        break;
-                    }
-                }
+            var messageIds = page.getMessages() == null ? Stream.<String>empty()
+                    : page.getMessages().stream().map(Message::getId);
+            addMessageIds(messageIds, ids, maxResults);
+            pageToken = nextPageToken(page.getNextPageToken(), seenTokens,
+                    ids.size() >= maxResults);
+            if (pageToken == null) {
+                return List.copyOf(ids);
             }
-            pageToken = page.getNextPageToken();
-            if (pageToken != null && !seenTokens.add(pageToken)) {
-                throw new IOException("Gmail returned a repeated page token");
+        }
+    }
+
+    private void addMessageIds(Stream<String> messageIds, Set<String> ids, int maximum) {
+        var iterator = messageIds.iterator();
+        while (iterator.hasNext() && ids.size() < maximum) {
+            String messageId = iterator.next();
+            if (messageId != null && !messageId.isBlank()) {
+                ids.add(messageId);
             }
-        } while (pageToken != null && !pageToken.isBlank() && ids.size() < maxResults);
-        return List.copyOf(ids);
+        }
+    }
+
+    private String nextPageToken(String candidate, Set<String> seenTokens, boolean complete)
+            throws IOException {
+        if (candidate != null && !seenTokens.add(candidate)) {
+            throw new IOException("Gmail returned a repeated page token");
+        }
+        return candidate == null || candidate.isBlank() || complete ? null : candidate;
     }
 
     @Override

@@ -14,6 +14,11 @@ public class GmailNotificationDecoder {
     }
 
     public GmailNotification decode(byte[] data) {
+        var root = notificationObject(data);
+        return new GmailNotification(requiredEmailAddress(root), requiredHistoryId(root));
+    }
+
+    private JsonNode notificationObject(byte[] data) {
         final JsonNode root;
         try {
             root = mapper.readTree(data);
@@ -23,24 +28,30 @@ public class GmailNotificationDecoder {
         if (root == null || !root.isObject()) {
             throw new InvalidGmailNotificationException("Gmail notification is not a JSON object");
         }
+        return root;
+    }
+
+    private String requiredEmailAddress(JsonNode root) {
         var email = root.get("emailAddress");
         if (email == null || !email.isTextual() || email.textValue().isBlank()) {
             throw new InvalidGmailNotificationException("Gmail notification is missing emailAddress");
         }
+        return email.textValue().strip();
+    }
+
+    private String requiredHistoryId(JsonNode root) {
         var history = root.get("historyId");
-        String historyId;
         if (history != null && history.isIntegralNumber()) {
             var number = history.bigIntegerValue();
             if (number.signum() < 0) {
                 throw new InvalidGmailNotificationException("Gmail notification has an invalid historyId");
             }
-            historyId = number.toString();
-        } else if (history != null && history.isTextual()
-                && history.textValue().matches("[0-9]+")) {
-            historyId = history.textValue();
-        } else {
-            throw new InvalidGmailNotificationException("Gmail notification has an invalid historyId");
+            return number.toString();
         }
-        return new GmailNotification(email.textValue().strip(), historyId);
+        if (history != null && history.isTextual()
+                && history.textValue().matches("[0-9]+")) {
+            return history.textValue();
+        }
+        throw new InvalidGmailNotificationException("Gmail notification has an invalid historyId");
     }
 }

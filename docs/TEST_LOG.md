@@ -295,3 +295,39 @@ New JUnit tests: **5**
 - SpotBugs command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -DskipTests compile spotbugs:spotbugs`.
 - SpotBugs result: **BUILD SUCCESS; findings reduced from 6 to 2**, with only the two documented false positives remaining.
 
+---
+
+## 2026-10-06 — PMD remediation characterization and regression tests
+
+New JUnit tests: **10**. Baseline: 122 tests. Final total: **132 tests**.
+
+| Test | Class | Behavior protected | Final status |
+|---|---|---|---|
+| `ignoresMissingBlankAndDuplicateIdsAcrossPages` | `GmailApiClientTest` | Missing/blank provider IDs are ignored, duplicate IDs retain first-seen order, the remaining maximum is sent on page two, and no page beyond the result limit is fetched. | PASS |
+| `blankNextPageTokenEndsPagination` | `GmailApiClientTest` | A blank provider next-page token terminates pagination without another API call. | PASS |
+| `rejectsBlankJsonDocument` | `GmailNotificationDecoderTest` | Empty decoded notification bytes retain the sanitized non-object failure. | PASS |
+| `rejectsMissingRequiredFieldsWithTheirExistingMessages` | `GmailNotificationDecoderTest` | Missing email/history fields retain their established exception type and messages. | PASS |
+| `rejectsNonNumericTextualHistoryId` | `GmailNotificationDecoderTest` | Non-digit textual history IDs remain rejected. | PASS |
+| `emptyHistoryAdvancesProgressWithoutFetchingMessages` | `GmailRealtimeServiceTest` | An empty history page advances its usable history ID and performs no message fetch. | PASS |
+| `ignoresMissingNestedMessagesAndDeduplicatesIdsAcrossPages` | `GmailRealtimeServiceTest` | Missing messages-added data, null messages, null/blank IDs, and duplicate IDs across pages are harmless and deterministic. | PASS |
+| `repeatedPrefixesAndUnicodeSpacingNormalizeTogether` | `RuleBasedEmailClassificationServiceTest` | Repeated `Re:`/`Fwd:` prefixes plus Unicode spacing/punctuation preserve classification. | PASS |
+| `forwardedMessageBoundaryKeepsQuotedEvidenceOutOfCurrentMessage` | `RuleBasedEmailClassificationServiceTest` | Forwarded-message boundaries prevent quoted career evidence from overriding the current administrative purpose. | PASS |
+| `nearbyNegationWindowIncludesExactlyFourPrecedingTokens` | `RuleBasedEmailClassificationServiceTest` | The existing negation window includes exactly four preceding normalized tokens and excludes the fifth. | PASS |
+
+### Ordered verification
+
+- Gmail API characterization before refactor: `GmailApiClientTest` — **11 passed**.
+- Gmail API after final refactor: `GmailApiClientTest` — **11 passed**; complete suite — **124 passed**; PMD — **30 findings**.
+- Notification characterization before refactor: `GmailNotificationDecoderTest` — **5 passed**.
+- Notification after refactor: `GmailNotificationDecoderTest` — **5 passed**; complete suite — **127 passed**; PMD — **29 findings**.
+- History characterization initially had one test-source parenthesis compilation error; it was corrected before production code changed. Characterization rerun — **7 passed**.
+- History after refactor: `GmailRealtimeServiceTest` — **7 passed**; complete suite — **129 passed**; PMD — **28 findings**.
+- Classifier characterization before extraction: `RuleBasedEmailClassificationServiceTest` — **43 passed**.
+- Classifier after final extraction: **43 passed**, including all unchanged original 40; complete suite — **132 passed**; PMD — **27 findings**.
+
+### Complete result
+
+- Command: `.\mvnw.cmd -B -ntp clean test`.
+- Final result: **BUILD SUCCESS — 132 tests run, 0 failures, 0 errors, 0 skipped in 37.600 seconds**.
+- No expectation was changed, weakened, disabled, or skipped.
+

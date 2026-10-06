@@ -326,3 +326,81 @@ Result: **BUILD SUCCESS — 122 tests run, 0 failures, 0 errors, 0 skipped in 29
 ## Exact next recommended step
 
 Create a separate test-first remediation task for the classifier's `TooManyMethods` finding: add focused quote-splitting, repeated-prefix, normalization, and four-token negation-boundary characterization tests; then extract only text preprocessing/negation into one package-private collaborator, preserve `classifyCurrent` order and every existing expectation, run all 40 classifier tests plus the full Java suite, and rerun PMD to measure the structural change.
+
+---
+
+## 2026-10-06 — Test-first remediation results
+
+### Preserved baseline
+
+- Branch: `phase4-live-demo`.
+- Commit before changes: `71e43ca00329ff056e17fca95ed8497b9da9d689`.
+- Starting worktree: clean (`git status --short --branch` reported only `## phase4-live-demo`).
+- Baseline command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" clean test`.
+- Baseline result: **BUILD SUCCESS — 122 tests run, 0 failures, 0 errors, 0 skipped in 40.922 seconds**.
+- PMD baseline command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -DskipTests compile pmd:pmd`.
+- PMD baseline: **32 findings across 13 classes**, reproducing the initial analysis. Plugin `3.28.0`, PMD `7.27.0`, and the existing `config/pmd/ruleset.xml` were unchanged.
+
+### PMD-005 and PMD-006 — `GmailApiClient.listMessageIds`
+
+- **Before:** cognitive complexity 21; cyclomatic complexity 15.
+- **Characterization added:** `ignoresMissingBlankAndDuplicateIdsAcrossPages` and `blankNextPageTokenEndsPagination`. Existing tests already covered ordinary pagination, empty/missing message lists, maximum enforcement, request parameters, provider failures, repeated tokens, and invalid limits.
+- **Refactoring:** retained one request per page and the same remaining-result limit while extracting bounded ID collection and next-token validation. Invalid/blank IDs remain ignored, insertion order and deduplication remain stable, blank tokens stop pagination, and repeated non-null tokens still fail.
+- **After:** neither cognitive nor cyclomatic rule reports `listMessageIds`; therefore cognitive complexity is below the configured reporting threshold of 15 and cyclomatic complexity is below 10. Both findings disappeared.
+- **Verification:** 11 focused tests passed; the complete suite passed with 124 tests; PMD fell from 32 to 30 findings.
+
+### PMD-019 — `GmailNotificationDecoder.decode`
+
+- **Before:** cyclomatic complexity 18.
+- **Characterization added:** `rejectsBlankJsonDocument`, `rejectsMissingRequiredFieldsWithTheirExistingMessages`, and `rejectsNonNumericTextualHistoryId`. Existing tests continued to cover valid trimmed email addresses, string and integral history IDs, malformed JSON, non-object JSON, blank email, unsupported history types, and negative numeric IDs.
+- **Base64 boundary:** malformed Base64 is not an input state of this decoder. The Google Pub/Sub client supplies already-decoded `ByteString` bytes; malformed decoded payload bytes enter as invalid JSON and are rejected/nacked by the existing decoder/subscriber path. Null byte arrays are not a supported Pub/Sub state because `PubsubMessage.getData()` is non-null.
+- **Refactoring:** separated JSON-object parsing, required email extraction, and required history-ID extraction without changing accepted formats, exception types, or sanitized messages.
+- **After:** `decode` has no cyclomatic finding (below 10); the finding disappeared.
+- **Verification:** 5 focused tests passed; the complete suite passed with 127 tests; PMD fell from 30 to 29 findings.
+
+### PMD-025 — `GmailHistorySyncService.messageAddedIds`
+
+- **Before:** cognitive complexity 16.
+- **Characterization added:** `emptyHistoryAdvancesProgressWithoutFetchingMessages` and `ignoresMissingNestedMessagesAndDeduplicatesIdsAcrossPages`.
+- **Refactoring:** expressed the provider hierarchy as ordered page/history/message-added traversal, converting missing collections to empty streams, filtering null messages and null/blank IDs, and retaining first-seen encounter order through `distinct()`.
+- **After:** no cognitive-complexity finding remains (below 15); the finding disappeared.
+- **Verification:** 7 focused tests passed; the complete suite passed with 129 tests; PMD fell from 29 to 28 findings.
+
+### PMD-028 — `RuleBasedEmailClassificationService` method count
+
+- **Before:** `TooManyMethods` remained visible; source inspection counted 25 declared outer-class methods. The separate `GodClass` report was already triaged not applicable.
+- **Characterization added:** `repeatedPrefixesAndUnicodeSpacingNormalizeTogether`, `forwardedMessageBoundaryKeepsQuotedEvidenceOutOfCurrentMessage`, and `nearbyNegationWindowIncludesExactlyFourPrecedingTokens`. The existing filtering tests for signature, footer, URL, and email-address text were retained unchanged.
+- **Refactoring:** moved only stateless text normalization, URL/email/punctuation filtering, quote/footer segmentation, phrase matching, and nearby-negation scanning into package-private `ClassificationTextPreprocessor`. Category evidence lists, scores, confidence mapping, tie behavior, and `classifyCurrent` precedence remain in the classifier and were not changed.
+- **After:** the classifier has 14 declared outer-class methods. `TooManyMethods` still reports because the configured default threshold is 10. The preprocessing collaborator does not report `TooManyMethods`; the previously not-applicable `GodClass` signal also disappeared. The remaining classifier methods are cohesive orchestration and category-evidence rules, so further splitting in this task would be metric-driven rather than evidence-driven.
+- **Verification:** all 43 classifier tests passed, including the unchanged original 40; the complete suite passed with 132 tests. PMD settled at 27 findings after collaborator consolidation.
+
+### PMD-016 investigation — `GmailMessageMapper.collectText`
+
+- **Decision:** leave unchanged. Its cyclomatic complexity remains 12.
+- **Reasoning:** the method is a compact recursive traversal of an inherently branched MIME tree. Its branches directly express attachment exclusion, body availability, plain-versus-HTML decoding, and child traversal. Splitting it now would risk altering plain-text preference, traversal order, charset fallback, HTML cleanup, or attachment behavior without a clearer ownership seam.
+- **Existing protection:** six mapper tests cover nested multipart/plain preference, filename attachments, HTML fallback and cleanup, UTF-8/declared charset decoding, missing payload/optional headers, and malformed encoded body data.
+- **Recommended characterization before any future refactor:** disposition-only attachments, multiple same-type body fragments and traversal order, null/empty child bodies, and invalid/unknown charset fallback.
+
+### PMD-008 investigation — stale-history cause preservation
+
+- **Decision:** leave `StaleGmailHistoryException` without the underlying `GoogleJsonResponseException` cause. `PreserveStackTrace` remains visible.
+- **Diagnosability:** the domain exception type already identifies the expected Gmail 404/stale-cursor condition and triggers bounded recovery; non-404 provider failures are rethrown unchanged.
+- **Privacy:** a retained provider exception may carry response text or request/provider metadata and could later be emitted by generic stack-trace logging. The stale path is an expected recovery signal, so that additional detail does not currently justify the exposure risk.
+- **External behavior:** unchanged. Recovery, user-visible sanitization, and command/PubSub behavior remain the same.
+
+### Final PMD comparison
+
+- **Before:** 32 findings — 19 Best Practices, 9 Design, 3 Documentation, 1 Error Prone; Priority 2: 2, Priority 3: 30.
+- **After:** 27 findings across 13 classes — 19 Best Practices, 4 Design, 3 Documentation, 1 Error Prone; Priority 2: 2, Priority 3: 25.
+- **Disappeared:** the two `listMessageIds` complexity findings, decoder cyclomatic complexity, history traversal cognitive complexity, and the not-applicable classifier `GodClass` signal.
+- **Remaining rule totals:** 12 `LooseCoupling`, 3 `CyclomaticComplexity`, 3 `LiteralsFirstInComparisons`, 3 `UncommentedEmptyConstructor`, 2 `GuardLogStatement`, and one each of `AvoidUsingHardCodedIP`, `CloseResource`, `PreserveStackTrace`, and `TooManyMethods`.
+- No suppression, exclusion, rule threshold, PMD configuration, SpotBugs configuration, or production behavior contract was changed.
+
+### Final verification and next step
+
+- Final focused results: Gmail API 11/11, decoder 5/5, realtime history 7/7, classifier 43/43.
+- Final clean command: `.\mvnw.cmd -B -ntp clean test`.
+- Final clean Java result: **BUILD SUCCESS — 132 tests run, 0 failures, 0 errors, 0 skipped in 37.600 seconds**.
+- Final PMD rerun: **BUILD SUCCESS — 27 findings across 13 classes**.
+- No genuine behavioral defect was discovered; `docs/BUG_LOG.md` was not changed.
+- Exact next recommended step: add the four mapper characterizations listed above in a separate test-first task, then reassess whether a single attachment/body-decoding predicate extraction materially improves `collectText`; keep stale-history cause preservation unchanged unless a privacy-reviewed internal diagnostic sink is introduced.
