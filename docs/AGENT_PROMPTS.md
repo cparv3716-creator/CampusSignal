@@ -1001,3 +1001,231 @@ Task: Test-First SpotBugs Remediation
 Asked Codex to redo the approved test-first remediation of the six-finding SpotBugs baseline: characterize and explicitly handle null history IDs, narrow the Pub/Sub handler's checked exception contract, preserve the Gmail command privacy boundary while making unexpected runtime failures safely diagnosable, leave the two false positives unchanged and unsuppressed, run focused then complete verification, compare SpotBugs before and after, update all required logs, and avoid unrelated changes, commits, or pushes. The exact detailed task prompt is preserved in this file under the matching task entry.
 
 ---
+
+## Prompt Entry
+Date: 2026-10-06
+Contributor: Codex
+Branch: phase4-live-demo
+Milestone: CS5013 Static Analysis
+Task: Initial PMD Maintainability Analysis and Triage
+
+### Exact task prompt
+
+> We have completed the SpotBugs phase of CampusSignal.
+>
+> Verified current state:
+>
+> - Branch: `phase4-live-demo`
+> - Complete Java suite: 122 tests, 0 failures, 0 errors, 0 skipped
+> - SpotBugs initial findings: 6
+> - SpotBugs after remediation: 2
+> - Remaining two findings are reviewed false positives and remain unsuppressed
+> - No broad SpotBugs exclusions/suppressions were introduced
+> - Genuine operational defect `CS-STA-001` was discovered and fixed during the SpotBugs remediation phase
+>
+> We are now beginning the CS5013 PMD / maintainability-analysis phase.
+>
+> This task is ANALYSIS FIRST.
+>
+> Do NOT automatically refactor or fix all PMD findings.
+>
+> ## 1. Preserve current baseline
+>
+> Before changing anything:
+>
+> - record branch
+> - record current commit SHA
+> - confirm working-tree state
+> - run the complete Java suite
+>
+> Record the actual result.
+>
+> Expected baseline is currently:
+>
+> 122 tests
+> 0 failures
+> 0 errors
+> 0 skipped
+> BUILD SUCCESS
+>
+> Use the actual result rather than assuming this value.
+>
+> ## 2. Inspect Maven configuration
+>
+> Read `pom.xml`.
+>
+> Add a suitable Maven PMD plugin configuration compatible with the current Java/Spring Boot project.
+>
+> Use a reproducible Maven-based setup.
+>
+> Do not manually download standalone PMD binaries.
+>
+> Do not remove or alter the existing SpotBugs configuration.
+>
+> Do not add JaCoCo yet.
+>
+> ## 3. Initial PMD analysis
+>
+> Run PMD across the Java production source.
+>
+> Use a reasonable standard Java ruleset appropriate for maintainability/design analysis.
+>
+> Record:
+>
+> - PMD/plugin version
+> - Maven command
+> - rulesets used
+> - total findings
+> - affected class
+> - method/location
+> - rule name
+> - priority/severity where available
+>
+> Do not suppress findings initially.
+>
+> ## 4. Pay particular attention to complexity
+>
+> Inspect PMD findings related to:
+>
+> - cyclomatic complexity
+> - cognitive/NPath-style complexity if available
+> - excessive method length
+> - excessive class length
+> - deep nesting
+> - complicated conditional logic
+> - duplicated conditional branches
+> - unnecessary local variables
+> - unused/private code
+> - empty blocks/catches
+> - overly broad design patterns
+> - other maintainability/code-smell findings
+>
+> Pay particular attention to:
+>
+> `RuleBasedEmailClassificationService`
+>
+> because its behaviour is now protected by 40 classifier tests and it has accumulated multiple rule paths.
+>
+> However, do NOT assume it needs refactoring merely because it is large. Let PMD evidence and source inspection guide the decision.
+>
+> ## 5. Triage every meaningful finding
+>
+> For each PMD finding classify it as:
+>
+> - REAL MAINTAINABILITY ISSUE
+> - MINOR STYLE ISSUE
+> - FALSE POSITIVE / NOT APPLICABLE
+> - NEEDS FURTHER INVESTIGATION
+>
+> For each finding record:
+>
+> 1. PMD rule.
+> 2. What the rule means.
+> 3. Exact CampusSignal code affected.
+> 4. Why PMD flagged it.
+> 5. Whether it actually harms readability/maintainability.
+> 6. Whether changing it risks behaviour.
+> 7. Smallest sensible refactoring, if justified.
+> 8. Tests currently protecting the behaviour.
+> 9. Whether additional characterization/regression tests would be needed before refactoring.
+>
+> Do not modify production code during this initial triage.
+>
+> ## 6. Complexity versus time complexity
+>
+> Do not confuse PMD complexity findings with algorithmic runtime complexity.
+>
+> If PMD reports high cyclomatic complexity, describe it as control-flow/maintainability complexity.
+>
+> Do not claim that reducing cyclomatic complexity automatically improves Big-O runtime.
+>
+> If any genuinely performance-sensitive algorithm is noticed, record it separately for later profiling rather than changing it in this task.
+>
+> ## 7. Documentation
+>
+> Create:
+>
+> `docs/PMD_ANALYSIS_LOG.md`
+>
+> Record:
+>
+> - date
+> - branch
+> - commit
+> - PMD version
+> - Maven configuration
+> - command
+> - baseline test result
+> - initial findings
+> - finding-by-finding triage
+> - proposed remediation
+> - refactoring risk
+> - existing test protection
+> - unresolved questions
+>
+> Append a concise task summary to:
+>
+> `docs/AGENT_PROMPTS.md`
+>
+> Append an execution entry to:
+>
+> `docs/WORK_LOG.md`
+>
+> Do not update `BUG_LOG.md` merely because PMD reports maintainability issues.
+>
+> Only genuine behavioural defects discovered during investigation belong in `BUG_LOG.md`.
+>
+> ## 8. Regression verification
+>
+> After adding PMD tooling/documentation only, rerun the complete Java test suite.
+>
+> The existing 122 tests should remain green.
+>
+> Record the actual result.
+>
+> ## 9. Restrictions
+>
+> Do NOT:
+>
+> - refactor production code yet
+> - modify classifier behaviour
+> - modify Gmail behaviour
+> - modify database schema
+> - modify profile scoring
+> - implement ranking
+> - add JaCoCo
+> - add JFR/JMC
+> - delete Python
+> - add blanket PMD suppressions
+> - change tests merely to satisfy PMD
+> - commit or push automatically
+>
+> This task ends after initial PMD analysis and triage.
+>
+> ## 10. Completion report
+>
+> Report:
+>
+> 1. Branch and commit.
+> 2. Baseline Java-suite result.
+> 3. PMD/plugin version.
+> 4. PMD ruleset used.
+> 5. Command used.
+> 6. Number of initial findings.
+> 7. Findings by major category.
+> 8. Most important maintainability/complexity findings.
+> 9. False positives/not-applicable findings.
+> 10. Classes/methods most worth refactoring.
+> 11. Existing tests protecting those areas.
+> 12. Files changed.
+> 13. Post-tooling Java-suite result.
+> 14. Confirmation that production behaviour was untouched.
+> 15. Exact recommended next remediation step.
+>
+> Stop after PMD analysis and triage.
+
+### Prompt summary
+
+Asked Codex to preserve and verify the 122-test baseline; add reproducible Maven PMD tooling without changing SpotBugs or adding JaCoCo; run an unsuppressed production-Java analysis with explicit maintainability and complexity coverage; inspect and classify every meaningful finding, especially those in `RuleBasedEmailClassificationService`; distinguish control-flow complexity from runtime complexity; make no production/test behavior changes; document the full baseline, configuration, findings, risks, test protection, and next remediation step; rerun all tests; and stop before refactoring, committing, or pushing.
+
+---

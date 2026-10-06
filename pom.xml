@@ -18,6 +18,7 @@
         <google-oauth-client.version>1.39.0</google-oauth-client.version>
         <gmail-api.version>v1-rev20260727-2.0.0</gmail-api.version>
         <google-cloud-pubsub.version>1.155.0</google-cloud-pubsub.version>
+        <pmd.version>7.27.0</pmd.version>
     </properties>
     <dependencies>
         <dependency>
@@ -109,6 +110,43 @@
                     <xmlOutput>true</xmlOutput>
                     <failOnError>true</failOnError>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.28.0</version>
+                <configuration>
+                    <targetJdk>${java.version}</targetJdk>
+                    <rulesets>
+                        <ruleset>config/pmd/ruleset.xml</ruleset>
+                    </rulesets>
+                    <minimumPriority>5</minimumPriority>
+                    <includeTests>false</includeTests>
+                    <linkXRef>false</linkXRef>
+                </configuration>
+                <!-- PMD 7.21+ is required to inspect JDK 26 runtime classes. -->
+                <dependencies>
+                    <dependency>
+                        <groupId>net.sourceforge.pmd</groupId>
+                        <artifactId>pmd-core</artifactId>
+                        <version>${pmd.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>net.sourceforge.pmd</groupId>
+                        <artifactId>pmd-java</artifactId>
+                        <version>${pmd.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>net.sourceforge.pmd</groupId>
+                        <artifactId>pmd-javascript</artifactId>
+                        <version>${pmd.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>net.sourceforge.pmd</groupId>
+                        <artifactId>pmd-jsp</artifactId>
+                        <version>${pmd.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>

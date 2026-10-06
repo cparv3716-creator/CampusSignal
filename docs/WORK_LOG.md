@@ -724,3 +724,85 @@ PR created by: Pending
 Review and approve narrow, documented per-finding suppressions for SA-001 and SA-004 only if a zero-finding SpotBugs gate is required; otherwise retain the unsuppressed two-finding report as the accepted baseline.
 
 ---
+
+## Work Entry
+Date: 2026-10-06
+Contributor: Codex
+Milestone: CS5013 Static Analysis
+Stage: Initial PMD Maintainability Analysis and Triage
+Branch: phase4-live-demo
+
+### Status
+Completed — reproducible PMD tooling added, 32 unsuppressed production-Java findings triaged, and no production or test code changed.
+
+### Starting state
+- Commit: `4544610b5341f692a93006fe8bb156a7de65897f`.
+- Starting tracked worktree: clean.
+- Initial ordinary test command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -Ddebug=false test`.
+- Initial result: BUILD FAILURE; 122 tests run, 0 failures, 45 errors, 0 skipped in 48.961 seconds. The errors were missing compiled classes in an incomplete/stale `target/classes`, while Maven incorrectly considered compilation up to date.
+- Clean baseline command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -Ddebug=false clean test`.
+- Authoritative baseline: BUILD SUCCESS; 122 tests run, 0 failures, 0 errors, 0 skipped in 1 minute 18 seconds. The clean compile rebuilt all 41 production source files without a tracked source change.
+- The stale build-output incident was not logged as an application bug.
+
+### PMD setup
+- Added Maven PMD Plugin `3.28.0` without changing the existing SpotBugs plugin.
+- Plugin 3.28.0's bundled PMD 7.17.0 could not read JDK 26 class-file major version 70, so PMD runtime modules were reproducibly overridden to stable PMD `7.27.0` through Maven plugin dependencies.
+- Configured Java target 25, production source only, minimum priority 5, no XRef, no suppressions, and no exclusions.
+- Added `config/pmd/ruleset.xml`: PMD Java quickstart plus focused design rules for deep nesting, cognitive/cyclomatic/NPath complexity, NCSS size, collapsible conditions, parameter count, God Class, boolean simplification, and method count.
+- PMD 7 uses `NcssCount` in place of the removed excessive class/method length rules.
+- No JaCoCo, JFR, JMC, standalone PMD download, or unrelated tool was added.
+
+### Tooling resolution
+- Bundled PMD 7.17.0 run: invalid because it failed on JDK 26 runtime classes.
+- PMD 7.27.0 quickstart run: valid but incomplete for the requested complexity scope; 23 preliminary findings.
+- Directly listing individual design rules in Maven `<rulesets>`: invalid 223-item report because the Maven plugin repeated the full category for each entry; discarded.
+- Final checked-in composite ruleset: valid report with no processing errors and no duplicated rule execution.
+
+### Initial PMD result
+- Command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -DskipTests compile pmd:pmd`.
+- Result: BUILD SUCCESS in 19.100 seconds.
+- PMD runtime: 7.27.0.
+- Findings: 32 unsuppressed findings across production Java.
+- Categories: 19 Best Practices, 9 Design, 3 Documentation, 1 Error Prone.
+- Priorities: 2 Priority 2 and 30 Priority 3.
+- Triage: 5 real maintainability issues, 8 minor style issues, 17 false positives/not applicable, and 2 needing further investigation.
+
+### Important triage outcomes
+- Real issues: combined pagination responsibilities in `GmailApiClient.listMessageIds`; combined validation paths in `GmailNotificationDecoder.decode`; nested provider traversal in `GmailHistorySyncService.messageAddedIds`; and excessive method count in `RuleBasedEmailClassificationService`.
+- The classifier's `GodClass` result is not applicable as a responsibility diagnosis: the class is stateless and cohesive around deterministic classification, though its method count is a useful structural signal.
+- `classifyCurrent` is exactly at cyclomatic threshold 10 but remains a readable ordered precedence chain; it has no cognitive, NPath, deep-nesting, or NCSS finding.
+- `GmailMessageMapper.collectText` and stale-history cause preservation require more investigation before changes.
+- Twelve `LooseCoupling` findings are not applicable to required concrete Google API model types.
+- Spring context lifetime, OAuth loopback IP, and cheap privacy-safe error logging findings are not applicable.
+- Three JPA constructor comments and three literal-first comparisons are minor style issues.
+- No unused/private code, empty catch/block, excessive parameter, NPath, deep nesting, collapsible condition, NCSS, or PMD performance finding was reported.
+- PMD complexity findings were recorded as control-flow maintainability signals, not Big-O performance results.
+
+### Documentation and files
+- `pom.xml` — added PMD plugin and reproducible PMD 7.27.0 runtime override; SpotBugs unchanged.
+- `config/pmd/ruleset.xml` — added the reviewed initial ruleset.
+- `docs/PMD_ANALYSIS_LOG.md` — created with all 32 findings, detailed triage, risk, tests, unresolved questions, and remediation order.
+- `docs/AGENT_PROMPTS.md` — appended the exact prompt and concise summary.
+- `docs/WORK_LOG.md` — appended this execution record.
+- `docs/BUG_LOG.md` — unchanged; no genuine behavioral defect was discovered.
+- Production Java and Java tests — unchanged.
+
+### Post-tooling regression verification
+- Command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -Ddebug=false test`.
+- Result: BUILD SUCCESS; **122 tests run, 0 failures, 0 errors, 0 skipped in 29.183 seconds**.
+
+### Scope confirmation
+- Classifier behavior, Gmail behavior, ingestion, database schema, profile scoring, and ranking were untouched.
+- Python was not deleted or modified.
+- No PMD suppression or exclusion was added.
+- No commit or push was created.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next step
+Create a separate test-first classifier remediation task: add focused preprocessing and negation-boundary characterization, extract only text preprocessing/negation into a package-private collaborator, preserve category evidence and precedence, run the 40 classifier tests and full suite, and rerun PMD.
+
+---
