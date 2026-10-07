@@ -1118,3 +1118,72 @@ PR created by: Pending
 Design an explicit one-time backfill/migration for legacy emails whose newly added classification columns are null, separate from ordinary idempotent ingestion; then expose stored classification through a read-side service/API before beginning personalized ranking.
 
 ---
+
+## Work Entry
+Date: 2026-10-07
+Contributor: Codex
+Milestone: Legacy Classification Migration
+Stage: Explicit Email Classification Backfill
+Branch: phase4-live-demo
+
+### Status
+Completed — legacy and partially classified email rows can now be classified by an explicit,
+idempotent, provider-neutral maintenance command without entering ordinary ingestion.
+
+### Existing legacy handling discovered
+- `Email.category` and `Email.classificationConfidence` were intentionally nullable so file-backed H2 rows created before classifier integration remained readable.
+- New mail already used `Email.classified(...)` inside the ingestion insert transaction, while duplicate ingestion returned the existing row without classification.
+- No query, service, command, or automatic migration existed for incomplete legacy classification.
+- The existing explicit operational boundary was a property-gated Spring `ApplicationRunner` used for Gmail commands, with command-mode process exit in `CampusSignalApplication`.
+
+### Architecture and eligibility
+- Added a dedicated `EmailClassificationBackfillService`; it is not called by ingestion, retrieval, history synchronization, controllers, or normal startup.
+- Added a repository query selecting rows ordered by ID where `category is null OR classificationConfidence is null`.
+- Either partial-state direction is eligible. The existing V1 classifier receives only the stored subject/body, then both fields are replaced together with the returned category/confidence pair. This deterministically repairs inconsistent legacy pairs.
+- Fully classified rows are absent from the query, are not sent to the classifier, and are never treated as candidates for classifier-version migration.
+- The result reports the number updated. It does not create a second persistence path or insert any rows.
+
+### Transaction, failure, and idempotency policy
+- One `@Transactional` service call covers the complete selected batch. JPA dirty checking plus an explicit flush persists updates only after classification results have been applied.
+- A classifier or persistence exception propagates. The whole run rolls back, including updates prepared for earlier rows; there is no silent per-row failure or partially updated batch.
+- After a successful run, no eligible rows remain. A rerun returns `updated=0`, performs no classification calls, preserves IDs/data, and creates no duplicates.
+
+### Explicit invocation
+- Added `EmailClassificationBackfillCommand`, active only when `--classification.backfill=true` is supplied.
+- Invoke after packaging with `java -jar target/campussignal-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --classification.backfill=true`.
+- On success it prints `classificationBackfillUpdated=<count>` and exits. An uncaught migration failure makes Spring Boot startup fail and returns a nonzero process result.
+- A packaged smoke against an isolated in-memory H2 database exited 0 and reported zero updates. No Gmail client, API object, provider fetch, or ingestion service participates.
+
+### Test-first and verification
+- Initial RED: the focused test command failed compilation with six missing-symbol errors for the deliberately absent backfill service/command.
+- Six new focused tests now pass. An intermediate assertion exposed only H2 nanosecond-to-microsecond storage precision in the test fixture; comparing database values before/after corrected the test without production changes.
+- Focused backfill: 6 passed; existing persistence: 6 passed; classifier: 45 passed; classification ingestion: 4 passed; Gmail API/command/retrieval/history: 29 passed.
+- Complete suite: `.\mvnw.cmd -B -ntp clean test` — BUILD SUCCESS; **147 tests, 0 failures, 0 errors, 0 skipped** in 49.496 seconds.
+- SpotBugs: BUILD SUCCESS; 2 unchanged reviewed baseline findings; no backfill finding.
+- PMD: BUILD SUCCESS; 27 unchanged reviewed baseline findings; no backfill-code finding.
+- No genuine product defect was discovered. Classifier V1 rules, Gmail behavior, duplicate handling, nullable schema compatibility, and ordinary ingestion semantics remain unchanged.
+
+### Files changed
+- Production: `src/main/java/edu/campussignal/CampusSignalApplication.java`.
+- Production: `src/main/java/edu/campussignal/command/EmailClassificationBackfillCommand.java` (new).
+- Production: `src/main/java/edu/campussignal/entity/Email.java`.
+- Production: `src/main/java/edu/campussignal/repository/EmailRepository.java`.
+- Production: `src/main/java/edu/campussignal/service/EmailClassificationBackfillService.java` (new).
+- Tests: `src/test/java/edu/campussignal/EmailClassificationBackfillServiceTest.java` (new).
+- Tests: `src/test/java/edu/campussignal/command/EmailClassificationBackfillCommandTest.java` (new).
+- Documentation: `docs/AGENT_PROMPTS.md`, `docs/JAVA_BACKEND.md`, `docs/TEST_LOG.md`, and `docs/WORK_LOG.md`.
+- `docs/BUG_LOG.md`: unchanged because no genuine behavioral defect was found.
+- Pre-existing worktree edits in `EmailPersistenceTest` and `GmailRealtimeServiceTest` were preserved and not changed by this task.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next step
+Run the explicit backfill once against a backed-up copy of the intended file-backed H2 database,
+verify the reported count and remaining-null query, then begin a separate read-side classification
+API/service task. Do not begin personalized ranking until stored classification is exposed and
+validated through that read path.
+
+---

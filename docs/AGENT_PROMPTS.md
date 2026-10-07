@@ -2474,3 +2474,303 @@ Add exactly three behavior-focused Gmail history synchronization integration tes
 Integrate the existing source-independent V1 classifier into normalized Java email ingestion and persistence using tests first; persist category and confidence only for newly created emails; preserve duplicate, transaction, Gmail, and classifier semantics; run focused, full, SpotBugs, and PMD verification; document the architecture and decisions; and stop before relevance ranking.
 
 ---
+
+## Prompt: Explicit legacy email classification backfill
+
+> CampusSignal has completed classifier integration with email ingestion and persistence.
+>
+> Current verified state:
+>
+> - Branch: `phase4-live-demo`
+> - Complete Java suite: 141 tests
+> - 0 failures
+> - 0 errors
+> - 0 skipped
+> - New emails are classified during `EmailIngestionService` ingestion
+> - Persisted classification includes:
+>   - `EmailCategory`
+>   - `ClassificationConfidence`
+> - Existing duplicate/idempotency behavior is preserved
+> - Existing emails are not reclassified during ordinary ingestion
+> - Legacy file-backed H2 rows may legitimately have null classification fields
+> - Gmail behavior and classifier V1 rules must remain unchanged
+>
+> We now need an EXPLICIT ONE-TIME / ON-DEMAND BACKFILL mechanism for legacy emails with missing classification.
+>
+> This must remain separate from ordinary ingestion.
+>
+> ## Goal
+>
+> Backfill only legacy persisted emails whose classification is incomplete.
+>
+> Conceptually:
+>
+> existing persisted Email
+> where classification fields are missing
+> → classify stored subject/body
+> → update classification fields
+> → preserve all other email data
+>
+> Do not route these emails through normal ingestion again.
+>
+> Do not create duplicates.
+>
+> ## 1. Inspect current persistence model first
+>
+> Inspect:
+>
+> - `Email`
+> - `EmailRepository`
+> - repository query patterns
+> - transaction handling
+> - `EmailClassificationService`
+> - current classification persistence mapping
+> - existing command/application startup mechanisms
+> - existing tests
+>
+> Determine the safest architecture before implementation.
+>
+> Do not assume a CLI command is required if the project already has a more appropriate explicit service boundary.
+>
+> ## 2. Backfill eligibility
+>
+> Define exactly which records are eligible.
+>
+> Preferred rule:
+>
+> Backfill emails where either/both classification persistence fields are missing because they originate from the pre-classification schema.
+>
+> Do not modify fully classified rows.
+>
+> If one field is null but the other is present, inspect whether this represents a recoverable legacy/partial state and define deterministic behavior.
+>
+> Document the decision.
+>
+> ## 3. Idempotency
+>
+> The backfill must be idempotent.
+>
+> Running it once:
+>
+> legacy unclassified records
+> → classified
+>
+> Running it again:
+>
+> already classified records
+> → unchanged
+>
+> Write a test explicitly proving this.
+>
+> Do not reclassify existing classified emails merely because classifier rules might now produce a different result.
+>
+> This milestone is migration, not classifier-version migration.
+>
+> ## 4. Test FIRST
+>
+> Before production implementation, add focused tests for at least:
+>
+> ### A. Unclassified legacy email
+>
+> Persist/create a legacy-style email with missing classification.
+>
+> Run the backfill.
+>
+> Verify:
+>
+> - category is populated
+> - confidence is populated
+> - subject/body/provider ID and other existing fields remain unchanged
+>
+> ### B. Already-classified email
+>
+> Given an existing classified record:
+>
+> - backfill does not invoke classification for that record if practical to verify
+> - persisted classification remains unchanged
+> - no unrelated field changes
+>
+> ### C. Mixed dataset
+>
+> Given:
+>
+> - one or more legacy unclassified emails
+> - one already-classified email
+>
+> Verify:
+>
+> - only eligible rows are updated
+> - processed/skipped counts are correct if the backfill exposes counts
+>
+> ### D. Idempotent rerun
+>
+> Run the backfill twice.
+>
+> Verify:
+>
+> - second execution performs no classification updates
+> - persisted values remain identical
+> - no duplicate records are created
+>
+> ### E. Classification failure
+>
+> Determine transaction semantics deliberately.
+>
+> If classification of one legacy email throws:
+>
+> - do not leave that email partially classified
+> - preserve diagnosability
+>
+> Inspect the existing architecture and choose whether:
+> - the whole backfill stops, or
+> - individual records fail independently while other records continue
+>
+> Do not invent a silent failure policy.
+>
+> Write a test for the selected behavior.
+>
+> ## 5. Source independence
+>
+> Backfill must classify from the persisted provider-neutral email data.
+>
+> Do NOT:
+>
+> - call Gmail
+> - reconstruct Gmail API objects
+> - fetch the message again from the provider
+>
+> Use stored subject/body through the existing classifier contract.
+>
+> ## 6. Explicit invocation only
+>
+> Do not automatically run the backfill:
+>
+> - on every application startup
+> - during ordinary retrieval
+> - during ordinary ingestion
+> - during API reads
+>
+> The migration must have an explicit invocation boundary.
+>
+> Choose the smallest mechanism consistent with the existing project architecture.
+>
+> Examples could include:
+>
+> - dedicated service invoked explicitly
+> - controlled application command
+> - migration command
+>
+> Inspect current patterns before choosing.
+>
+> ## 7. Preserve classifier V1
+>
+> Do NOT change:
+>
+> - category rules
+> - evidence lists
+> - precedence
+> - negation semantics
+> - confidence mapping
+> - preprocessing
+>
+> Backfill should reuse the existing classifier exactly as it exists.
+>
+> ## 8. Database safety
+>
+> Do not introduce unrelated schema changes.
+>
+> Do not remove nullable compatibility from the entity/schema yet.
+>
+> We first need the backfill mechanism and verification.
+>
+> After migration behavior is proven, a later task may decide whether classification columns can become non-null for fresh databases/migrations.
+>
+> ## 9. Verification
+>
+> Run:
+>
+> 1. new backfill-focused tests
+> 2. persistence tests
+> 3. classifier tests
+> 4. classification-ingestion tests
+> 5. complete Java suite
+>
+> Then run SpotBugs and PMD.
+>
+> JaCoCo may run normally with the test lifecycle, but do not begin another coverage-improvement phase.
+>
+> ## 10. Documentation
+>
+> Update:
+>
+> `docs/TEST_LOG.md`
+>
+> Record backfill tests and semantics.
+>
+> Update:
+>
+> `docs/WORK_LOG.md`
+>
+> Record:
+>
+> - legacy problem
+> - eligibility rule
+> - idempotency rule
+> - transaction/failure policy
+> - invocation mechanism
+> - verification results
+>
+> Append a concise summary to:
+>
+> `docs/AGENT_PROMPTS.md`
+>
+> Create a small migration/backfill section in an appropriate existing documentation file if users/developers need to know how to invoke it.
+>
+> Update `BUG_LOG.md` only if implementation/testing reveals a genuine defect.
+>
+> ## 11. Restrictions
+>
+> Do NOT:
+>
+> - reclassify already-classified emails
+> - call Gmail during migration
+> - route old rows through ordinary ingestion
+> - implement personalized ranking
+> - expose new ranking API
+> - change classifier behavior
+> - modify Gmail behavior
+> - start backfill automatically on application startup
+> - chase JaCoCo percentages
+> - add broad PMD/SpotBugs suppressions
+> - delete Python
+> - commit or push automatically
+>
+> ## 12. Completion report
+>
+> Report:
+>
+> 1. Existing legacy-state handling discovered.
+> 2. Backfill architecture chosen.
+> 3. Eligibility rule.
+> 4. Tests added before implementation.
+> 5. Initial RED result.
+> 6. Production files changed.
+> 7. Transaction/failure behavior.
+> 8. Idempotency behavior.
+> 9. Focused test result.
+> 10. Complete Java-suite result.
+> 11. SpotBugs result.
+> 12. PMD result.
+> 13. Any genuine defects found.
+> 14. Exact invocation mechanism.
+> 15. Exact next recommended step.
+>
+> Stop after classification backfill is implemented and verified.
+>
+> Do NOT implement the read-side classification API or personalized ranking in this task.
+
+### Prompt summary
+
+Add a test-first, explicit, provider-neutral, transactional, idempotent migration command that classifies only legacy email rows with either classification field missing, preserves fully classified rows and all message data, exposes failures, and leaves ingestion, Gmail, and classifier V1 behavior unchanged.
+
+---

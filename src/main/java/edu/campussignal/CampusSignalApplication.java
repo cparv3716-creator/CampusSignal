@@ -9,7 +9,9 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 public class CampusSignalApplication {
     public static void main(String[] args) {
         var context = SpringApplication.run(CampusSignalApplication.class, args);
-        if (context.getEnvironment().containsProperty("gmail.command")) {
+        boolean classificationBackfill = context.getEnvironment()
+                .getProperty("classification.backfill", Boolean.class, false);
+        if (context.getEnvironment().containsProperty("gmail.command") || classificationBackfill) {
             System.exit(SpringApplication.exit(context));
         }
     }

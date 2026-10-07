@@ -115,7 +115,8 @@ Only the H2 driver is included at this stage. Hibernate's `ddl-auto=update` init
 schema; this is a local milestone setup, not a production migration strategy.
 
 - `emails`: generated ID, unique required `gmail_message_id`, subject, sender, UTC
-  `received_at`, full text body, and automatic UTC `created_at`.
+  `received_at`, full text body, automatic UTC `created_at`, V1 `category`, and numeric
+  `classification_confidence`. The classification columns remain nullable for legacy rows.
 - `user_profiles`: generated ID, unique required email, department, programme, positive
   `study_year`, optional positive semester, and automatic UTC creation time.
 - `profile_interests`: a JPA element collection with `profile_id`, `interest_order`, and
@@ -125,6 +126,27 @@ Core retrieval depends on the `EmailSource` interface and an `IncomingEmail` rec
 SDK types. Duplicate detection first checks the stable message ID. A unique database constraint
 also protects concurrent inserts; the failed transaction rolls back before an existing record
 is retrieved. The original stored email is retained on duplicate retrieval.
+
+## Legacy classification backfill
+
+Classification backfill is an explicit maintenance command; it does not run during normal
+startup, Gmail retrieval/history processing, ingestion, or API reads. Before running it against
+the default file-backed H2 database, stop other CampusSignal processes and take the normal local
+database backup appropriate for the environment. Build and invoke it from the repository root:
+
+```powershell
+.\mvnw.cmd package
+java -jar target/campussignal-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --classification.backfill=true
+```
+
+The command selects only rows where `category` or `classification_confidence` is null, classifies
+the stored provider-neutral subject/body through the existing V1 classifier, and updates both
+classification fields together. A partially populated legacy pair is therefore recomputed as one
+consistent result. Fully classified rows are not sent to the classifier. The operation is one
+transaction: any classification or persistence failure stops the command, rolls back every update
+from that run, and produces a nonzero process failure. A successful run prints only
+`classificationBackfillUpdated=<count>`; rerunning after completion reports zero and creates no rows.
+Do not combine this command with `--gmail.command` in the same process invocation.
 
 ## Profile API
 
@@ -220,9 +242,9 @@ Example User A response:
 }
 ```
 
-These scores describe category preferences only. There is no final user-email ranking,
-classification, summarization, extraction, embedding, semantic similarity, behavior-learning
-feedback, personalized feed, critical-message override, or frontend.
+These scores describe category preferences only. Email classification is persisted separately;
+there is no final user-email ranking, summarization, extraction, embedding, semantic similarity,
+behavior-learning feedback, personalized feed, critical-message override, or frontend.
 
 ## Verification and remaining account setup
 

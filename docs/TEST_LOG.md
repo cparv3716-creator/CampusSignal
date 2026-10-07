@@ -414,3 +414,41 @@ New JUnit tests: **4**. Baseline: 137 Java tests. Final: **141 Java tests**.
 
 ---
 
+## 2026-10-07 — Legacy email classification backfill
+
+New JUnit tests: **6**. Baseline: 141 Java tests. Final: **147 Java tests**.
+
+| Test | Backfill behavior protected | Final status |
+|---|---|---|
+| `unclassifiedLegacyEmailIsClassifiedWithoutChangingMessageData` | A row with both classification columns null is classified from stored subject/body while provider ID, subject, sender, timestamp, body, and creation timestamp remain unchanged. | PASS |
+| `fullyClassifiedEmailIsSkippedWithoutInvokingClassifier` | A complete category/confidence pair is retained without invoking the classifier or changing unrelated data. | PASS |
+| `mixedDatasetUpdatesOnlyIncompleteRowsIncludingPartialLegacyState` | A mixed dataset updates only rows with either/both fields null; both partial-state directions are recomputed as consistent pairs, while the complete row remains untouched. | PASS |
+| `rerunIsIdempotentAndCreatesNoDuplicate` | The first run updates one legacy row; the second updates zero, invokes no classification, retains the same ID/values, and leaves one row. | PASS |
+| `classificationFailureStopsAndRollsBackTheWholeBackfill` | A later classifier failure propagates and rolls back an earlier update in the same batch, leaving every eligible row incomplete and diagnosable. | PASS |
+| `explicitCommandRunsBackfillAndReportsUpdatedCount` | The explicit command delegates once and prints only the updated-row count. | PASS |
+
+### Test-first result
+
+- Initial focused command: `.\mvnw.cmd -B -ntp "-Dtest=EmailClassificationBackfillServiceTest,EmailClassificationBackfillCommandTest" test`.
+- Initial RED result: BUILD FAILURE during test compilation with six missing-symbol errors because the backfill service and command did not exist yet.
+- The first implementation run reached the tests and exposed one test-only H2 timestamp-precision mismatch; the assertion was corrected to compare the stored database timestamp before and after backfill. This was not a product defect.
+- Final focused result: BUILD SUCCESS — **6 tests, 0 failures, 0 errors, 0 skipped** in 36.977 seconds.
+
+### Regression and invocation verification
+
+- Existing persistence: `EmailPersistenceTest` — 6 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.
+- Classifier: `RuleBasedEmailClassificationServiceTest` — 45 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.
+- Classification ingestion: `EmailClassificationIngestionTest` — 4 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.
+- Gmail API/command/retrieval/history: `GmailApiClientTest,GmailCommandTest,GmailRetrievalIntegrationTest,GmailRealtimeServiceTest` — 29 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.
+- Complete command: `.\mvnw.cmd -B -ntp clean test`.
+- Complete result: BUILD SUCCESS — **147 tests, 0 failures, 0 errors, 0 skipped** in 49.496 seconds.
+- Packaged isolated-H2 smoke: explicit `--classification.backfill=true` invocation exited 0 and printed `classificationBackfillUpdated=0` with no eligible rows.
+
+### Static analysis
+
+- SpotBugs: `.\mvnw.cmd -B -ntp -DskipTests compile spotbugs:spotbugs` — BUILD SUCCESS; 2 findings, unchanged from the reviewed baseline; no backfill finding.
+- PMD: `.\mvnw.cmd -B -ntp -DskipTests compile pmd:pmd` — BUILD SUCCESS; 27 findings, unchanged from the reviewed baseline; no backfill-code finding.
+- No production defect was discovered, so `docs/BUG_LOG.md` was not changed.
+
+---
+

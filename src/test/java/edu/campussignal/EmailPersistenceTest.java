@@ -13,6 +13,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
+import edu.campussignal.dto.ClassificationConfidence;
+import edu.campussignal.dto.EmailCategory;
+import edu.campussignal.dto.EmailClassificationResult;
 import edu.campussignal.dto.IncomingEmail;
 import edu.campussignal.dto.RetrievalSummary;
 import edu.campussignal.entity.Email;
@@ -36,6 +39,11 @@ class EmailPersistenceTest {
                 Instant.parse("2026-09-08T10:30:00Z"), "Registration is open.");
     }
 
+    private Email persistedEmail(String id) {
+        return Email.classified(email(id), new EmailClassificationResult(
+                EmailCategory.GENERAL_OTHER, ClassificationConfidence.LOW));
+    }
+
     @Test
     void persistsAllEmailFieldsWithAutomaticTimestamp() {
         var before = Instant.now();
@@ -52,8 +60,8 @@ class EmailPersistenceTest {
 
     @Test
     void databaseConstraintRejectsDuplicateMessageIds() {
-        repository.saveAndFlush(new Email(email("duplicate")));
-        assertThatThrownBy(() -> repository.saveAndFlush(new Email(email("duplicate"))))
+        repository.saveAndFlush(persistedEmail("duplicate"));
+        assertThatThrownBy(() -> repository.saveAndFlush(persistedEmail("duplicate")))
                 .isInstanceOf(DataIntegrityViolationException.class);
         assertThat(repository.count()).isEqualTo(1);
     }

@@ -55,10 +55,21 @@ public class Email {
 
     public static Email classified(IncomingEmail incoming, EmailClassificationResult classification) {
         Objects.requireNonNull(incoming);
+        return new Email(incoming, requireCompleteClassification(classification));
+    }
+
+    public void applyClassification(EmailClassificationResult classification) {
+        var requiredClassification = requireCompleteClassification(classification);
+        category = requiredClassification.category();
+        classificationConfidence = requiredClassification.confidence();
+    }
+
+    private static EmailClassificationResult requireCompleteClassification(
+            EmailClassificationResult classification) {
         var requiredClassification = Objects.requireNonNull(classification);
         Objects.requireNonNull(requiredClassification.category());
         Objects.requireNonNull(requiredClassification.confidence());
-        return new Email(incoming, requiredClassification);
+        return requiredClassification;
     }
 
     @PrePersist

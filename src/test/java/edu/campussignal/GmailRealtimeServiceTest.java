@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import edu.campussignal.dto.ClassificationConfidence;
+import edu.campussignal.dto.EmailCategory;
+import edu.campussignal.dto.EmailClassificationResult;
 import edu.campussignal.dto.IncomingEmail;
 import edu.campussignal.entity.Email;
 import edu.campussignal.gmail.GmailApiClient;
@@ -43,6 +46,11 @@ class GmailRealtimeServiceTest {
     private IncomingEmail email(String id) {
         return new IncomingEmail(id, "Update", "sender@example.edu",
                 Instant.parse("2026-09-10T08:00:00Z"), "Body");
+    }
+
+    private Email persistedEmail(String id) {
+        return Email.classified(email(id), new EmailClassificationResult(
+                EmailCategory.GENERAL_OTHER, ClassificationConfidence.LOW));
     }
 
     private ListHistoryResponse page(String historyId, String... messageIds) {
@@ -201,7 +209,7 @@ class GmailRealtimeServiceTest {
     @Test
     void duplicateMessageWithoutPageHistoryIdUsesNotificationProgress() throws Exception {
         state.recordWatch("100", Instant.parse("2026-09-17T08:00:00Z"));
-        emailRepository.saveAndFlush(new Email(email("existing")));
+        emailRepository.saveAndFlush(persistedEmail("existing"));
         var historyRecord = new History().setId(new BigInteger("105")).setMessagesAdded(List.of(
                 new HistoryMessageAdded().setMessage(new Message().setId("existing"))));
         var pageWithoutHistoryId = new ListHistoryResponse().setHistory(List.of(historyRecord));
