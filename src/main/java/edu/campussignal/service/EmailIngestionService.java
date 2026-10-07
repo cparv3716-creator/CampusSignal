@@ -12,12 +12,15 @@ import edu.campussignal.repository.EmailRepository;
 @Service
 public class EmailIngestionService {
     private final EmailRepository repository;
+    private final EmailClassificationService classifier;
     private final TransactionTemplate transaction;
 
     public record Result(long id, boolean created) {}
 
-    public EmailIngestionService(EmailRepository repository, PlatformTransactionManager manager) {
+    public EmailIngestionService(EmailRepository repository, EmailClassificationService classifier,
+                                 PlatformTransactionManager manager) {
         this.repository = repository;
+        this.classifier = classifier;
         transaction = new TransactionTemplate(manager);
         transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
@@ -29,7 +32,8 @@ public class EmailIngestionService {
         }
         try {
             return transaction.execute(status -> {
-                var saved = repository.saveAndFlush(new Email(incoming));
+                var classification = classifier.classify(incoming.subject(), incoming.body());
+                var saved = repository.saveAndFlush(Email.classified(incoming, classification));
                 return new Result(saved.getId(), true);
             });
         } catch (DataIntegrityViolationException exception) {

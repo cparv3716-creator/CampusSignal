@@ -380,3 +380,37 @@ New JUnit tests: **3**. Baseline: 132 tests. Final total: **135 tests**.
 
 ---
 
+## 2026-10-07 — Classifier ingestion/persistence integration
+
+New JUnit tests: **4**. Baseline: 137 Java tests. Final: **141 Java tests**.
+
+| Test | Integration behavior protected | Final status |
+|---|---|---|
+| `newNormalizedEmailIsClassifiedAndPersisted` | A provider-neutral `IncomingEmail` is classified exactly once; its academic category, `HIGH` confidence enum, and numeric `0.9` database value are persisted. | PASS |
+| `duplicateSkipsClassificationAndRetainsPersistedClassification` | An existing message ID returns the original ID with `created=false`, retains its original content/classification, creates no second row, and does not invoke classification again. | PASS |
+| `generalOtherLowClassificationIsPersisted` | A message without specialist evidence persists `GENERAL_OTHER`, the `LOW` confidence enum, and numeric `0.5`. | PASS |
+| `classificationFailurePropagatesWithoutPersistingEmail` | An unexpected classifier exception remains visible to the caller and the insert transaction leaves no partial email row. | PASS |
+
+### Test-first result
+
+- Initial focused command: `.\mvnw.cmd -B -ntp "-Dtest=EmailClassificationIngestionTest" test`.
+- Initial result: BUILD FAILURE during test compilation because `Email` did not yet expose persisted category or classification confidence. This was the expected missing integration, not a pre-existing product defect.
+- First post-implementation focused result: BUILD SUCCESS — 4 tests, 0 failures, 0 errors, 0 skipped.
+- Final focused result after the integration-related SpotBugs correction: BUILD SUCCESS — 4 tests, 0 failures, 0 errors, 0 skipped.
+
+### Regression verification
+
+- Existing persistence: `EmailPersistenceTest` — 6 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.
+- Gmail API/retrieval/history: `GmailApiClientTest,GmailRetrievalIntegrationTest,GmailRealtimeServiceTest` — 22 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.
+- Classifier: `RuleBasedEmailClassificationServiceTest` — 45 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.
+- Complete command: `.\mvnw.cmd -B -ntp clean test`.
+- Complete result: BUILD SUCCESS — **141 tests, 0 failures, 0 errors, 0 skipped** in 49.891 seconds.
+
+### Static analysis
+
+- SpotBugs: `.\mvnw.cmd -B -ntp -DskipTests compile spotbugs:spotbugs` — BUILD SUCCESS; 2 findings, unchanged from the reviewed baseline. An initial new `CT_CONSTRUCTOR_THROW` finding in `Email` was removed by validating through a static factory before entity construction.
+- PMD: `.\mvnw.cmd -B -ntp -DskipTests compile pmd:pmd` — BUILD SUCCESS; 27 findings, unchanged from baseline; no new integration-code violation.
+- No classifier expectation, Gmail behavior assertion, or duplicate-protection assertion was weakened.
+
+---
+

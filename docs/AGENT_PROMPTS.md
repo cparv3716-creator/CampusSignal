@@ -2159,3 +2159,318 @@ The exact task prompt is recorded above under “CS5013 JaCoCo baseline analysis
 Add exactly three behavior-focused Gmail history synchronization integration tests for repeated page-token failure, partial stale-history recovery failure, and duplicate handling with missing page history ID fallback; run the focused class after each addition; change production only for a demonstrated defect; rerun the 135-test suite with JaCoCo; document before/after coverage and protected branches; and stop without a coverage gate, unrelated changes, commit, or push.
 
 ---
+
+## 2026-10-07 — Classifier ingestion/persistence integration
+
+### Exact task prompt
+
+> CampusSignal has completed the testing/static-analysis/coverage phase for the V1 classifier.
+>
+> Current verified state:
+>
+> - Branch: `phase4-live-demo`
+> - Full Java suite: 137 tests
+> - 0 failures
+> - 0 errors
+> - 0 skipped
+> - Classifier tests: 45/45
+> - Overall branch coverage: 84.35%
+> - No further coverage-driven work is planned at this stage
+>
+> We are now beginning the first end-to-end product integration step:
+>
+> Integrate the existing `EmailClassificationService` into the Java email ingestion and persistence flow.
+>
+> This must be TEST-FIRST and must preserve existing ingestion semantics.
+>
+> ## 1. Inspect before changing
+>
+> First inspect:
+>
+> - `EmailIngestionService`
+> - `EmailSource`
+> - normalized/incoming email DTO/model used by ingestion
+> - persisted Email entity
+> - Email repository
+> - duplicate/idempotency logic
+> - current persistence tests
+> - existing Gmail retrieval/history flow
+> - `EmailClassificationService`
+> - `RuleBasedEmailClassificationService`
+> - classification result DTO/record
+> - existing schema/data initialization
+>
+> Do not assume field names or architecture.
+>
+> Document the actual current flow from source input to persisted email.
+>
+> ## 2. Integration goal
+>
+> The desired architecture is conceptually:
+>
+> EmailSource
+> → normalized email representation
+> → EmailIngestionService
+> → EmailClassificationService
+> → persisted Email
+>
+> Classification must remain source-independent.
+>
+> Do NOT inject Gmail API objects directly into the classifier.
+>
+> The classifier should receive the same normalized subject/body representation regardless of whether the email originated from:
+>
+> - Gmail retrieval
+> - Gmail history synchronization
+> - another future EmailSource
+>
+> ## 3. Persistence goal
+>
+> Persist the V1 classification result with each newly ingested email.
+>
+> The persisted representation must include:
+>
+> - primary category
+> - classification confidence
+>
+> Use the existing enum/result model where appropriate.
+>
+> Do not duplicate category definitions as strings if the existing enum can be used safely.
+>
+> Inspect current JPA/entity conventions before choosing enum persistence strategy.
+>
+> ## 4. Preserve duplicate protection
+>
+> This is critical.
+>
+> Existing duplicate/idempotency behavior must remain unchanged.
+>
+> If an email already exists:
+>
+> - do not create another persisted email;
+> - do not accidentally increment creation counts;
+> - preserve the existing `alreadyExisted` semantics;
+> - do not make classification introduce a second persistence path.
+>
+> Determine whether existing duplicates should be reclassified during ordinary ingestion.
+>
+> For this integration milestone, prefer:
+>
+> existing email
+> → retain existing persisted record
+> → do not silently reclassify it
+>
+> unless the existing architecture/spec explicitly says otherwise.
+>
+> Document the decision.
+>
+> ## 5. Write tests BEFORE production implementation
+>
+> Add focused integration/service tests proving at least these behaviors.
+>
+> ### A. New email is classified and persisted
+>
+> Given a new normalized email with clear academic/career/event evidence:
+>
+> - ingestion calls classification;
+> - email is persisted once;
+> - persisted category matches expected classifier result;
+> - persisted confidence matches expected classifier confidence.
+>
+> Do not duplicate the classifier's 45 unit tests here.
+>
+> Use only a small number of representative integration cases.
+>
+> ### B. Duplicate email remains idempotent
+>
+> Given an email that is already persisted:
+>
+> - ingestion does not create a duplicate;
+> - existing duplicate accounting remains correct;
+> - classification integration does not cause an additional insert.
+>
+> If classification should not run for duplicates, verify that using a mock where appropriate.
+>
+> ### C. GENERAL_OTHER / LOW persists correctly
+>
+> Use a message with no specialist evidence.
+>
+> Verify that the persisted classification is:
+>
+> - `GENERAL_OTHER`
+> - corresponding LOW confidence representation
+>
+> ### D. Classification failure behavior
+>
+> Inspect the current classifier contract.
+>
+> If classification can throw, determine the correct ingestion policy before implementing.
+>
+> Do not silently swallow unexpected classification failures.
+>
+> Prefer maintaining transactional consistency:
+>
+> - no partially persisted email with missing classification unless explicitly designed;
+> - failure should remain diagnosable.
+>
+> Write a test if this is a real reachable path.
+>
+> ### E. Source independence
+>
+> At least one test should demonstrate that `EmailIngestionService` classifies the normalized incoming model rather than Gmail-specific API types.
+>
+> Do not add Gmail coupling to the classification service.
+>
+> ## 6. Schema / entity changes
+>
+> If the persisted Email entity needs new fields, make the smallest schema change necessary.
+>
+> Likely concepts:
+>
+> - category
+> - classification confidence
+>
+> But inspect actual code before choosing names/types.
+>
+> Preserve compatibility with the current H2 setup and existing persistence tests.
+>
+> Do not introduce unrelated schema redesign.
+>
+> Do not implement relevance ranking yet.
+>
+> ## 7. Confidence representation
+>
+> The V1 classifier currently uses deterministic confidence levels:
+>
+> - HIGH
+> - MEDIUM
+> - LOW
+>
+> with existing persisted/API numeric representation where applicable:
+>
+> - HIGH → 0.9
+> - MEDIUM → 0.7
+> - LOW → 0.5
+>
+> Do not reinterpret these as calibrated probabilities.
+>
+> Reuse the existing model rather than creating a second confidence system.
+>
+> ## 8. Transactional behavior
+>
+> Inspect whether ingestion currently uses Spring transactions.
+>
+> Ensure classification and persistence have sensible atomic behavior.
+>
+> If classification succeeds but persistence fails, normal transaction semantics should apply.
+>
+> If classification fails before persistence, do not leave a partially classified record.
+>
+> Do not add transaction complexity unnecessarily if the existing service already handles it correctly.
+>
+> ## 9. Regression requirements
+>
+> After implementation run:
+>
+> 1. new focused classification-ingestion tests;
+> 2. existing persistence tests;
+> 3. Gmail retrieval/history tests;
+> 4. all 45 classifier tests;
+> 5. complete Java suite.
+>
+> The existing 137 tests must remain unchanged and passing unless the entity/schema evolution legitimately requires a test fixture update.
+>
+> Do not weaken existing assertions.
+>
+> ## 10. Static-analysis regression
+>
+> After the complete test suite passes:
+>
+> Run SpotBugs.
+>
+> Run PMD.
+>
+> Do not automatically remediate unrelated existing findings.
+>
+> Confirm that the integration did not introduce important new correctness or maintainability findings.
+>
+> JaCoCo may be rerun through the normal test build, but do not begin another percentage-chasing phase.
+>
+> ## 11. Documentation
+>
+> Update:
+>
+> `docs/TEST_LOG.md`
+>
+> Record the new integration tests and why they exist.
+>
+> Update:
+>
+> `docs/WORK_LOG.md`
+>
+> Record:
+>
+> - pre-integration architecture
+> - files changed
+> - entity/schema decision
+> - duplicate handling decision
+> - transactional behavior
+> - focused/full test results
+>
+> Append a concise summary to:
+>
+> `docs/AGENT_PROMPTS.md`
+>
+> If a genuine new defect is discovered, update:
+>
+> `docs/BUG_LOG.md`
+>
+> Do not create a bug entry merely because integration required new fields.
+>
+> ## 12. Restrictions
+>
+> Do NOT:
+>
+> - change classifier rules
+> - change classifier evidence lists
+> - change category precedence
+> - change confidence mapping
+> - re-open PMD refactoring
+> - chase JaCoCo percentages
+> - implement personalized ranking yet
+> - create frontend work
+> - delete Python
+> - change Gmail API behavior unnecessarily
+> - bypass existing duplicate protection
+> - couple classifier directly to Gmail API classes
+> - commit or push automatically
+>
+> ## 13. Completion report
+>
+> Report:
+>
+> 1. Existing ingestion architecture discovered.
+> 2. Tests added before production implementation.
+> 3. Whether any tests initially failed and why.
+> 4. Entity/schema changes.
+> 5. Production files changed.
+> 6. How classifier was injected/invoked.
+> 7. Duplicate/idempotency behavior.
+> 8. Classification failure behavior.
+> 9. Focused test results.
+> 10. Complete Java-suite result.
+> 11. SpotBugs result.
+> 12. PMD result.
+> 13. Whether any genuine bugs were discovered.
+> 14. Confirmation that Gmail behavior and classifier rules were preserved.
+> 15. Exact next recommended step.
+>
+> Stop after classifier → ingestion → persistence integration.
+>
+> Do NOT implement personalized relevance ranking in this task.
+
+### Prompt summary
+
+Integrate the existing source-independent V1 classifier into normalized Java email ingestion and persistence using tests first; persist category and confidence only for newly created emails; preserve duplicate, transaction, Gmail, and classifier semantics; run focused, full, SpotBugs, and PMD verification; document the architecture and decisions; and stop before relevance ranking.
+
+---

@@ -3,10 +3,12 @@ package edu.campussignal.service;
 import edu.campussignal.dto.ClassificationConfidence;
 import edu.campussignal.dto.EmailCategory;
 import edu.campussignal.dto.EmailClassificationResult;
+import org.springframework.stereotype.Service;
 
 import static edu.campussignal.service.ClassificationTextPreprocessor.*;
 
 /** Deterministic first-version classifier defined by CLASSIFICATION_SPEC_V1.md. */
+@Service
 public final class RuleBasedEmailClassificationService implements EmailClassificationService {
     private static final int STRONG_SUBJECT_WEIGHT = 3;
     private static final int STRONG_BODY_WEIGHT = 2;

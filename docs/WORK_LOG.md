@@ -1053,3 +1053,68 @@ PR created by: Pending
 Create a separate small adapter/orchestration batch for nonblank Gmail history page-token serialization, invalid watch/profile responses, successful retrieve command exit status, and the captured `GmailListenerService` handler. Continue to require behavioral assertions and leave the JaCoCo gate unset.
 
 ---
+
+## Work Entry
+Date: 2026-10-07
+Contributor: Codex
+Milestone: Classifier Product Integration
+Stage: Classifier → Ingestion → Persistence
+Branch: phase4-live-demo
+
+### Status
+Completed — V1 classification is now part of the provider-neutral Java ingestion transaction for newly created emails.
+
+### Pre-integration architecture discovered
+- `EmailSource` lists provider message IDs and returns the provider-neutral `IncomingEmail` record.
+- Gmail retrieval uses `GmailApiClient`/`GmailMessageMapper` to produce `IncomingEmail`; batch retrieval and Gmail history synchronization both call the same `EmailIngestionService`.
+- `EmailIngestionService` first queries `EmailRepository.findByGmailMessageId`, then inserts in a `REQUIRES_NEW` `TransactionTemplate`; a unique `gmail_message_id` constraint and `DataIntegrityViolationException` recovery preserve concurrent idempotency.
+- Before this change, `Email` persisted message metadata/body only, and `RuleBasedEmailClassificationService` was not registered as a Spring bean.
+
+### Test-first implementation
+- Added four Spring/H2 integration tests before production changes for new-email classification, duplicate skip/no reclassification, `GENERAL_OTHER`/`LOW`, classification failure, and direct use of `IncomingEmail` rather than Gmail API types.
+- The first focused run failed during test compilation because the expected Email classification getters did not exist. Production implementation followed only after this RED result.
+- `RuleBasedEmailClassificationService` is now the Spring `EmailClassificationService` bean and is constructor-injected into `EmailIngestionService`.
+- For a new message, ingestion invokes `classifier.classify(incoming.subject(), incoming.body())` inside the existing insert transaction and constructs one classified `Email`; there is no second persistence path.
+
+### Entity and schema decision
+- Added `category`, persisted with `@Enumerated(EnumType.STRING)` so database values use the existing `EmailCategory` names.
+- Added `classification_confidence`, represented in Java by the existing `ClassificationConfidence` enum and converted to the approved numeric values `0.9`, `0.7`, and `0.5` by `ClassificationConfidenceConverter`.
+- Added the mappings to `ClassificationConfidence` itself rather than introducing a second confidence model.
+- The two new columns are nullable at the schema level so Hibernate `ddl-auto=update` can add them to the existing file-backed H2 database without rewriting or silently reclassifying legacy rows. The `Email.classified` factory requires non-null category/confidence for every newly created entity.
+- Existing direct-persistence test fixtures were updated only to supply explicit classification values required by the evolved entity.
+
+### Duplicate and transaction behavior
+- Ordinary duplicate lookup remains before classification. An existing row is returned unchanged with `created=false`; its content and classification are retained, and the classifier is not called.
+- Concurrent insert races remain protected by the database uniqueness constraint. The losing transaction still resolves to the winning row with `created=false`, preserving retrieval/history `alreadyExisted` accounting.
+- Classification and `saveAndFlush` execute inside the existing `REQUIRES_NEW` transaction. An unexpected classifier runtime exception is not swallowed by ingestion and leaves no email row. Existing retrieval policy still counts runtime failures as failed messages; history synchronization still cannot advance progress after such a failure.
+
+### Verification
+- New focused integration tests: 4 passed; 0 failures, 0 errors, 0 skipped.
+- Existing persistence tests: 6 passed; 0 failures, 0 errors, 0 skipped.
+- Gmail API/retrieval/history tests: 22 passed; 0 failures, 0 errors, 0 skipped.
+- Existing classifier tests: 45 passed; 0 failures, 0 errors, 0 skipped.
+- Complete suite: `.\mvnw.cmd -B -ntp clean test` — BUILD SUCCESS; 141 tests, 0 failures, 0 errors, 0 skipped in 49.891 seconds.
+- SpotBugs: BUILD SUCCESS; 2 reviewed baseline findings, no new integration finding.
+- PMD: BUILD SUCCESS; 27 baseline findings, no new integration-code violation.
+- The initial integration-related SpotBugs constructor warning was corrected before completion; it was a static-analysis design issue introduced during implementation, not a pre-existing behavioral defect.
+
+### Files changed
+- Production: `src/main/java/edu/campussignal/dto/ClassificationConfidence.java`.
+- Production: `src/main/java/edu/campussignal/entity/ClassificationConfidenceConverter.java`.
+- Production: `src/main/java/edu/campussignal/entity/Email.java`.
+- Production: `src/main/java/edu/campussignal/service/EmailIngestionService.java`.
+- Production: `src/main/java/edu/campussignal/service/RuleBasedEmailClassificationService.java`.
+- Tests: new `src/test/java/edu/campussignal/EmailClassificationIngestionTest.java`.
+- Test fixtures: `src/test/java/edu/campussignal/EmailPersistenceTest.java` and `src/test/java/edu/campussignal/GmailRealtimeServiceTest.java`.
+- Documentation: `docs/AGENT_PROMPTS.md`, `docs/TEST_LOG.md`, and `docs/WORK_LOG.md`.
+- `docs/BUG_LOG.md`: unchanged because no genuine product defect was discovered.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next step
+Design an explicit one-time backfill/migration for legacy emails whose newly added classification columns are null, separate from ordinary idempotent ingestion; then expose stored classification through a read-side service/API before beginning personalized ranking.
+
+---
