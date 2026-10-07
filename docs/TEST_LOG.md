@@ -262,6 +262,28 @@ At the test-creation stage these six failures were treated as test-first specifi
 
 ---
 
+## 2026-10-07 — Final classifier coverage tests
+
+New JUnit tests: **2**. Baseline: 43 classifier tests and 135 total Java tests. Final: **45 classifier tests and 137 total Java tests**.
+
+| Test | Behavioral purpose | First-run result |
+|---|---|---|
+| `subjectNegationSuppressesCareerCueWithoutHidingAcademicPurpose` | Verifies that a subject-side `internship` cue inside the established four-token negation window is suppressed, while valid current academic evidence still selects `ACADEMIC_RESEARCH` with V1 `MEDIUM` confidence. | PASS — isolated 1/1 |
+| `namedActivityWithSubjectScheduleIsAnEvent` | Verifies the existing composite subject event rule: attendance language, a named activity, and concrete schedule/location in a subject-only message select `EVENT_ACTIVITY` with V1 `MEDIUM` confidence. | PASS — isolated 1/1 |
+
+### Ordered verification
+
+- Subject-negation isolated command: `.\mvnw.cmd -B -ntp "-Dtest=RuleBasedEmailClassificationServiceTest#subjectNegationSuppressesCareerCueWithoutHidingAcademicPurpose" test` — BUILD SUCCESS; 1 test, 0 failures, 0 errors, 0 skipped.
+- Classifier run after subject-negation verification: `.\mvnw.cmd -B -ntp "-Dtest=RuleBasedEmailClassificationServiceTest" test` — BUILD SUCCESS; 45 tests, 0 failures, 0 errors, 0 skipped.
+- Composite-event isolated command: `.\mvnw.cmd -B -ntp "-Dtest=RuleBasedEmailClassificationServiceTest#namedActivityWithSubjectScheduleIsAnEvent" test` — BUILD SUCCESS; 1 test, 0 failures, 0 errors, 0 skipped.
+- Classifier run after composite-event verification: `.\mvnw.cmd -B -ntp "-Dtest=RuleBasedEmailClassificationServiceTest" test` — BUILD SUCCESS; 45 tests, 0 failures, 0 errors, 0 skipped.
+- Non-destructive 135-test baseline reproduction excluded exactly the two new methods and passed with 43 classifier tests / 135 total tests, 0 failures, 0 errors, and 0 skipped.
+- Final command: `.\mvnw.cmd -B -ntp clean test` — BUILD SUCCESS; **137 tests, 0 failures, 0 errors, 0 skipped** in 49.145 seconds.
+
+All original 43 classifier tests remained unchanged, enabled, and passing. Both new tests passed immediately, so no production defect or production-code change was required.
+
+---
+
 ## 2026-10-06 — Test-first SpotBugs remediation
 
 New JUnit tests: **5**

@@ -42,6 +42,57 @@ User Profile API/service persistence, followed by Initial Category Preference Sc
 
 ---
 
+## Work Entry
+Date: 2026-10-07
+Contributor: Codex
+Milestone: CS5013 Code Coverage
+Stage: Final Classifier Coverage Batch
+Branch: phase4-live-demo
+
+### Status
+Completed — exactly two specification-backed classifier tests were added and passed against the existing production implementation.
+
+### Starting state
+- Classifier tests: 43.
+- Total Java tests: 135 passing; 0 failures, 0 errors, 0 skipped.
+- Overall coverage: 697/754 lines (92.44%) and 369/441 branches (83.67%).
+- `RuleBasedEmailClassificationService`: 87/102 branches (85.29%).
+- `ClassificationTextPreprocessor`: 43/46 branches (93.48%).
+
+### Implementation and test-first execution
+- Inspected `RuleBasedEmailClassificationService.eventEvidence`, `ClassificationTextPreprocessor` negation handling, `CLASSIFICATION_SPEC_V1.md`, the original 43 classifier tests, and the JaCoCo line-level branch report.
+- Added `subjectNegationSuppressesCareerCueWithoutHidingAcademicPurpose`; its isolated first run passed 1/1, and the classifier class passed 45/45.
+- Added `namedActivityWithSubjectScheduleIsAnEvent`; its isolated first run passed 1/1, and the classifier class passed 45/45.
+- The subject test confirms suppression of a negated specialist cue, continued classification from valid current-message evidence, V1 confidence downgrade after resolved negation, and preservation of the separately asserted four-token window.
+- The event test confirms the approved attendance-language, named-activity, and concrete-logistics subject rule with subject-only `MEDIUM` confidence.
+- No genuine defect was exposed. Production Java and `docs/BUG_LOG.md` were not changed.
+
+### Verification
+- Final focused classifier result: BUILD SUCCESS — 45 tests, 0 failures, 0 errors, 0 skipped.
+- Final full command: `.\mvnw.cmd -B -ntp clean test`.
+- Final full result: BUILD SUCCESS — 137 tests, 0 failures, 0 errors, 0 skipped in 49.145 seconds.
+- JaCoCo overall branches: 369/441 (83.67%) → 372/441 (84.35%).
+- `RuleBasedEmailClassificationService` branches: 87/102 (85.29%) → 90/102 (88.24%).
+- `ClassificationTextPreprocessor` branches: unchanged at 43/46 (93.48%).
+- Newly covered outcomes: subject-side negation short-circuit at classifier line 42; composite subject-event evaluation at line 204; schedule-present true outcome at line 205.
+- No JaCoCo threshold was introduced.
+
+### Files
+- Test Java: `src/test/java/edu/campussignal/RuleBasedEmailClassificationServiceTest.java`.
+- Documentation: `docs/AGENT_PROMPTS.md`, `docs/COVERAGE_LOG.md`, `docs/TEST_LOG.md`, and `docs/WORK_LOG.md`.
+- Production Java: unchanged.
+- `docs/BUG_LOG.md`: unchanged.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next step
+Stop coverage-driven work and begin classifier integration with the Java email ingestion and persistence flow, preserving source independence and duplicate protection.
+
+---
+
 
 ## Work Entry
 Date: 2026-09-08

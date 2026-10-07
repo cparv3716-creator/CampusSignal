@@ -235,3 +235,46 @@ The remaining two history branches are blank-token short-circuit/termination out
 The increase is useful because it represents four data-loss/error-handling decisions, not because it raises the global percentage. The existing production contract was confirmed: partial recovery may persist successful messages for idempotent retry, but progress advances only after complete recovery; page-level history ID is optional and the notification ID is the fallback.
 
 The next bounded batch should cover the adapter/orchestration scenarios already ranked second: nonblank Gmail history page-token serialization, invalid watch/profile responses, successful retrieve command exit status, and the captured `GmailListenerService` handler. Keep that as a separate task and continue to avoid a coverage gate.
+
+---
+
+## 2026-10-07 — Final classifier coverage batch
+
+### Scope and baseline
+
+This final coverage-driven batch added only the two classifier scenarios selected from the JaCoCo baseline. The verified starting state was 43 classifier tests and 135 total Java tests, with 697/754 lines (92.44%) and 369/441 branches (83.67%) overall.
+
+Because the working tree already contained the two uncommitted candidate tests and the existing `target` report had been generated with them, the 135-test baseline was reproduced non-destructively with:
+
+`.\mvnw.cmd -B -ntp "-Dtest=*,!RuleBasedEmailClassificationServiceTest#subjectNegationSuppressesCareerCueWithoutHidingAcademicPurpose+namedActivityWithSubjectScheduleIsAnEvent" clean test`
+
+That run produced BUILD SUCCESS with 135 tests, 0 failures, 0 errors, and 0 skipped, and confirmed the baseline counters below.
+
+### Tests and first-run behavior
+
+| Test | Specification-backed scenario | First isolated run | Defect? |
+|---|---|---|---|
+| `subjectNegationSuppressesCareerCueWithoutHidingAcademicPurpose` | Subject `Not an internship — research seminar` suppresses the negated career cue while current-body academic evidence still selects `ACADEMIC_RESEARCH`; resolved negation limits confidence to `MEDIUM`. The existing exact four-token boundary test remains unchanged. | PASS — 1/1 | No |
+| `namedActivityWithSubjectScheduleIsAnEvent` | Subject-only `Join the campus dance — Friday 7 PM — Hall A` supplies attendance language, a named activity, and concrete logistics, exercising the existing composite subject rule and producing `EVENT_ACTIVITY`/`MEDIUM` because there is no body corroboration. | PASS — 1/1 | No |
+
+Both complete classifier runs after the isolated checks passed immediately with 45 tests, 0 failures, 0 errors, and 0 skipped. No production code or classifier rule changed.
+
+### Coverage comparison
+
+| Metric | Before (43 classifier / 135 total) | After (45 classifier / 137 total) | Change |
+|---|---:|---:|---:|
+| Overall branches | 369/441 (83.67%) | 372/441 (84.35%) | +3 branches, +0.68 pp |
+| Overall lines | 697/754 (92.44%) | 697/754 (92.44%) | unchanged |
+| `RuleBasedEmailClassificationService` branches | 87/102 (85.29%) | 90/102 (88.24%) | +3 branches, +2.95 pp |
+| `ClassificationTextPreprocessor` branches | 43/46 (93.48%) | 43/46 (93.48%) | unchanged |
+
+### Exact newly covered branches
+
+- `RuleBasedEmailClassificationService.classifyCurrent`, line 42: the subject-side `hasNegatedCategoryCue(subject)` true outcome now short-circuits the body-side check, proving subject negation is detected.
+- `RuleBasedEmailClassificationService.eventEvidence`, line 204: the direct subject-event cue check is false and evaluation proceeds into the existing composite named-activity rule.
+- `RuleBasedEmailClassificationService.eventEvidence`, line 205: a recognized subject activity (`dance`) combined with attendance wording and a recognized schedule/location cue (`Friday`, `PM`, or `Hall`) takes the composite rule's true outcome.
+- No `ClassificationTextPreprocessor` branch was newly covered; its established matching and four-token negation mechanics were already executed by the original 43 tests. The new subject test covers the classifier's subject-side wiring to those mechanics.
+
+### Interpretation
+
+The two tests confirm approved V1 behavior rather than adding evidence, precedence, confidence, or NLP rules. No behavioral defect was found, no production file changed, and no coverage gate was added. Coverage-driven work should stop here; the next step is classifier integration with email ingestion and persistence.

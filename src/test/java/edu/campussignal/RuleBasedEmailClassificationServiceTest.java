@@ -46,6 +46,17 @@ class RuleBasedEmailClassificationServiceTest {
     }
 
     @Test
+    void namedActivityWithSubjectScheduleIsAnEvent() {
+        String subject = "Join the campus dance — Friday 7 PM — Hall A";
+        String body = "";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.EVENT_ACTIVITY);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.MEDIUM);
+    }
+
+    @Test
     void callSubject() {
         String subject = "Call for Club Coordinators";
         String body = "Eligible students may apply using the form before Friday's application deadline.";
@@ -310,6 +321,17 @@ class RuleBasedEmailClassificationServiceTest {
         EmailClassificationResult result = classifier.classify(subject, body);
 
         assertThat(result.category()).isEqualTo(EmailCategory.CALL_FOR_PARTICIPATION);
+        assertThat(result.confidence()).isEqualTo(ClassificationConfidence.MEDIUM);
+    }
+
+    @Test
+    void subjectNegationSuppressesCareerCueWithoutHidingAcademicPurpose() {
+        String subject = "Not an internship — research seminar";
+        String body = "A speaker will present a scholarly lecture and abstract.";
+
+        EmailClassificationResult result = classifier.classify(subject, body);
+
+        assertThat(result.category()).isEqualTo(EmailCategory.ACADEMIC_RESEARCH);
         assertThat(result.confidence()).isEqualTo(ClassificationConfidence.MEDIUM);
     }
 

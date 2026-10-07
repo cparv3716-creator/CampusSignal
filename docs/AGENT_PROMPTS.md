@@ -213,6 +213,154 @@ If you encounter an architectural conflict with the existing repository, stop an
 
 ---
 
+## 2026-10-07 — Final classifier coverage batch
+
+### Exact task prompt
+
+> We have completed the first JaCoCo coverage-improvement batch.
+>
+> Current verified state:
+>
+> - Full Java suite: 135 tests
+> - 0 failures
+> - 0 errors
+> - 0 skipped
+> - Overall line coverage: 92.44%
+> - Overall branch coverage: 83.67%
+> - GmailHistorySyncService branch coverage: 94.12%
+> - No production code changed in the previous coverage batch
+> - No bugs were discovered
+>
+> This task is the FINAL small classifier coverage batch before stopping coverage-driven work and moving to classifier integration.
+>
+> Do not add a broad set of new tests.
+>
+> Add only the two meaningful classifier scenarios identified in the JaCoCo baseline.
+>
+> ## Test 1 — subject-side negation
+>
+> Add a focused test proving that a specialist category cue appearing in the SUBJECT within the existing four-token negation window is not counted positively.
+>
+> Use the existing Classification Specification V1 behavior.
+>
+> Examples should reflect the existing negation semantics rather than inventing new NLP behavior.
+>
+> Verify:
+>
+> - the negated subject cue is suppressed;
+> - another valid current-message signal can still determine the category if present;
+> - confidence follows the existing V1 rules;
+> - the test does not alter the existing four-token negation contract.
+>
+> Do not change production code unless the test demonstrates a genuine defect.
+>
+> ## Test 2 — composite subject event rule
+>
+> Add the focused test corresponding to the currently uncovered composite subject-event branch identified in the JaCoCo report.
+>
+> Before writing the test:
+>
+> 1. inspect the exact uncovered branch in RuleBasedEmailClassificationService / ClassificationTextPreprocessor;
+> 2. identify the existing intended rule from CLASSIFICATION_SPEC_V1.md;
+> 3. write the smallest test that exercises that currently uncovered outcome.
+>
+> Do not invent a new classification rule merely to obtain branch coverage.
+>
+> The expected behavior must follow the already approved specification.
+>
+> ## Test-first process
+>
+> For each test:
+>
+> 1. inspect current production code and existing tests;
+> 2. add the focused test;
+> 3. run RuleBasedEmailClassificationServiceTest;
+> 4. record whether the test passes immediately or exposes a defect;
+> 5. modify production code only if existing behavior contradicts the approved V1 specification.
+>
+> Do not change, weaken, rename, disable, or skip any of the existing 43 classifier tests.
+>
+> ## Verification
+>
+> After both tests:
+>
+> Run the classifier suite.
+>
+> Then run:
+>
+> `.\mvnw.cmd -B -ntp clean test`
+>
+> Record:
+>
+> - classifier test count;
+> - total Java test count;
+> - failures;
+> - errors;
+> - skipped;
+> - BUILD result.
+>
+> Inspect JaCoCo and compare:
+>
+> - overall branch coverage before vs after;
+> - RuleBasedEmailClassificationService branch coverage before vs after;
+> - ClassificationTextPreprocessor branch coverage before vs after;
+> - exact newly covered branches.
+>
+> Do not add a coverage gate.
+>
+> ## Documentation
+>
+> Update:
+>
+> - `docs/COVERAGE_LOG.md`
+> - `docs/TEST_LOG.md`
+> - `docs/AGENT_PROMPTS.md`
+> - `docs/WORK_LOG.md`
+>
+> Update `BUG_LOG.md` only if a genuine behavioral defect is discovered.
+>
+> ## Restrictions
+>
+> Do NOT:
+>
+> - add more Gmail-history tests;
+> - add the proposed adapter/orchestration coverage batch yet;
+> - add tests merely to increase the overall percentage;
+> - modify classifier evidence lists;
+> - modify precedence;
+> - modify confidence mapping;
+> - modify persistence;
+> - implement ranking;
+> - change database schema;
+> - modify PMD or SpotBugs;
+> - add a JaCoCo coverage threshold;
+> - commit or push automatically.
+>
+> ## Completion report
+>
+> Report:
+>
+> 1. Starting classifier and total test counts.
+> 2. Tests added.
+> 3. Whether each passed immediately.
+> 4. Any defects discovered.
+> 5. Production files changed, if any.
+> 6. Classifier-focused result.
+> 7. Complete Java-suite result.
+> 8. Overall branch coverage before vs after.
+> 9. Classifier/preprocessor branch coverage before vs after.
+> 10. Exact branches newly covered.
+> 11. Files changed.
+> 12. Exact next step.
+>
+> After these two tests, recommend moving away from coverage-driven work and beginning classifier integration with email ingestion/persistence unless a genuine defect is exposed.
+
+### Prompt summary
+
+Add only the two specification-backed classifier tests for subject-side negation and the composite subject event rule, run focused verification after each and then the complete suite, compare exact JaCoCo branch coverage, change production only for a demonstrated defect, update the required traceability logs, and then stop coverage-driven work in favor of classifier integration.
+
+---
+
 ## 2026-10-06 — CS5013 JaCoCo baseline analysis and triage
 
 ### Exact task prompt
