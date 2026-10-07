@@ -1187,3 +1187,17 @@ API/service task. Do not begin personalized ranking until stored classification 
 validated through that read path.
 
 ---
+
+### Real file-backed H2 execution
+
+- Database: `jdbc:h2:file:./data/campussignal`
+- Command:
+  `java -jar target/campussignal-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --classification.backfill=true`
+- Actual output:
+  `classificationBackfillUpdated=0`
+- Result: Successful.
+- Interpretation: No persisted emails required legacy classification backfill at the time of execution.
+- Post-run verification query:
+  `SELECT COUNT(*) FROM emails WHERE category IS NULL OR classification_confidence IS NULL;`
+- Result: `0`
+- Interpretation: No persisted email remains with incomplete classification.
