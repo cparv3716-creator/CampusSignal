@@ -8,4 +8,5 @@ import edu.campussignal.entity.Email;
 public interface EmailRepository extends JpaRepository<Email, Long> {
     Optional<Email> findByGmailMessageId(String gmailMessageId);
     List<Email> findAllByCategoryIsNullOrClassificationConfidenceIsNullOrderByIdAsc();
+    List<Email> findAllByOrderByReceivedAtDescIdDesc();
 }

@@ -1201,3 +1201,71 @@ validated through that read path.
   `SELECT COUNT(*) FROM emails WHERE category IS NULL OR classification_confidence IS NULL;`
 - Result: `0`
 - Interpretation: No persisted email remains with incomplete classification.
+
+---
+
+## Work Entry
+Date: 2026-10-07
+Contributor: Codex
+Milestone: Persisted Classification Read Side
+Stage: Email Read Service and REST API
+Branch: phase4-live-demo
+
+### Status
+Completed — persisted email classification and feed-safe metadata are available through read-only
+service and REST boundaries without invoking classification during GET requests.
+
+### Existing architecture discovered
+- No email read service, response DTO, or controller existed. Persisted email data was reachable only through repositories and ingestion-related tests.
+- Existing API conventions use `/api/v1` controllers, dedicated response records, service-layer mapping, read-only transactions, typed domain exceptions, and safe `ProblemDetail` handlers.
+- `Email` persists ID, provider message ID, subject, sender, received time, full body, category, confidence, and creation time. Category is an `EmailCategory`; confidence is a `ClassificationConfidence` whose approved numeric representation comes from `persistedValue()`.
+
+### Endpoint and DTO decisions
+- Added `GET /api/v1/emails` and `GET /api/v1/emails/{id}`.
+- `EmailResponse` exposes only `id`, `subject`, `sender`, `receivedAt`, `category`, and numeric `classificationConfidence`.
+- Full body, provider/Gmail message ID, and creation timestamp are deliberately omitted. No credentials, OAuth data, Pub/Sub state, or internal exception details are reachable through the DTO.
+- The confidence number is the existing V1 mapping (`HIGH=0.9`, `MEDIUM=0.7`, `LOW=0.5`), not a new confidence model or calibrated probability.
+
+### Read and ordering behavior
+- `EmailReadService` is `@Transactional(readOnly = true)` and depends only on `EmailRepository`; it has no classifier or ingestion dependency.
+- Category and confidence are read directly from the persisted entity. Mapping calls `persistedValue()` on the stored confidence enum and does not change the entity.
+- Collection order is deterministic: `receivedAt DESC`, then generated `id DESC` for equal timestamps. This is recency ordering only, not ranking or relevance scoring.
+- Missing IDs raise `EmailNotFoundException` and return a safe 404 `ProblemDetail` with `Email not found`.
+
+### Null-classification policy
+- Nullable columns remain unchanged for schema compatibility even though the real file-backed database was verified to contain zero incomplete rows.
+- If either persisted classification field is unexpectedly null, both collection and single-record mapping raise `IncompleteEmailClassificationException` and return a safe 500 `ProblemDetail`.
+- The GET request does not call the classifier, invent a fallback value, persist an update, or expose an internal exception.
+
+### Test-first and verification
+- Initial RED: `EmailReadApiTest` ran 5 tests and all 5 failed because no `/api/v1/emails` handler existed.
+- Five focused API tests pass, including persisted-value fidelity, ingestion-to-read integration, zero classifier calls during reads, deterministic ordering, safe 404 handling, and unchanged incomplete legacy data.
+- Focused read API: 5 passed; classification ingestion: 4 passed; persistence: 6 passed; classifier: 45 passed.
+- Complete suite: `.\mvnw.cmd -B -ntp -Ddebug=false clean test` — BUILD SUCCESS; **152 tests, 0 failures, 0 errors, 0 skipped** in 49.891 seconds.
+- SpotBugs: BUILD SUCCESS; 2 unchanged reviewed baseline findings; no read-side finding.
+- PMD: BUILD SUCCESS; 27 unchanged reviewed baseline findings; no read-side finding.
+- No genuine behavioral defect was discovered. Gmail, backfill, duplicate protection, ingestion, persistence, and classifier V1 behavior remain unchanged.
+
+### Files changed
+- Production: `src/main/java/edu/campussignal/controller/ApiExceptionHandler.java`.
+- Production: `src/main/java/edu/campussignal/controller/EmailController.java` (new).
+- Production: `src/main/java/edu/campussignal/dto/EmailResponse.java` (new).
+- Production: `src/main/java/edu/campussignal/repository/EmailRepository.java`.
+- Production: `src/main/java/edu/campussignal/service/EmailNotFoundException.java` (new).
+- Production: `src/main/java/edu/campussignal/service/EmailReadService.java` (new).
+- Production: `src/main/java/edu/campussignal/service/IncompleteEmailClassificationException.java` (new).
+- Tests: `src/test/java/edu/campussignal/EmailReadApiTest.java` (new).
+- Documentation: `docs/AGENT_PROMPTS.md`, `docs/JAVA_BACKEND.md`, `docs/TEST_LOG.md`, and `docs/WORK_LOG.md`.
+- `docs/BUG_LOG.md`: unchanged because no genuine behavioral defect was found.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next step
+Run a read-only live smoke of both email endpoints against the verified file-backed H2 database,
+then scope the action/registration and deadline-tracking model as a separate test-first milestone.
+Keep personalized ranking, urgency, and user-specific feed ordering out of that first action model.
+
+---

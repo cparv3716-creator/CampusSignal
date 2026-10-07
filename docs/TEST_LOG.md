@@ -452,3 +452,37 @@ New JUnit tests: **6**. Baseline: 141 Java tests. Final: **147 Java tests**.
 
 ---
 
+## 2026-10-07 — Persisted email classification read API
+
+New JUnit tests: **5**. Baseline: 147 Java tests. Final: **152 Java tests**.
+
+| Test | Read-side behavior protected | Final status |
+|---|---|---|
+| `classifiedPersistedEmailIsExposedWithoutPrivateContent` | A known persisted category and numeric confidence are returned with feed metadata, while body, provider message ID, and creation timestamp are absent. | PASS |
+| `ingestedEmailIsVisibleWithoutClassificationRunningAgain` | The ingestion → classification → persistence → GET path returns the stored academic result and invokes the classifier only during ingestion. | PASS |
+| `collectionIsOrderedByReceivedTimeThenIdDescending` | Collection results use `receivedAt DESC, id DESC`, including a stable ID tie-breaker, without ranking. | PASS |
+| `missingEmailReturnsSafeProblemDetail` | An unknown ID returns the established safe 404 `ProblemDetail` shape. | PASS |
+| `incompleteLegacyClassificationReturnsSafeErrorWithoutMutation` | A realistically reachable nullable legacy row returns a safe 500, remains unchanged, and is not reclassified. | PASS |
+
+### Test-first result
+
+- Initial focused command: `.\mvnw.cmd -B -ntp -Ddebug=false "-Dtest=EmailReadApiTest" test`.
+- Initial RED result: BUILD FAILURE — **5 tests run, 5 failures, 0 errors, 0 skipped**. Every request reached static-resource handling because `/api/v1/emails` did not yet exist; expected 200/500 responses were 404 and the missing-ID response had no API `ProblemDetail` body.
+- Final focused result: BUILD SUCCESS — **5 tests, 0 failures, 0 errors, 0 skipped** in 39.179 seconds.
+
+### Regression verification
+
+- Classification ingestion: `EmailClassificationIngestionTest` — 4 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.
+- Existing persistence: `EmailPersistenceTest` — 6 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.
+- Classifier: `RuleBasedEmailClassificationServiceTest` — 45 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.
+- Complete command: `.\mvnw.cmd -B -ntp -Ddebug=false clean test`.
+- Complete result: BUILD SUCCESS — **152 tests, 0 failures, 0 errors, 0 skipped** in 49.891 seconds.
+
+### Static analysis
+
+- SpotBugs: `.\mvnw.cmd -B -ntp -DskipTests compile spotbugs:spotbugs` — BUILD SUCCESS; 2 findings, unchanged from the reviewed baseline; no read-side finding.
+- PMD: `.\mvnw.cmd -B -ntp -DskipTests compile pmd:pmd` — BUILD SUCCESS; 27 findings, unchanged from the reviewed baseline; no read-side finding.
+- No production defect was discovered, so `docs/BUG_LOG.md` was not changed.
+
+---
+

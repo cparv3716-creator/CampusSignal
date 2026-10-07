@@ -8,6 +8,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import edu.campussignal.service.EmailNotFoundException;
+import edu.campussignal.service.IncompleteEmailClassificationException;
 import edu.campussignal.service.ProfileNotFoundException;
 
 @RestControllerAdvice
@@ -15,6 +17,17 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ProfileNotFoundException.class)
     public ProblemDetail notFound() {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Profile not found");
+    }
+
+    @ExceptionHandler(EmailNotFoundException.class)
+    public ProblemDetail emailNotFound() {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Email not found");
+    }
+
+    @ExceptionHandler(IncompleteEmailClassificationException.class)
+    public ProblemDetail incompleteEmailClassification() {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Stored email classification is incomplete");
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

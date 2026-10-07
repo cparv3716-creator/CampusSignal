@@ -148,6 +148,25 @@ from that run, and produces a nonzero process failure. A successful run prints o
 `classificationBackfillUpdated=<count>`; rerunning after completion reports zero and creates no rows.
 Do not combine this command with `--gmail.command` in the same process invocation.
 
+## Email read API
+
+The read side exposes classification already stored on each email. It never calls the classifier,
+re-ingests messages, or changes database rows.
+
+| Endpoint | Successful result |
+|---|---|
+| `GET /api/v1/emails` | Email metadata ordered by `receivedAt` descending, then `id` descending |
+| `GET /api/v1/emails/{id}` | One persisted email metadata record, or safe `404 ProblemDetail` |
+
+Each response contains `id`, `subject`, `sender`, `receivedAt`, `category`, and numeric
+`classificationConfidence` (`0.9`, `0.7`, or `0.5`). Confidence is a deterministic V1 level,
+not a calibrated probability. Full message bodies, provider message IDs, creation timestamps,
+Gmail credentials, and Pub/Sub state are not exposed.
+
+The classification columns remain nullable for schema compatibility. If an unexpected incomplete
+row reaches either endpoint, the request returns a safe `500 ProblemDetail`; the row is not
+reclassified or mutated and no placeholder classification is returned.
+
 ## Profile API
 
 All HTTP responses use DTOs, not JPA entities. Email addresses are stripped and lowercased for

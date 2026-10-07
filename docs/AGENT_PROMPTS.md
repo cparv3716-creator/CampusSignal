@@ -2774,3 +2774,314 @@ Integrate the existing source-independent V1 classifier into normalized Java ema
 Add a test-first, explicit, provider-neutral, transactional, idempotent migration command that classifies only legacy email rows with either classification field missing, preserves fully classified rows and all message data, exposes failures, and leaves ingestion, Gmail, and classifier V1 behavior unchanged.
 
 ---
+
+## Prompt: Read-side persisted email classification API
+
+> CampusSignal has completed classifier ingestion/persistence integration and explicit legacy classification backfill.
+>
+> Current verified state:
+>
+> - Branch: `phase4-live-demo`
+> - Full Java suite: 147 tests
+> - 0 failures
+> - 0 errors
+> - 0 skipped
+> - New emails are classified during ingestion
+> - `Email.category` is persisted
+> - `Email.classificationConfidence` is persisted
+> - Legacy backfill is implemented and verified
+> - Real file-backed H2 verification found:
+>   - `classificationBackfillUpdated=0`
+>   - remaining incomplete classifications = 0
+> - Ordinary ingestion, Gmail behavior, duplicate handling, classifier V1, PMD, and SpotBugs behavior must remain unchanged
+>
+> We now need a READ-SIDE email classification service/API.
+>
+> The purpose is to expose classification already persisted in the database.
+>
+> DO NOT re-run the classifier during reads.
+>
+> ## Goal
+>
+> Conceptually:
+>
+> Persisted Email
+> → Email read service
+> → response DTO
+> → REST API
+>
+> The API should expose useful email metadata plus:
+>
+> - persisted category
+> - persisted classification confidence
+>
+> This task is NOT personalized ranking.
+>
+> ## 1. Inspect existing architecture first
+>
+> Inspect:
+>
+> - `Email`
+> - `EmailRepository`
+> - existing controllers
+> - `ProfileController`
+> - DTO conventions
+> - exception handling / `ProblemDetail`
+> - service conventions
+> - existing controller/API tests
+> - current persisted Email fields
+>
+> Determine whether any email-read endpoint/service already exists.
+>
+> Do not duplicate existing functionality.
+>
+> Do not assume endpoint names until the existing API conventions have been inspected.
+>
+> ## 2. Source of truth
+>
+> The API MUST return the classification persisted on the Email entity.
+>
+> Do NOT call:
+>
+> - `EmailClassificationService`
+> - `RuleBasedEmailClassificationService`
+>
+> during an ordinary read request.
+>
+> A GET request must not reclassify, update, or mutate an Email row.
+>
+> Persisted classification is the source of truth for this milestone.
+>
+> ## 3. Response DTO
+>
+> Create a dedicated read-side DTO/record appropriate to the current API style.
+>
+> Expose only fields useful for the CampusSignal feed, such as existing persisted:
+>
+> - email ID
+> - provider/Gmail message ID only if safe and already part of the API design
+> - subject
+> - sender/from field if persisted
+> - received timestamp if persisted
+> - category
+> - classification confidence
+>
+> Inspect actual `Email` fields before deciding the exact DTO.
+>
+> For classification:
+>
+> - category should use the existing `EmailCategory`
+> - confidence should expose the existing approved persisted/API representation
+>
+> Do not create a new confidence model.
+>
+> Do not claim confidence is a calibrated probability.
+>
+> Avoid exposing the full email body in the collection/list response unless there is an existing explicit requirement.
+>
+> ## 4. Read service
+>
+> Introduce a small read-side service if the existing architecture supports that pattern.
+>
+> Responsibilities should be limited to:
+>
+> - querying persisted emails
+> - mapping them to response DTOs
+> - optionally retrieving one record by ID
+> - preserving a deterministic order
+>
+> Do not put classification business logic into the read service.
+>
+> Do not mutate entities during mapping.
+>
+> ## 5. API shape
+>
+> Inspect existing REST conventions first.
+>
+> At minimum we need a way to retrieve persisted classified emails.
+>
+> A likely conceptual endpoint is:
+>
+> `GET /api/v1/emails`
+>
+> If consistent with the existing project, optionally support:
+>
+> `GET /api/v1/emails/{id}`
+>
+> Do not add unnecessary filtering, pagination, ranking, or user-specific relevance yet.
+>
+> If ordering is needed for the collection, prefer a deterministic existing field such as received timestamp descending, with ID as a stable tie-breaker if appropriate.
+>
+> Document the actual choice.
+>
+> ## 6. TEST FIRST
+>
+> Before implementing production code, add focused API/service tests covering at least:
+>
+> ### A. Classified persisted email is exposed
+>
+> Persist an Email with known:
+>
+> - category
+> - confidence
+>
+> Call the read path.
+>
+> Assert that the returned DTO/API contains exactly those persisted values.
+>
+> ### B. Ingested email is visible through the read API
+>
+> Use the existing ingestion path to create a classified email.
+>
+> Then read it through the new service/API.
+>
+> Verify:
+>
+> ingestion
+> → classification
+> → persistence
+> → read API
+>
+> without invoking classification a second time.
+>
+> ### C. Read does not reclassify
+>
+> Where practical, use a mock/spy or architectural test setup proving a read request does not invoke `EmailClassificationService`.
+>
+> GET must be side-effect free.
+>
+> ### D. Stable collection result
+>
+> Persist multiple emails.
+>
+> Verify deterministic ordering according to the selected rule.
+>
+> Do not implement personalized ranking.
+>
+> ### E. Missing ID if single-email endpoint exists
+>
+> If `GET /api/v1/emails/{id}` is implemented:
+>
+> - unknown ID should return the project's established 404/ProblemDetail style
+> - do not leak internal exceptions
+>
+> ## 7. Legacy/null classification policy
+>
+> The real file-backed H2 database has already been verified with zero incomplete classifications.
+>
+> However, the entity columns remain nullable for compatibility.
+>
+> Define defensive behavior if an unexpected Email with null category/confidence is encountered.
+>
+> Do not silently reclassify it during GET.
+>
+> Prefer a clear internal/domain error or an explicitly documented representation consistent with the existing API style.
+>
+> Do not invent placeholder category/confidence values.
+>
+> Add a test only if this path is realistically reachable through the current persistence model.
+>
+> ## 8. Privacy
+>
+> Do not expose more email content than needed.
+>
+> In particular, avoid returning:
+>
+> - OAuth tokens
+> - credentials
+> - internal exception details
+> - Pub/Sub state
+> - unnecessary full email bodies
+>
+> The purpose of this endpoint is to provide feed/read metadata and persisted classification.
+>
+> ## 9. Verification
+>
+> After implementation run:
+>
+> 1. new focused read-side/API tests
+> 2. classification-ingestion tests
+> 3. persistence tests
+> 4. classifier tests
+> 5. complete Java suite
+>
+> Then run SpotBugs and PMD.
+>
+> Do not begin another JaCoCo coverage-chasing phase.
+>
+> ## 10. Documentation
+>
+> Update:
+>
+> `docs/TEST_LOG.md`
+>
+> with the read-side tests.
+>
+> Update:
+>
+> `docs/WORK_LOG.md`
+>
+> with:
+>
+> - architecture discovered
+> - endpoint chosen
+> - DTO fields
+> - ordering policy
+> - null-classification policy
+> - confirmation that reads do not invoke classification
+> - verification results
+>
+> Append a concise task summary to:
+>
+> `docs/AGENT_PROMPTS.md`
+>
+> Update `BUG_LOG.md` only if a genuine behavioral defect is discovered.
+>
+> ## 11. Restrictions
+>
+> Do NOT:
+>
+> - rerun classification during GET
+> - change classifier V1 rules
+> - change classification persistence
+> - change ordinary ingestion behavior
+> - implement personalized relevance scoring
+> - implement registration/deadline tracking yet
+> - add urgency scoring
+> - add ranked feed behavior
+> - change Gmail behavior
+> - delete Python
+> - chase coverage percentages
+> - add broad SpotBugs/PMD suppressions
+> - commit or push automatically
+>
+> ## 12. Completion report
+>
+> Report:
+>
+> 1. Existing read architecture discovered.
+> 2. Endpoint(s) implemented.
+> 3. DTO fields.
+> 4. Tests added first.
+> 5. Initial RED result.
+> 6. Production files changed.
+> 7. How persisted category/confidence are read.
+> 8. Proof that classifier is not invoked on reads.
+> 9. Ordering policy.
+> 10. Null-classification defensive policy.
+> 11. Focused test result.
+> 12. Full Java-suite result.
+> 13. SpotBugs result.
+> 14. PMD result.
+> 15. Any genuine defect discovered.
+> 16. Exact next recommended step.
+>
+> Stop after the read-side classification API/service is implemented and verified.
+>
+> Do NOT implement ranking or the action/registration tracker in this task.
+
+### Prompt summary
+
+Add a test-first, read-only email metadata API backed exclusively by persisted classification, with deterministic ordering, safe not-found and incomplete-classification errors, no body/provider detail exposure, and no classifier invocation or entity mutation during GET requests.
+
+---
