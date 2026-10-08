@@ -262,6 +262,45 @@ At the test-creation stage these six failures were treated as test-first specifi
 
 ---
 
+## 2026-10-08 — Deadline Semantics + Deterministic Action Metadata Extraction V1
+
+New focused JUnit executions: **19**. Baseline: 162 Java tests. Final: **181 Java tests**.
+
+### Effective-status coverage
+
+- Future deadline, today's deadline, and null deadline remain effectively `PENDING`.
+- Yesterday's deadline is exposed as `MISSED` while the persisted status remains `PENDING`.
+- Expired completed and not-interested actions retain their terminal effective statuses.
+- All date behavior uses a fixed injected `Clock`; no sleep or wall-clock race is involved.
+
+### Extraction coverage
+
+- Explicit `APPLY`, `REGISTER`, `SUBMIT`, and attendance requests yield the corresponding type.
+- Long month, month-first, abbreviated month, ISO, and unambiguous day-first numeric dates are parsed.
+- Ambiguous numeric dates do not invent a deadline.
+- Action-context URL selection prefers the action link over a footer/privacy link and ignores unsafe schemes.
+- Informational events, newsletters, and completed-action announcements return no candidate.
+- Candidate reads leave the email unchanged, create no action, make no classifier call, use no Gmail path, and return the established safe 404 for an unknown email.
+
+### Test-first result
+
+- Initial command: `.\mvnw.cmd -B -ntp -Ddebug=false "-Dtest=EmailActionDeadlineAndExtractionTest" test`.
+- Initial RED: BUILD FAILURE — **19 tests, 19 failures, 0 errors, 0 skipped**. The candidate route was absent and action reads had no `effectiveStatus`.
+- Initial focused GREEN: BUILD SUCCESS — **19 tests, 0 failures, 0 errors, 0 skipped** in 47.133 seconds.
+- Final action-focused regression: `EmailActionApiTest,EmailActionDeadlineAndExtractionTest` — **29 tests, 0 failures, 0 errors, 0 skipped** in 37.564 seconds.
+
+### Regression and static analysis
+
+- Existing Action API and persisted-email read API group: **34 tests**, unchanged, all passed before the final full run.
+- Final command: `.\mvnw.cmd -B -ntp -Ddebug=false clean test`.
+- Final result: BUILD SUCCESS — **181 tests, 0 failures, 0 errors, 0 skipped** in 1:06.
+- SpotBugs: BUILD SUCCESS; **2 findings**, unchanged accepted baseline; no milestone finding.
+- PMD initially found two extractor-local issues (`TooManyMethods`, `LambdaCanBeMethodReference`); both were corrected without suppression.
+- Final PMD: BUILD SUCCESS; **27 findings**, unchanged accepted baseline; no milestone finding.
+- No genuine product defect was discovered, so `docs/BUG_LOG.md` was not changed.
+
+---
+
 ## 2026-10-07 — Final classifier coverage tests
 
 New JUnit tests: **2**. Baseline: 43 classifier tests and 135 total Java tests. Final: **45 classifier tests and 137 total Java tests**.

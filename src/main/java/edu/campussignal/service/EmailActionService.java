@@ -2,12 +2,16 @@ package edu.campussignal.service;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import edu.campussignal.dto.EmailActionCreateRequest;
+import edu.campussignal.dto.EmailActionEffectiveStatus;
+import edu.campussignal.dto.EmailActionReadResponse;
 import edu.campussignal.dto.EmailActionResponse;
 import edu.campussignal.dto.EmailActionStatus;
 import edu.campussignal.dto.EmailActionStatusRequest;
@@ -35,23 +39,23 @@ public class EmailActionService {
         return response(actions.saveAndFlush(EmailAction.pending(email, request)));
     }
 
-    public List<EmailActionResponse> list() {
+    public List<EmailActionReadResponse> list() {
         return actions.findAllByOrderByCreatedAtDescIdDesc().stream()
-                .map(this::response)
+                .map(this::readResponse)
                 .toList();
     }
 
-    public List<EmailActionResponse> listForEmail(long emailId) {
+    public List<EmailActionReadResponse> listForEmail(long emailId) {
         if (!emails.existsById(emailId)) {
             throw new EmailNotFoundException();
         }
         return actions.findAllByEmailIdOrderByCreatedAtDescIdDesc(emailId).stream()
-                .map(this::response)
+                .map(this::readResponse)
                 .toList();
     }
 
-    public EmailActionResponse get(long actionId) {
-        return response(findAction(actionId));
+    public EmailActionReadResponse get(long actionId) {
+        return readResponse(findAction(actionId));
     }
 
     @Transactional
@@ -93,5 +97,35 @@ public class EmailActionService {
                 action.getActionUrl(),
                 action.getCompletedAt(),
                 action.getCreatedAt());
+    }
+
+    private EmailActionReadResponse readResponse(EmailAction action) {
+        return new EmailActionReadResponse(
+                action.getId(),
+                action.getEmail().getId(),
+                action.getEmail().getSubject(),
+                action.getActionType(),
+                action.getStatus(),
+                effectiveStatus(action),
+                action.getDeadline(),
+                action.getActionUrl(),
+                action.getCompletedAt(),
+                action.getCreatedAt());
+    }
+
+    private EmailActionEffectiveStatus effectiveStatus(EmailAction action) {
+        return switch (action.getStatus()) {
+            case COMPLETED -> EmailActionEffectiveStatus.COMPLETED;
+            case NOT_INTERESTED -> EmailActionEffectiveStatus.NOT_INTERESTED;
+            case PENDING -> missedDeadline(action)
+                    ? EmailActionEffectiveStatus.MISSED
+                    : EmailActionEffectiveStatus.PENDING;
+        };
+    }
+
+    private boolean missedDeadline(EmailAction action) {
+        LocalDate deadline = action.getDeadline();
+        return deadline != null
+                && deadline.isBefore(LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC));
     }
 }

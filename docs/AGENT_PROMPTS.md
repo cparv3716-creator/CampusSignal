@@ -3866,3 +3866,673 @@ Add a test-first, read-only email metadata API backed exclusively by persisted c
 Implement Action / Registration Tracker V1 test-first and additively: persist multiple manual actions per existing email, enforce a small explicit lifecycle with deterministic completion time, expose safe creation/status/read APIs, preserve every completed subsystem and existing test, verify static-analysis baselines, and avoid inference, urgency, ranking, reminders, or external URL behavior.
 
 ---
+
+## 2026-10-08 — Deadline Semantics + Deterministic Action Metadata Extraction V1
+
+### Exact task prompt
+
+> CampusSignal has completed:
+>
+> - Gmail ingestion
+> - deterministic classification V1
+> - classification persistence
+> - legacy classification backfill
+> - persisted email read API
+> - Action / Registration Tracker V1
+> - persisted `EmailAction`
+> - manual action creation
+> - manual completion / not-interested lifecycle
+> - deterministic completion timestamps via injected `Clock`
+> - 162-test baseline
+> - SpotBugs baseline: 2 accepted findings
+> - PMD baseline: 27 accepted findings
+>
+> We now need the next milestone:
+>
+> **Deadline Semantics + Deterministic Action Metadata Extraction V1**
+>
+> The purpose is to help CampusSignal identify actionable metadata from persisted email content and correctly represent actions whose deadlines have passed.
+>
+> This milestone must remain deterministic and test-first.
+>
+> Do NOT implement personalized ranking, reminders, scheduled jobs, frontend work, or LLM-based extraction yet.
+>
+> # CRITICAL NON-DESTRUCTIVE RULE
+>
+> All existing completed functionality is protected.
+>
+> Before changing anything:
+>
+> 1. Run `git status`.
+> 2. Run `git diff`.
+> 3. Record current branch and HEAD.
+> 4. Inspect relevant existing classes/tests.
+> 5. Identify the smallest necessary change set.
+>
+> Prefer additive changes.
+>
+> Do NOT:
+>
+> - delete existing files
+> - rename or move existing files
+> - replace working implementations
+> - broadly refactor unrelated code
+> - modify Gmail behavior
+> - modify OAuth/Pub/Sub behavior
+> - modify ingestion semantics
+> - modify classifier V1
+> - modify classification persistence
+> - modify backfill behavior
+> - modify existing email-read behavior
+> - change working Action Tracker lifecycle unnecessarily
+> - remove or weaken tests
+> - reset the H2 database
+> - perform destructive migrations
+> - run `git reset --hard`
+> - run `git clean -fd`
+> - discard pre-existing work
+> - commit automatically
+> - push automatically
+>
+> If a material change to an already completed subsystem appears necessary, STOP and report:
+>
+> - subsystem affected
+> - files affected
+> - why change appears necessary
+> - smallest possible modification
+> - additive alternative if available
+>
+> Do not automatically perform a disruptive redesign.
+>
+> ---
+>
+> # PART A — Deadline semantics
+>
+> ## 1. MISSED should be clock-derived
+>
+> The current persisted Action statuses are:
+>
+> - `PENDING`
+> - `COMPLETED`
+> - `NOT_INTERESTED`
+>
+> `MISSED` was intentionally deferred.
+>
+> For this milestone, introduce the concept of an **effective status**.
+>
+> Rules:
+>
+> - `COMPLETED` remains `COMPLETED`
+> - `NOT_INTERESTED` remains `NOT_INTERESTED`
+> - `PENDING` with no deadline remains `PENDING`
+> - `PENDING` where `deadline >= current LocalDate` remains `PENDING`
+> - `PENDING` where `deadline < current LocalDate` is exposed as `MISSED`
+>
+> Important:
+>
+> Do NOT mutate the database merely because a GET request observes an expired deadline.
+>
+> Persisted status may remain `PENDING`.
+>
+> The read layer may derive:
+>
+> `effectiveStatus = MISSED`
+>
+> This keeps GET requests side-effect free.
+>
+> Use an injected `Clock` so date behavior is deterministic in tests.
+>
+> Do not use `LocalDate.now()` directly throughout business logic if a project-level clock can be cleanly injected.
+>
+> ## 2. Deadline boundary
+>
+> A deadline occurring **today is not missed**.
+>
+> If:
+>
+> `deadline == today`
+>
+> effective status remains:
+>
+> `PENDING`
+>
+> It becomes missed only when:
+>
+> `deadline < today`
+>
+> Document this explicitly.
+>
+> ## 3. API representation
+>
+> Inspect the existing `EmailActionResponse`.
+>
+> Choose the smallest compatible API design.
+>
+> Prefer exposing effective lifecycle state clearly.
+>
+> Possible options include:
+>
+> - exposing `status` as effective status
+> or
+> - retaining persisted `status` and adding `effectiveStatus`
+>
+> Inspect existing contract and choose the least confusing design.
+>
+> Do not silently change existing semantics without documenting and testing the choice.
+>
+> If a new enum value `MISSED` is required only for API/effective-state representation, structure it cleanly rather than corrupting persisted lifecycle semantics.
+>
+> ---
+>
+> # PART B — Deterministic action metadata extraction
+>
+> ## 4. Purpose
+>
+> Given a persisted email containing explicit action information, derive an action candidate such as:
+>
+> Email:
+>
+> "Applications for the research internship close on 18 October 2026.
+> Apply here: https://example.org/apply"
+>
+> Candidate:
+>
+> - actionType = APPLY
+> - deadline = 2026-10-18
+> - actionUrl = `https://example.org/apply`
+>
+> This milestone should produce a candidate/preview.
+>
+> Do NOT silently create or persist an action without an explicit product decision.
+>
+> Prefer:
+>
+> Email
+> → extractor
+> → ActionCandidate
+> → user/API may create action
+>
+> rather than:
+>
+> Email
+> → extractor
+> → automatic database mutation
+>
+> Keep extraction separate from persistence.
+>
+> ## 5. Inspect stored Email fields
+>
+> Before implementation inspect:
+>
+> - subject
+> - body/text representation
+> - sender
+> - receivedAt
+> - existing preprocessing utilities
+> - existing classifier preprocessing
+>
+> Do NOT reuse classifier internals if doing so would couple two unrelated domains.
+>
+> Do NOT modify classifier preprocessing merely to support extraction.
+>
+> A small dedicated extractor/preprocessor is preferable if needed.
+>
+> ---
+>
+> # PART C — Action type extraction
+>
+> ## 6. Deterministic action-type rules
+>
+> Detect explicit actionable language only.
+>
+> Possible mapping:
+>
+> REGISTER:
+> - register
+> - registration
+> - sign up
+>
+> APPLY:
+> - apply
+> - application
+> - applications open
+>
+> SUBMIT:
+> - submit
+> - submission
+> - upload
+> - fill/submit form where clearly a submission
+>
+> ATTEND:
+> - attend
+> - join
+> - participate where clearly referring to attendance
+>
+> OTHER:
+> - actionable but does not clearly fit another supported type
+>
+> Be conservative.
+>
+> Do not classify every event email as an action.
+>
+> Examples:
+>
+> "Seminar tomorrow at 5 PM"
+>
+> does not necessarily imply an action.
+>
+> "Register for the seminar by Friday"
+>
+> does.
+>
+> If evidence is insufficient, return no action candidate rather than inventing an action.
+>
+> ---
+>
+> # PART D — Deadline extraction
+>
+> ## 7. Supported deadline patterns
+>
+> Implement a small deterministic set of explicit patterns supported by tests.
+>
+> Examples worth supporting:
+>
+> - `18 October 2026`
+> - `October 18, 2026`
+> - `18 Oct 2026`
+> - `18/10/2026` only if date interpretation is unambiguous under project policy
+> - `2026-10-18`
+>
+> Also consider explicit deadline phrases:
+>
+> - deadline
+> - last date
+> - closes on
+> - applications close
+> - register by
+> - apply by
+> - submit by
+>
+> Do not attempt to parse every possible natural-language date.
+>
+> Do not infer a year aggressively if it is absent unless there is a clear, documented rule based on email received date.
+>
+> For V1, returning no deadline is better than returning a wrong deadline.
+>
+> ## 8. Date-only semantics
+>
+> Keep extracted deadlines as:
+>
+> `LocalDate`
+>
+> Do not invent a midnight time.
+>
+> Do not introduce timezone conversion for date-only deadlines.
+>
+> ---
+>
+> # PART E — URL extraction
+>
+> ## 9. Action URL
+>
+> Extract HTTP/HTTPS URLs appearing in actionable context.
+>
+> Do not:
+>
+> - fetch the URL
+> - follow redirects
+> - validate external registration state
+> - scrape websites
+> - perform network calls
+>
+> Prefer URLs near phrases such as:
+>
+> - apply
+> - register
+> - submit
+> - registration
+> - application
+>
+> If there are multiple unrelated URLs and no clear actionable URL, return no URL or apply a clearly documented conservative rule.
+>
+> Do not pick footer/social-media/privacy-policy links merely because they are URLs.
+>
+> ## 10. Safety
+>
+> Only allow:
+>
+> - `http://`
+> - `https://`
+>
+> Do not return executable or unsafe schemes such as:
+>
+> - `javascript:`
+> - `file:`
+> - `data:`
+>
+> No external request should occur during extraction.
+>
+> ---
+>
+> # PART F — Candidate model
+>
+> ## 11. Create a dedicated result model
+>
+> Introduce something conceptually like:
+>
+> `ActionCandidate`
+>
+> with fields such as:
+>
+> - actionType
+> - deadline
+> - actionUrl
+> - extraction evidence / source information only if useful and lightweight
+>
+> Do not persist this candidate unless existing architecture strongly justifies it.
+>
+> Avoid speculative confidence scoring in this milestone.
+>
+> Do not introduce fake probabilities.
+>
+> ## 12. No candidate
+>
+> The extractor must be able to explicitly return:
+>
+> no actionable candidate
+>
+> for emails such as:
+>
+> - informational newsletters
+> - completed announcements
+> - general event information without call to action
+> - greetings
+> - administrative notices with no student action
+>
+> False positives are more harmful than conservative non-detection in V1.
+>
+> ---
+>
+> # PART G — API
+>
+> ## 13. Candidate endpoint
+>
+> Inspect current controller conventions.
+>
+> A possible endpoint is:
+>
+> `GET /api/v1/emails/{emailId}/action-candidate`
+>
+> or another repository-consistent equivalent.
+>
+> The endpoint should:
+>
+> 1. load persisted Email
+> 2. run deterministic extraction
+> 3. return candidate if found
+> 4. return a documented no-candidate representation if not found
+>
+> Do not create an `EmailAction` automatically.
+>
+> Do not mutate Email.
+>
+> Do not rerun classification.
+>
+> Do not invoke Gmail.
+>
+> ## 14. Action creation remains explicit
+>
+> Existing:
+>
+> `POST /api/v1/emails/{emailId}/actions`
+>
+> should remain the persistence boundary.
+>
+> The user/client may take extracted candidate data and explicitly create the action.
+>
+> Do not merge extraction and persistence into one hidden side effect.
+>
+> ---
+>
+> # PART H — TEST FIRST
+>
+> Write failing tests before production implementation.
+>
+> Record the RED result.
+>
+> Cover at least:
+>
+> ## Deadline effective-state tests
+>
+> 1. Pending with future deadline → PENDING.
+> 2. Pending with today's deadline → PENDING.
+> 3. Pending with yesterday deadline → MISSED.
+> 4. Pending with null deadline → PENDING.
+> 5. Completed with expired deadline → COMPLETED.
+> 6. Not interested with expired deadline → NOT_INTERESTED.
+> 7. GET/read does not mutate persisted status.
+>
+> Use a fixed `Clock`.
+>
+> ## Action extraction tests
+>
+> 8. Explicit APPLY + explicit date + application URL.
+> 9. Explicit REGISTER + deadline + registration URL.
+> 10. SUBMIT phrase produces SUBMIT.
+> 11. Explicit attendance request produces ATTEND.
+> 12. Informational event without explicit action produces no candidate.
+> 13. General newsletter produces no candidate.
+> 14. Multiple URLs chooses actionable-context URL rather than footer link.
+> 15. Unsafe URL scheme is ignored.
+> 16. Unsupported/ambiguous date does not invent a deadline.
+> 17. Extraction does not modify the Email.
+> 18. Extraction does not invoke classifier.
+> 19. Extraction does not invoke Gmail.
+> 20. Missing email returns established safe 404 behavior.
+>
+> Add additional edge cases only where they protect actual rules.
+>
+> Do not create a huge speculative test matrix.
+>
+> ---
+>
+> # PART I — Existing regression protection
+>
+> Run unchanged existing tests for:
+>
+> - EmailAction API
+> - email read API
+> - ingestion
+> - classification persistence
+> - classifier V1
+> - backfill
+> - Gmail history
+> - duplicate protection
+> - profile APIs
+>
+> Do not edit existing tests merely because new code breaks them.
+>
+> Fix the new code instead unless the existing requirement genuinely changed.
+>
+> ---
+>
+> # PART J — Static analysis
+>
+> After focused tests are green:
+>
+> 1. run full Java suite
+> 2. run SpotBugs
+> 3. run PMD
+>
+> Expected historical baselines:
+>
+> - SpotBugs: 2 accepted findings
+> - PMD: 27 accepted findings
+>
+> Any new finding caused by this milestone must be reviewed.
+>
+> Fix the smallest genuine issue.
+>
+> Do not perform unrelated cleanup.
+>
+> Do not add broad suppressions.
+>
+> ---
+>
+> # PART K — Documentation
+>
+> Update only relevant sections of:
+>
+> `docs/TEST_LOG.md`
+>
+> Record:
+>
+> - tests added
+> - RED state
+> - GREEN state
+> - deadline boundary behavior
+> - extraction edge cases
+>
+> Update:
+>
+> `docs/WORK_LOG.md`
+>
+> Record:
+>
+> - starting branch / commit
+> - working-tree state
+> - architecture discovered
+> - effective-status design
+> - reason MISSED is derived rather than persisted
+> - deadline boundary semantics
+> - extraction rules
+> - supported date patterns
+> - URL policy
+> - candidate-vs-persistence separation
+> - tests/results
+> - static-analysis results
+> - intentionally deferred behavior
+> - final diff review
+>
+> Append concise prompt/task summary to:
+>
+> `docs/AGENT_PROMPTS.md`
+>
+> Update:
+>
+> `docs/JAVA_BACKEND.md`
+>
+> with:
+>
+> - candidate API
+> - effective status semantics
+> - any response-contract additions
+>
+> Do not rewrite these documents wholesale.
+>
+> Update `BUG_LOG.md` only if a genuine behavioral bug is discovered.
+>
+> ---
+>
+> # PART L — Protected areas
+>
+> The following are protected and must remain functionally unchanged unless a clearly demonstrated requirement forces a minimal reviewed change:
+>
+> - Gmail integration
+> - OAuth
+> - Pub/Sub
+> - history sync
+> - ingestion
+> - duplicate protection
+> - classifier V1
+> - classifier preprocessing
+> - classification persistence
+> - classification backfill
+> - persisted email read API
+> - Profile APIs
+> - existing Action Tracker persistence lifecycle
+> - existing file-backed H2 data
+> - Maven/build configuration
+> - SpotBugs configuration
+> - PMD configuration
+>
+> Prefer new classes and targeted integration points.
+>
+> Do not opportunistically refactor existing working code.
+>
+> No existing file should experience a large unrelated diff.
+>
+> ---
+>
+> # PART M — Final safety check
+>
+> Before completion:
+>
+> 1. `git status`
+> 2. `git diff --stat`
+> 3. inspect diff of every modified existing file
+> 4. verify every changed file is necessary
+> 5. confirm no files were deleted/renamed/moved unnecessarily
+> 6. confirm no tests were weakened/deleted
+> 7. confirm no existing API contract was unintentionally broken
+> 8. confirm no database reset occurred
+> 9. confirm no Gmail/classifier calls were introduced into extraction
+> 10. confirm no commit or push occurred
+>
+> ---
+>
+> # Completion report
+>
+> Report:
+>
+> 1. Starting branch and commit.
+> 2. Starting working-tree state.
+> 3. Existing architecture inspected.
+> 4. Effective-status design.
+> 5. Exact MISSED rule.
+> 6. Deadline boundary behavior.
+> 7. Whether persisted status changes during GET.
+> 8. Action candidate model.
+> 9. Action-type extraction rules.
+> 10. Supported deadline formats.
+> 11. URL extraction rules.
+> 12. Candidate API endpoint.
+> 13. Tests written first.
+> 14. Initial RED result.
+> 15. Production files created.
+> 16. Existing production files modified.
+> 17. Why each existing file required modification.
+> 18. Focused GREEN result.
+> 19. Full-suite result.
+> 20. SpotBugs result.
+> 21. PMD result.
+> 22. Any genuine defect found.
+> 23. Documentation updated.
+> 24. Confirmation Gmail/classifier/backfill/read API/action persistence remain unchanged.
+> 25. Confirmation no files/tests were deleted or weakened.
+> 26. Final repository diff summary.
+> 27. Deferred behavior.
+> 28. Exact recommended next milestone.
+>
+> Stop after Deadline Semantics + Deterministic Action Metadata Extraction V1 is implemented and verified.
+>
+> Do NOT implement:
+>
+> - personalized ranking
+> - reminder scheduler
+> - email confirmation detection
+> - frontend
+> - user authentication/ownership
+> - LLM extraction
+> - background mutation of missed status
+> - automatic action persistence
+> - external URL fetching
+> - unrelated cleanup
+>
+> Do NOT commit or push automatically.
+
+### Prompt summary
+
+Implement deadline-derived effective action status and conservative deterministic action-candidate extraction test-first, keep persisted action lifecycle and every completed subsystem unchanged, expose previews without persistence or provider/classifier/network calls, verify all regressions and static-analysis baselines, and defer ranking, reminders, ownership, LLMs, and automatic mutation.
+
+---

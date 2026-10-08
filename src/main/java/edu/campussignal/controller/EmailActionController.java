@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import edu.campussignal.dto.EmailActionCreateRequest;
+import edu.campussignal.dto.EmailActionReadResponse;
 import edu.campussignal.dto.EmailActionResponse;
 import edu.campussignal.dto.EmailActionStatusRequest;
 import edu.campussignal.service.EmailActionService;
@@ -34,17 +35,17 @@ public class EmailActionController {
     }
 
     @GetMapping("/actions")
-    public List<EmailActionResponse> list() {
+    public List<EmailActionReadResponse> list() {
         return actions.list();
     }
 
     @GetMapping("/actions/{actionId}")
-    public EmailActionResponse get(@PathVariable long actionId) {
+    public EmailActionReadResponse get(@PathVariable long actionId) {
         return actions.get(actionId);
     }
 
     @GetMapping("/emails/{emailId}/actions")
-    public List<EmailActionResponse> listForEmail(@PathVariable long emailId) {
+    public List<EmailActionReadResponse> listForEmail(@PathVariable long emailId) {
         return actions.listForEmail(emailId);
     }
 

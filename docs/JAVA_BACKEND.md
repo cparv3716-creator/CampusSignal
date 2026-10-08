@@ -192,8 +192,35 @@ states cannot change to another state, and clients cannot restore `PENDING`. Inv
 return safe HTTP 409. `completedAt` is an application-controlled UTC instant; deadline is a
 `LocalDate`, so no artificial midnight or timezone is introduced.
 
-V1 does not include `MISSED`, automatic action extraction, URL confirmation, overdue/urgency
-calculation, reminders, ranking, or user ownership. Missing emails/actions return safe 404s.
+Persisted action status remains `PENDING`, `COMPLETED`, or `NOT_INTERESTED`. Action GET responses
+also expose `effectiveStatus`. A persisted pending action is effectively `MISSED` only when its
+date-only deadline is strictly before the current UTC date; a deadline equal to today remains
+`PENDING`. Completed and dismissed actions retain their terminal effective state regardless of
+deadline. This value is clock-derived during mapping: GET requests never update the database.
+
+## Deterministic action candidate API
+
+`GET /api/v1/emails/{emailId}/action-candidate` reads the persisted email subject/body and returns
+a deterministic preview without creating an action. A candidate response contains `actionType`,
+optional `deadline`, and optional `actionUrl`. Insufficient evidence returns `204 No Content`, and
+an unknown email uses the established safe 404 response. The existing action POST remains the
+only persistence boundary.
+
+V1 requires an explicit action cue. It maps register/registration/sign-up language to `REGISTER`,
+apply/application language to `APPLY`, submit/submission/upload language to `SUBMIT`, and explicit
+attendance requests to `ATTEND`; generic action-required language may map to `OTHER`. Informational
+events, newsletters, and completed-action confirmations return no candidate.
+
+Deadlines are `LocalDate` values and require nearby deadline wording such as `deadline`, `last date`,
+`closes on`, `applications close`, `register by`, `apply by`, or `submit by`. Supported explicit
+forms are `18 October 2026`, `October 18, 2026`, `18 Oct 2026`, ISO `2026-10-18`, and day-first
+numeric dates only when unambiguous (for example, `18/10/2026`). A missing year, unsupported form,
+invalid date, or ambiguous numeric date produces no deadline rather than a guess.
+
+Only absolute HTTP/HTTPS URLs in the same actionable sentence/context are returned. Footer,
+privacy, social, ambiguous, and unsafe-scheme URLs are ignored. Extraction performs no network
+request, Gmail call, classification, database mutation, URL confirmation, ranking, urgency,
+reminder scheduling, or automatic action persistence.
 
 ## Profile API
 

@@ -1361,3 +1361,63 @@ user ownership/authentication before any personalized action feed. Do not add au
 or ranking as part of that policy task.
 
 ---
+
+## Work Entry
+Date: 2026-10-08
+Contributor: Codex
+Milestone: Deadline Semantics + Deterministic Action Metadata Extraction V1
+Stage: Effective action status and read-only candidate preview
+Branch: phase4-live-demo
+Starting commit: 16a7854a731778faaa0ef352e11189eaead48708
+
+### Starting repository safety state
+- The working tree contained the completed Action / Registration Tracker V1 milestone as staged, protected work: 18 files, 1,584 insertions. It included the action entity, repository, service/API, ten tests, and their documentation.
+- There were no unstaged changes before this task. This milestone was developed as an unstaged layer so its diff remained reviewable separately from the protected staged baseline.
+- No staged or pre-existing work was reset, reverted, unstaged, overwritten, or discarded.
+
+### Architecture inspected and design decisions
+- `Email` persists provider-neutral subject/body and classification. Candidate extraction reads those fields without Gmail, provider API types, or classifier dependencies.
+- `EmailAction` persists a many-to-one Email association, type, lifecycle status, optional `LocalDate` deadline/URL, completion instant, and creation instant. Its entity/schema/persisted status enum required no change.
+- Existing action services already use an injected UTC `Clock`. GET mapping was the narrow integration point for derived deadline state.
+- Mutation responses retain the established `EmailActionResponse`; GET responses use an additive `EmailActionReadResponse` containing both stored `status` and derived `effectiveStatus`. This avoids confusing derived `MISSED` with persisted lifecycle state.
+- Exact effective rule: only persisted `PENDING` with a non-null deadline strictly before the current UTC `LocalDate` is `MISSED`. Future, today, and null deadlines remain `PENDING`; terminal states remain terminal. Reads never mutate persistence.
+- Added a separate `ActionCandidate` preview (`actionType`, optional deadline, optional URL), deterministic extractor, read service, and controller. The existing POST endpoint remains the only action-persistence boundary.
+
+### Extraction policy
+- Explicit cues map conservatively: register/registration/sign up → `REGISTER`; apply/application → `APPLY`; submit/submission/upload → `SUBMIT`; explicit attend/join/participate requests → `ATTEND`; generic explicit action-required wording may map to `OTHER`.
+- Informational events, newsletters, and completed-action confirmations yield no candidate.
+- Deadlines require nearby explicit context. Supported forms: `18 October 2026`, `October 18, 2026`, `18 Oct 2026`, `2026-10-18`, and unambiguous day-first `18/10/2026`. Ambiguous numeric dates, missing years, unsupported forms, and invalid dates remain absent.
+- Only absolute HTTP/HTTPS URLs in actionable sentence context are returned. Footer/privacy and unsafe-scheme URLs are ignored. No URL is fetched, followed, scraped, or validated externally.
+- Endpoint: `GET /api/v1/emails/{emailId}/action-candidate`; 200 for a candidate, 204 for no candidate, and existing safe 404 for a missing email.
+
+### Test-first and verification evidence
+- Added 19 focused executions covering six effective-state combinations, GET non-mutation, four action types, all supported date forms, ambiguous dates, URL choice/safety, conservative no-candidate cases, missing email, zero action persistence, and zero classifier interaction.
+- Initial RED: BUILD FAILURE; 19 tests run, 19 failures, 0 errors, 0 skipped. Action reads lacked `effectiveStatus`, and the candidate path was absent.
+- Initial focused GREEN: 19 tests passed, 0 failures, 0 errors, 0 skipped in 47.133 seconds.
+- Existing Action API + new focused tests after the static-analysis correction: 29 passed, 0 failures/errors/skips in 37.564 seconds.
+- Existing Action API, new focused tests, and Email read API together: 34 passed, unchanged established tests green.
+- Final full suite: `.\mvnw.cmd -B -ntp -Ddebug=false clean test` — BUILD SUCCESS; **181 tests, 0 failures, 0 errors, 0 skipped** in 1:06.
+- SpotBugs: BUILD SUCCESS; 2 accepted baseline findings, no new finding.
+- PMD initially identified two extractor-local findings. The implementation was simplified without suppression; final PMD was BUILD SUCCESS with 27 accepted baseline findings.
+- No genuine behavioral defect was found; `docs/BUG_LOG.md` remains unchanged.
+
+### Files and protected-area review
+- New production files: `ActionCandidate`, `EmailActionEffectiveStatus`, `EmailActionReadResponse`, `DeterministicEmailActionExtractor`, `EmailActionCandidateService`, and `EmailActionCandidateController`.
+- New test file: `EmailActionDeadlineAndExtractionTest`.
+- Existing production files modified: `EmailActionService` (derive effective state/read DTO only) and `EmailActionController` (GET return types only). Their create/update transition behavior is unchanged.
+- Documentation updated: `AGENT_PROMPTS.md`, `JAVA_BACKEND.md`, `TEST_LOG.md`, and `WORK_LOG.md`.
+- No entity, repository, database schema, Gmail/OAuth/Pub/Sub/history code, ingestion, classifier/preprocessor, classification persistence/backfill, email-read API, Profile API, Maven configuration, or static-analysis configuration was changed.
+- No file or test was deleted, renamed, moved, weakened, disabled, or replaced. No database reset, commit, or push occurred.
+
+### Intentionally deferred
+- No automatic action persistence, relative/yearless-date inference, time-of-day deadlines, personalized ranking, urgency, reminders, scheduled status mutation, confirmation-email detection, frontend, authentication/ownership, LLM extraction, or external URL request.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next step
+Specify user ownership/authentication for emails and actions before building a personalized actionable feed. Keep ranking, reminders, and scheduled deadline mutation separate until ownership and access-control rules are explicit.
+
+---
