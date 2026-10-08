@@ -486,3 +486,45 @@ New JUnit tests: **5**. Baseline: 147 Java tests. Final: **152 Java tests**.
 
 ---
 
+## 2026-10-08 — Action / Registration Tracker V1
+
+New JUnit tests: **10**. Baseline: 152 Java tests. Final: **162 Java tests**.
+
+| Test | Action-tracker behavior protected | Final status |
+|---|---|---|
+| `createsPendingActionForExistingEmail` | Persists the email relationship, type, date-only deadline, URL, `PENDING` status, null completion time, and feed-safe response. | PASS |
+| `missingEmailReturns404AndCreatesNoAction` | An unknown parent email returns safe 404 and creates no orphan action. | PASS |
+| `completingPendingActionUsesApplicationClock` | `PENDING -> COMPLETED` uses deterministic application time and retains the email relationship. | PASS |
+| `repeatedCompletionRetainsOriginalTimestamp` | Repeated completion is idempotent and never replaces the original `completedAt`. | PASS |
+| `pendingActionCanBeMarkedNotInterestedWithoutCompletionTime` | Explicit dismissal sets `NOT_INTERESTED` while leaving `completedAt` null. | PASS |
+| `notInterestedActionCannotBeCompleted` | A terminal dismissal cannot become completed; safe 409 is returned with unchanged persistence. | PASS |
+| `completedActionCannotReturnToPending` | A completed action cannot be reopened through the V1 status endpoint. | PASS |
+| `readsMultipleActionsInDeterministicCreationOrderWithoutReclassification` | Multiple actions per email are retained and read globally/by email in stable creation order without body exposure, classification mutation, or classifier calls. | PASS |
+| `malformedActionUrlIsRejectedWithoutPersistenceOrNetworkUse` | An obviously malformed user URL returns 400, persists nothing, and triggers no provider/classifier behavior. | PASS |
+| `missingActionReturnsSafe404` | An unknown action ID returns a safe 404 response. | PASS |
+
+### Test-first result and edge cases
+
+- Initial focused command: `.\mvnw.cmd -B -ntp -Ddebug=false "-Dtest=EmailActionApiTest" test`.
+- Initial RED: BUILD FAILURE during test compilation with **8 missing-symbol errors** because the action enums and repository did not exist yet.
+- Initial GREEN: BUILD SUCCESS — **10 tests, 0 failures, 0 errors, 0 skipped** in 57.449 seconds.
+- Final focused rerun after PMD corrections: BUILD SUCCESS — **10 tests, 0 failures, 0 errors, 0 skipped** in 47.269 seconds.
+- The suite deliberately distinguishes deadline from completion time, verifies two invalid transition directions, protects the original completion timestamp, and confirms multiple actions are not collapsed into one.
+
+### Regression verification
+
+- Existing persisted-email read API: `EmailReadApiTest` — 5 tests, unchanged, all passed.
+- Ingestion/persistence/classifier/backfill/Gmail history: 71 tests, unchanged, all passed.
+- Final command: `.\mvnw.cmd -B -ntp -Ddebug=false clean test`.
+- Final result: BUILD SUCCESS — **162 tests, 0 failures, 0 errors, 0 skipped** in 1:04.
+- Every pre-existing test remained unchanged and green.
+
+### Static analysis and database compatibility
+
+- SpotBugs: BUILD SUCCESS; **2 findings**, unchanged accepted baseline; no action-code finding.
+- PMD initially reported 3 new action-code style findings; all were corrected narrowly.
+- Final PMD: BUILD SUCCESS; **27 findings**, unchanged accepted baseline; no action-code finding or suppression.
+- A copy of the real file-backed H2 database accepted the additive `EMAIL_ACTIONS` table; email count remained unchanged and the live database was not modified.
+- No genuine product defect was discovered, so `docs/BUG_LOG.md` was not changed.
+
+---

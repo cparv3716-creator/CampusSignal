@@ -3085,3 +3085,784 @@ Add a test-first, explicit, provider-neutral, transactional, idempotent migratio
 Add a test-first, read-only email metadata API backed exclusively by persisted classification, with deterministic ordering, safe not-found and incomplete-classification errors, no body/provider detail exposure, and no classifier invocation or entity mutation during GET requests.
 
 ---
+
+## Prompt: Action / Registration Tracker V1
+
+> CampusSignal has completed:
+>
+> - Gmail ingestion
+> - deterministic email classification V1
+> - classification persistence
+> - explicit legacy classification backfill
+> - persisted-classification read API
+> - live read-only API smoke
+> - 152-test baseline before this milestone
+> - SpotBugs and PMD baselines already documented
+>
+> We now need to implement **Action / Registration Tracker V1**.
+>
+> This is the first user-facing workflow for making sure important opportunities do not get forgotten after an email is received.
+>
+> ## CRITICAL NON-DESTRUCTIVE RULE
+>
+> The repository already contains multiple completed and verified milestones.
+>
+> Treat all currently working code and integrations as protected.
+>
+> Before making ANY change:
+>
+> 1. Inspect the current working tree with:
+>    - `git status`
+>    - `git diff`
+>    - relevant existing files
+> 2. Identify which files actually need to change.
+> 3. Prefer additive changes over modification of established working components.
+> 4. Make the smallest possible change necessary for this milestone.
+>
+> You MUST NOT:
+>
+> - delete existing files
+> - rename existing files
+> - move existing files
+> - replace existing working implementations
+> - overwrite existing functionality
+> - rewrite large files unnecessarily
+> - refactor unrelated code
+> - change package structure unnecessarily
+> - remove existing tests
+> - weaken existing assertions
+> - disable tests
+> - delete documentation
+> - remove existing API endpoints
+> - alter existing API contracts unless absolutely required
+> - modify Gmail integration behavior
+> - modify classification behavior
+> - modify classification persistence
+> - modify duplicate-protection behavior
+> - modify backfill behavior
+> - modify the persisted-classification read API behavior
+> - reset or recreate the H2 database
+> - delete or rename existing database columns
+> - introduce destructive migrations
+> - make broad formatting-only changes across unrelated files
+> - upgrade dependencies unless this feature genuinely requires it
+> - commit automatically
+> - push automatically
+>
+> If implementation appears to require changing an already completed subsystem, STOP and report:
+>
+> - which working subsystem would need to change
+> - why
+> - exact files affected
+> - smallest proposed modification
+> - whether there is a safer additive alternative
+>
+> Do not make that potentially disruptive change automatically.
+>
+> Existing completed behavior must remain intact unless a newly written regression test proves that a change is required for this milestone.
+>
+> If an existing file only needs a tiny extension, make only that extension.
+>
+> Do not opportunistically clean up unrelated code while implementing this feature.
+>
+> After implementation, inspect `git diff` and confirm that only files relevant to this milestone changed.
+>
+> ---
+>
+> ## Product goal
+>
+> An email may represent something the student needs to act on.
+>
+> Examples:
+>
+> - register for an event
+> - apply for an internship
+> - submit a form
+> - attend an event
+> - complete another explicit action
+>
+> CampusSignal should be able to persist that action and track whether the user has completed it.
+>
+> For V1, the user manually creates/records the action and manually marks it complete.
+>
+> Do NOT automatically infer actions from email text in this milestone.
+>
+> Do NOT automatically infer registration success from external websites.
+>
+> ## Core lifecycle
+>
+> Conceptually:
+>
+> Email
+> → Action created
+> → status = PENDING
+>
+> Later:
+>
+> PENDING
+> → user marks action completed
+> → status = COMPLETED
+> → completedAt is recorded
+>
+> Also support explicit user dismissal where appropriate.
+>
+> ## 1. Inspect existing architecture first
+>
+> Before editing code, inspect:
+>
+> - `Email`
+> - `EmailRepository`
+> - the read-side API just implemented
+> - existing controller conventions
+> - DTO/record conventions
+> - exception handling / `ProblemDetail`
+> - service conventions
+> - JPA entity conventions
+> - timestamp conventions
+> - enum persistence conventions
+> - integration test patterns
+> - current database/schema behavior
+>
+> Also inspect:
+>
+> - `git status`
+> - `git diff`
+> - current branch
+> - current HEAD commit
+>
+> Record the starting repository state.
+>
+> Do not duplicate existing abstractions.
+>
+> Do not assume endpoint names until the repository conventions are understood.
+>
+> Document the architecture discovered before implementation.
+>
+> ## 2. Introduce the action domain model
+>
+> Create a persisted action entity associated with an existing `Email`.
+>
+> Use a name that fits repository conventions, such as `EmailAction`, unless inspection shows a better existing domain name.
+>
+> The model should conceptually support:
+>
+> - `id`
+> - associated email
+> - `actionType`
+> - `status`
+> - optional deadline
+> - optional action URL
+> - `completedAt`
+> - creation timestamp if this matches current entity conventions
+>
+> Do not add speculative fields.
+>
+> Prefer a NEW entity/table rather than adding unrelated action-state columns directly into the existing Email entity unless there is a compelling architectural reason.
+>
+> Do not redesign the existing Email entity.
+>
+> ## 3. Action type
+>
+> Use a small explicit enum.
+>
+> Suggested V1 values:
+>
+> - `REGISTER`
+> - `APPLY`
+> - `SUBMIT`
+> - `ATTEND`
+> - `OTHER`
+>
+> Do not create dozens of action types.
+>
+> Do not use free-text type strings if enum conventions already exist.
+>
+> ## 4. Action status
+>
+> Use an explicit enum.
+>
+> Suggested V1 values:
+>
+> - `PENDING`
+> - `COMPLETED`
+> - `NOT_INTERESTED`
+> - `MISSED`
+>
+> However, inspect the lifecycle carefully before implementing all four.
+>
+> If `MISSED` requires deadline-based automatic behavior that belongs to the next milestone, do not automatically compute it in V1.
+>
+> It is acceptable for V1 to persist `MISSED` only if explicitly set by supported business behavior.
+>
+> Do not introduce urgency logic yet.
+>
+> ## 5. Important distinction
+>
+> Keep these concepts separate:
+>
+> `deadline`
+> = when the opportunity closes
+>
+> `completedAt`
+> = when the student completed or marked the action complete
+>
+> Never use one timestamp for both.
+>
+> Example:
+>
+> Application closes:
+> 18 October 2026
+>
+> Student marks application completed:
+> 15 October 2026, 20:14
+>
+> These are different fields and different concepts.
+>
+> ## 6. Relationship with Email
+>
+> An action MUST refer to an existing persisted Email.
+>
+> Do not duplicate:
+>
+> - subject
+> - sender
+> - category
+> - classification confidence
+> - email body
+>
+> inside the action table unless there is an established project-specific reason.
+>
+> Use the existing email record as the source of truth.
+>
+> Prefer supporting multiple actions per email unless current product requirements or architecture clearly justify exactly one.
+>
+> For example, one email could theoretically ask a student to:
+>
+> - register
+> - then submit a document
+>
+> Do not silently enforce one-to-one without documenting the decision.
+>
+> Do not change existing Email classification mappings merely to support this association.
+>
+> ## 7. Creation behavior
+>
+> Provide a service/API operation that can create an action for an existing email.
+>
+> The request should contain only user-provided action metadata necessary for V1, conceptually:
+>
+> - `actionType`
+> - optional `deadline`
+> - optional `actionUrl`
+>
+> New actions should normally begin in:
+>
+> `PENDING`
+>
+> Do not allow callers to create an action directly with arbitrary internal state unless existing API conventions justify it.
+>
+> Validate that the referenced Email exists.
+>
+> Unknown email ID should use the project's safe 404 / `ProblemDetail` conventions.
+>
+> Reuse existing exception-handling patterns rather than replacing them.
+>
+> ## 8. Completion behavior
+>
+> Provide an operation allowing the user to mark an action completed.
+>
+> When transitioning:
+>
+> `PENDING → COMPLETED`
+>
+> record `completedAt`.
+>
+> The timestamp should be generated by the application, not trusted from arbitrary client input.
+>
+> Prefer injecting a `Clock` if this can be done cleanly without disrupting existing architecture.
+>
+> Do not globally refactor time handling across unrelated services merely to introduce `Clock`.
+>
+> Do not make tests depend on fragile real-time sleeps.
+>
+> ## 9. Idempotency / repeated completion
+>
+> Define explicit behavior for:
+>
+> `COMPLETED → COMPLETED`
+>
+> A repeated request should not create inconsistent timestamps.
+>
+> Prefer idempotent behavior:
+>
+> - status remains `COMPLETED`
+> - original `completedAt` remains unchanged
+>
+> Document the chosen rule.
+>
+> Test it.
+>
+> ## 10. Other transitions
+>
+> Define and document valid V1 state transitions.
+>
+> At minimum reason about:
+>
+> - `PENDING → COMPLETED`
+> - `PENDING → NOT_INTERESTED`
+> - repeated `COMPLETED → COMPLETED`
+> - attempting to complete `NOT_INTERESTED`
+> - attempting to change `COMPLETED` back to `PENDING`
+>
+> Do not build a complex workflow engine.
+>
+> Use the smallest explicit transition rules that make product sense.
+>
+> Invalid transitions should return a safe client-facing error consistent with current exception handling.
+>
+> Do not expose Java stack traces.
+>
+> ## 11. Read operations
+>
+> Provide a way to retrieve actions.
+>
+> At minimum support:
+>
+> - retrieving all actions
+> - retrieving actions associated with an email, OR another repository-consistent equivalent
+>
+> The response should contain enough information for a future actionable feed, such as:
+>
+> - action ID
+> - email ID
+> - email subject if safely mapped from the associated email
+> - action type
+> - status
+> - deadline
+> - action URL
+> - completedAt
+>
+> Do not return the full email body.
+>
+> Do not implement personalized ranking.
+>
+> Use deterministic ordering.
+>
+> Choose the simplest ordering rule consistent with existing architecture and document it.
+>
+> Do not invent deadline urgency ordering yet.
+>
+> ## 12. Suggested conceptual API
+>
+> Inspect existing API conventions before freezing these.
+>
+> Possible shape:
+>
+> `POST /api/v1/emails/{emailId}/actions`
+>
+> Create action for email.
+>
+> `GET /api/v1/actions`
+>
+> Retrieve actions.
+>
+> `GET /api/v1/emails/{emailId}/actions`
+>
+> Retrieve actions for a specific email.
+>
+> `PATCH /api/v1/actions/{actionId}/status`
+>
+> Change lifecycle state.
+>
+> If the project has a cleaner established convention, follow it instead.
+>
+> Do not remove or modify the existing `/api/v1/emails` endpoints.
+>
+> Do not create redundant overlapping endpoints without need.
+>
+> ## 13. TEST FIRST
+>
+> Write focused failing tests before implementing production behavior.
+>
+> Record the initial RED state.
+>
+> Cover at least:
+>
+> ### A. Create pending action
+>
+> Given an existing Email,
+>
+> when an action is created,
+>
+> then:
+>
+> - action persists
+> - it references the correct email
+> - status is `PENDING`
+> - `completedAt` is null
+> - action type is persisted
+> - optional deadline/URL are preserved
+>
+> ### B. Missing email
+>
+> Creating an action for an unknown email ID:
+>
+> - returns project's safe 404 behavior
+> - creates no action
+>
+> ### C. Complete pending action
+>
+> Given a persisted pending action,
+>
+> when marked completed,
+>
+> then:
+>
+> - status becomes `COMPLETED`
+> - `completedAt` becomes non-null
+> - action remains associated with same email
+>
+> ### D. Completion timestamp
+>
+> Verify `completedAt` represents application-controlled completion time.
+>
+> Prefer deterministic test time if appropriate.
+>
+> ### E. Repeated completion is idempotent
+>
+> Complete the same action twice.
+>
+> Assert:
+>
+> - remains `COMPLETED`
+> - original `completedAt` does not change
+>
+> ### F. Not interested
+>
+> If `NOT_INTERESTED` is supported:
+>
+> - pending action can be marked not interested
+> - `completedAt` remains null
+>
+> ### G. Invalid state transition
+>
+> Test at least one invalid transition according to the chosen lifecycle.
+>
+> For example:
+>
+> `NOT_INTERESTED → COMPLETED`
+>
+> or:
+>
+> `COMPLETED → PENDING`
+>
+> should fail safely if the lifecycle disallows it.
+>
+> ### H. Read action
+>
+> Persist an action and retrieve it through the read API/service.
+>
+> Verify:
+>
+> - action data comes from persistence
+> - associated email metadata is correct
+> - no email classification is rerun
+>
+> ### I. Multiple actions / deterministic ordering
+>
+> If multiple actions per email are supported:
+>
+> - persist multiple actions
+> - verify all are retained
+> - verify deterministic ordering
+>
+> ### J. No Gmail/classifier side effects
+>
+> Creating or reading an action must not:
+>
+> - invoke Gmail
+> - rerun email classification
+> - alter persisted email classification
+> - modify duplicate-protection behavior
+>
+> Use spies/mocks where practical.
+>
+> ### K. Regression protection for existing read API
+>
+> Run the existing email read API tests unchanged.
+>
+> Do not modify them simply to make the new implementation pass.
+>
+> ### L. Regression protection for existing ingestion/classification
+>
+> Existing ingestion, persistence, classifier, backfill, Gmail-history and duplicate tests must remain green.
+>
+> Do not weaken those tests.
+>
+> ## 14. URL handling
+>
+> For V1, action URL is user-provided metadata.
+>
+> Do not fetch the URL.
+>
+> Do not verify that registration actually succeeded.
+>
+> Do not follow redirects.
+>
+> Do not scrape external websites.
+>
+> Basic validation may ensure that obviously malformed values are rejected if current project conventions support validation.
+>
+> Avoid over-engineering URL validation.
+>
+> ## 15. Deadline handling
+>
+> Deadline is optional in V1.
+>
+> Persist it accurately.
+>
+> Do NOT yet compute:
+>
+> - due soon
+> - days remaining
+> - overdue
+> - missed automatically
+> - urgency score
+> - reminder schedule
+>
+> Be careful about timezone representation.
+>
+> Inspect existing timestamp handling and choose a consistent Java type.
+>
+> Document whether deadline is:
+>
+> - date-only, or
+> - date-time
+>
+> Choose based on product semantics.
+>
+> Do not casually convert a date-only deadline into midnight if that would change meaning.
+>
+> ## 16. Database compatibility
+>
+> Use JPA/schema behavior consistent with the current H2 setup.
+>
+> Do not break the existing file-backed H2 database.
+>
+> Do not delete or rename existing tables or columns.
+>
+> Do not reset or recreate the database.
+>
+> Do not add destructive migration logic.
+>
+> If a new table is required, add it cleanly and additively.
+>
+> Before finalizing, verify that existing email rows remain readable and unchanged.
+>
+> ## 17. Course concepts
+>
+> This implementation should explicitly demonstrate relevant CS5013 software-engineering concepts:
+>
+> - specification before implementation
+> - test-first development
+> - edge-case analysis
+> - persistence design
+> - API contract design
+> - state-machine/lifecycle reasoning
+> - deterministic testing
+> - separation of concerns
+> - AI-generated-code review
+> - static analysis
+> - integration testing
+> - regression protection
+> - documentation
+>
+> Record meaningful reasoning in the work log rather than only commands.
+>
+> ## 18. Static analysis
+>
+> After focused tests are green:
+>
+> run the full Java suite.
+>
+> Then run:
+>
+> - SpotBugs
+> - PMD
+>
+> Compare against documented baselines:
+>
+> - SpotBugs: 2 accepted baseline findings
+> - PMD: 27 accepted baseline findings
+>
+> Do not fix unrelated historical findings.
+>
+> If a new finding is introduced by action-tracker code, inspect it and fix the smallest real issue.
+>
+> Do not add broad suppressions.
+>
+> ## 19. Documentation
+>
+> Update:
+>
+> `docs/TEST_LOG.md`
+>
+> with:
+>
+> - tests added
+> - why each exists
+> - RED result
+> - GREEN result
+> - edge cases
+>
+> Update:
+>
+> `docs/WORK_LOG.md`
+>
+> with:
+>
+> - starting commit/branch
+> - starting clean/dirty working-tree state
+> - architecture inspected
+> - action data model
+> - relationship cardinality decision
+> - lifecycle/state transition rules
+> - timestamp policy
+> - endpoint design
+> - implementation changes
+> - test results
+> - static-analysis results
+> - genuine defects if any
+> - final `git diff` review
+> - confirmation that unrelated working code was not changed
+> - next recommended milestone
+>
+> Append a concise task/prompt summary to:
+>
+> `docs/AGENT_PROMPTS.md`
+>
+> Update `docs/JAVA_BACKEND.md` with the new action API contract.
+>
+> Update `docs/BUG_LOG.md` only if a genuine behavioral bug is discovered.
+>
+> Do not replace these documents wholesale.
+>
+> Append/update only the sections necessary for this milestone.
+>
+> ## 20. STRICT NEGATIVE PROMPTING / PROTECTED AREAS
+>
+> The following areas are considered already working and must remain functionally unchanged unless this task cannot be completed without a specific reviewed modification:
+>
+> - Gmail integration
+> - OAuth behavior
+> - Pub/Sub behavior
+> - Gmail history synchronization
+> - email ingestion
+> - duplicate protection
+> - classification V1
+> - classifier preprocessing
+> - classification confidence semantics
+> - Email classification persistence
+> - legacy backfill
+> - persisted email read API
+> - existing Profile APIs
+> - existing H2 data
+> - existing static-analysis configuration
+> - existing test infrastructure
+> - existing Maven/build configuration
+>
+> Do not:
+>
+> - delete them
+> - rewrite them
+> - rename them
+> - move them
+> - replace them
+> - broadly refactor them
+> - change their public contracts
+> - alter their test expectations
+> - suppress their failures
+>
+> If new code can be implemented in new classes/files, prefer that.
+>
+> Changes to existing files should be small, targeted integration points only.
+>
+> A large diff in an unrelated existing file is a warning sign. Stop and review before proceeding.
+>
+> Do not use destructive commands such as:
+>
+> - `git reset --hard`
+> - `git clean -fd`
+> - mass `git checkout --`
+> - bulk file deletion
+> - database deletion/reset commands
+>
+> Do not discard pre-existing user work.
+>
+> Do not automatically revert files you did not create.
+>
+> Do not assume an uncommitted change is disposable.
+>
+> Do not commit.
+>
+> Do not push.
+>
+> ## 21. Final repository safety check
+>
+> Before reporting completion:
+>
+> 1. Run `git status`.
+> 2. Run `git diff --stat`.
+> 3. Inspect the actual diff of every modified existing file.
+> 4. Confirm each changed file is directly necessary for this milestone.
+> 5. Confirm no unrelated file was deleted, renamed, or rewritten.
+> 6. Confirm existing test files were not weakened or removed.
+> 7. Confirm existing APIs and integrations remain green.
+> 8. Report all changed and newly created files explicitly.
+>
+> If you discover an unrelated pre-existing change, do not alter or discard it. Report it separately.
+>
+> ## 22. Completion report
+>
+> At the end report:
+>
+> 1. Starting branch and commit.
+> 2. Starting working-tree state.
+> 3. Existing architecture discovered.
+> 4. Action entity/model introduced.
+> 5. Relationship between Email and Action.
+> 6. Action type enum.
+> 7. Status enum.
+> 8. Valid state transitions.
+> 9. Invalid transition policy.
+> 10. Timestamp/deadline representation.
+> 11. API endpoints.
+> 12. Tests written first.
+> 13. Initial RED result.
+> 14. Production files changed.
+> 15. Existing files modified versus new files created.
+> 16. Why every modified existing file needed modification.
+> 17. Focused GREEN result.
+> 18. Full Java-suite result.
+> 19. SpotBugs result.
+> 20. PMD result.
+> 21. Any genuine bug discovered.
+> 22. Documentation updated.
+> 23. Confirmation that Gmail/classification/backfill/read API behavior remained unchanged.
+> 24. Confirmation that no files were deleted/renamed/moved unnecessarily.
+> 25. Confirmation that no existing tests were weakened/deleted.
+> 26. Final `git status` / `git diff --stat` summary.
+> 27. Any design limitation intentionally deferred.
+> 28. Exact next recommended step.
+>
+> Stop after Action / Registration Tracker V1 is implemented and verified.
+>
+> Do NOT implement automatic extraction, urgency, ranking, reminders, confirmation-email detection, or unrelated cleanup in this task.
+>
+> Do NOT commit or push automatically.
+
+### Prompt summary
+
+Implement Action / Registration Tracker V1 test-first and additively: persist multiple manual actions per existing email, enforce a small explicit lifecycle with deterministic completion time, expose safe creation/status/read APIs, preserve every completed subsystem and existing test, verify static-analysis baselines, and avoid inference, urgency, ranking, reminders, or external URL behavior.
+
+---

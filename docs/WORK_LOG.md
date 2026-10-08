@@ -1269,3 +1269,95 @@ then scope the action/registration and deadline-tracking model as a separate tes
 Keep personalized ranking, urgency, and user-specific feed ordering out of that first action model.
 
 ---
+
+## Work Entry
+Date: 2026-10-08
+Contributor: Codex
+Milestone: Action / Registration Tracker V1
+Stage: Action persistence, lifecycle, and REST API
+Branch: phase4-live-demo
+Starting commit: 16a7854a731778faaa0ef352e11189eaead48708
+
+### Starting repository safety state
+- `git status --short`, `git diff --stat`, `git diff --name-status`, and `git diff` were empty: the working tree was clean.
+- No pre-existing uncommitted user changes need to be merged, reverted, or isolated.
+
+### Architecture inspected before implementation
+- `Email` is the existing JPA source of truth for message metadata and persisted classification; no action relationship exists and no change to `Email` is required.
+- `EmailRepository` already supports ingestion, backfill, and read ordering. Action persistence can use a separate repository without changing those contracts.
+- Existing APIs use thin `/api/v1` controllers, dedicated request/response records, service-layer transactions, typed domain exceptions, and safe `ProblemDetail` responses.
+- Existing entities use generated IDs, `Instant` creation timestamps, string enum persistence, and additive Hibernate `ddl-auto=update` schema behavior for the file-backed H2 database.
+- Existing integration tests use `@SpringBootTest`, `MockMvc`, real in-memory H2 persistence, and classifier spies where isolation matters.
+
+### Pre-implementation decisions
+- Add a new `email_actions` entity/table and repository; do not add action-state columns to or redesign `Email`.
+- Use many-to-one action-to-email cardinality with no uniqueness constraint, allowing multiple actions for one email.
+- V1 action types: `REGISTER`, `APPLY`, `SUBMIT`, `ATTEND`, `OTHER`.
+- V1 statuses: `PENDING`, `COMPLETED`, `NOT_INTERESTED`. `MISSED` is deferred because no automatic overdue behavior or explicit missed operation is in scope.
+- Valid transitions: `PENDING -> COMPLETED`, `PENDING -> NOT_INTERESTED`; repeated requests to the same terminal status are idempotent. Terminal statuses cannot transition to another status, and clients cannot set `PENDING` through the status endpoint.
+- Represent deadlines as `LocalDate`, preserving the date-only product meaning without inventing a midnight/timezone. Represent `completedAt` and `createdAt` as UTC instants.
+- Inject an action-specific application `Clock` for deterministic completion timestamps without refactoring established timestamp handling elsewhere.
+- Proposed API, following current conventions: create under `/api/v1/emails/{emailId}/actions`; read globally, individually, and by email; patch status under `/api/v1/actions/{actionId}/status`.
+- Deterministic read ordering: creation timestamp descending, then ID descending. This is creation recency only, not urgency or ranking.
+
+### Action data model and persistence
+- Added `EmailAction` in a new additive `email_actions` table with generated ID, required `email_id` foreign key, string `action_type`, string `action_status`, optional date-only `deadline`, optional `action_url`, optional `completed_at`, and required immutable `created_at`.
+- The relationship is many actions to one existing email. No reverse collection or action columns were added to `Email`, and no subject, sender, category, confidence, or body is duplicated in the action table.
+- Creation accepts only action type, optional deadline, and optional URL. Status is always initialized internally to `PENDING`; clients cannot supply completion time or arbitrary creation state.
+- URLs are stored only as metadata. V1 accepts absolute HTTP/HTTPS URLs of at most 2048 characters and performs no fetch, redirect, scrape, or external-success check.
+
+### Lifecycle and timestamp policy
+- Valid transitions are `PENDING -> COMPLETED` and `PENDING -> NOT_INTERESTED`.
+- `COMPLETED -> COMPLETED` and `NOT_INTERESTED -> NOT_INTERESTED` are idempotent; the original completion timestamp is retained.
+- A terminal state cannot change to the other terminal state, and the status endpoint cannot set `PENDING`. Invalid transitions return safe HTTP 409 with no state change.
+- Completion uses a narrowly introduced UTC application `Clock`; clients cannot provide `completedAt`. Creation continues the established entity `Instant` convention.
+- Deadline uses `LocalDate`: it records the opportunity's stated closing date without inventing a midnight or timezone. No overdue, missed, urgency, or reminder calculation exists.
+
+### API contract and separation of concerns
+- `POST /api/v1/emails/{emailId}/actions` creates a pending action and returns 201 with a resource location.
+- `GET /api/v1/actions`, `GET /api/v1/actions/{actionId}`, and `GET /api/v1/emails/{emailId}/actions` return persisted action data.
+- `PATCH /api/v1/actions/{actionId}/status` accepts only an explicit status target and enforces the V1 transition rules.
+- Responses contain action ID, email ID, current email subject, type, status, deadline, URL, completion time, and creation time. They never include the email body.
+- Reads are ordered by `createdAt DESC, id DESC`. This is deterministic creation recency, not personalized ranking or deadline urgency.
+- `EmailActionService` depends only on action/email repositories and the action clock. It has no Gmail, ingestion, or classification dependency.
+
+### Test-first and edge-case evidence
+- Initial focused RED: test compilation failed with eight missing-symbol errors for the deliberately absent action enums/repository.
+- Ten focused tests cover pending creation, missing email, deterministic completion, idempotent repeat completion, dismissal, two invalid-transition directions, persisted reads, multiple actions/order, malformed URL rejection, missing action, classification preservation, and zero classifier calls.
+- Initial focused GREEN: 10 tests passed, 0 failures, 0 errors, 0 skipped in 57.449 seconds.
+- Final focused rerun after static-analysis corrections: 10 tests passed, 0 failures, 0 errors, 0 skipped in 47.269 seconds.
+- Existing `EmailReadApiTest` passed 5/5 unchanged. The ingestion/persistence/classifier/backfill/Gmail-history regression group passed 71/71.
+- Final complete suite: `.\mvnw.cmd -B -ntp -Ddebug=false clean test` — BUILD SUCCESS; **162 tests, 0 failures, 0 errors, 0 skipped** in 1:04.
+
+### Database and static-analysis verification
+- SpotBugs: BUILD SUCCESS; 2 accepted baseline findings, no action-code finding.
+- Initial PMD added three action-code findings: two literal-comparison forms and the new empty JPA constructor comment placement. Each was corrected locally without suppression or unrelated edits.
+- Final PMD: BUILD SUCCESS; 27 accepted baseline findings, no action-code finding.
+- File-backed compatibility was tested against a copy of `data/campussignal.mv.db`, never the live database. Email count remained 0 before/after, incomplete classification count was 0, and one empty `EMAIL_ACTIONS` table was added to the copy.
+- No genuine behavioral defect was discovered; `docs/BUG_LOG.md` remains unchanged.
+
+### Changed files and protected-area review
+- New production files: `ActionTimeConfiguration`, `EmailActionController`, five action DTO/enum records, `EmailAction`, `EmailActionRepository`, `EmailActionService`, `EmailActionNotFoundException`, and `InvalidEmailActionTransitionException`.
+- New test file: `EmailActionApiTest`.
+- Existing production file modified: only `ApiExceptionHandler`, with two small action-specific safe error mappings required by the established API convention.
+- Existing documentation appended/extended: `AGENT_PROMPTS.md`, `JAVA_BACKEND.md`, `TEST_LOG.md`, and this work log.
+- No existing entity, repository, controller contract, ingestion, classifier, Gmail, backfill, profile, build, or static-analysis configuration was changed.
+- No file was deleted, renamed, moved, reset, or replaced. No existing test was changed, weakened, disabled, or removed.
+
+### Intentional V1 limitations
+- Actions are attached to email records, not user profiles; authentication/user ownership is not yet modeled.
+- `MISSED` is not a V1 status because automatic overdue/deadline evaluation and a manual missed operation are both out of scope.
+- No extraction, external confirmation detection, deadline urgency, reminders, or personalized ranking is implemented.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next step
+Design the next milestone as deadline-state/reminder policy specification before implementation:
+decide whether `MISSED` is manual or clock-derived, define timezone and reminder semantics, and add
+user ownership/authentication before any personalized action feed. Do not add automatic extraction
+or ranking as part of that policy task.
+
+---

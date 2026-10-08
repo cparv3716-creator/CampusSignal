@@ -167,6 +167,34 @@ The classification columns remain nullable for schema compatibility. If an unexp
 row reaches either endpoint, the request returns a safe `500 ProblemDetail`; the row is not
 reclassified or mutated and no placeholder classification is returned.
 
+## Action / Registration Tracker V1
+
+Actions are manual persisted records associated with existing emails. One email may have multiple
+actions. The action table stores only the email foreign key and action state; email subject and
+classification remain sourced from the existing email record.
+
+| Endpoint | Behavior |
+|---|---|
+| `POST /api/v1/emails/{emailId}/actions` | Create a `PENDING` action for an existing email |
+| `GET /api/v1/actions` | List all actions by creation time descending, then ID descending |
+| `GET /api/v1/actions/{actionId}` | Retrieve one action |
+| `GET /api/v1/emails/{emailId}/actions` | List all actions associated with one email |
+| `PATCH /api/v1/actions/{actionId}/status` | Mark a pending action `COMPLETED` or `NOT_INTERESTED` |
+
+Create requests contain `actionType` (`REGISTER`, `APPLY`, `SUBMIT`, `ATTEND`, or `OTHER`),
+optional date-only `deadline`, and optional absolute HTTP/HTTPS `actionUrl`. The URL is metadata
+only and is never fetched. Responses include action ID, email ID, current email subject, type,
+status, deadline, URL, `completedAt`, and `createdAt`; they never include the full email body.
+
+The V1 lifecycle permits `PENDING -> COMPLETED` and `PENDING -> NOT_INTERESTED`. Repeating the
+same terminal status is idempotent. The original completion timestamp is preserved, terminal
+states cannot change to another state, and clients cannot restore `PENDING`. Invalid transitions
+return safe HTTP 409. `completedAt` is an application-controlled UTC instant; deadline is a
+`LocalDate`, so no artificial midnight or timezone is introduced.
+
+V1 does not include `MISSED`, automatic action extraction, URL confirmation, overdue/urgency
+calculation, reminders, ranking, or user ownership. Missing emails/actions return safe 404s.
+
 ## Profile API
 
 All HTTP responses use DTOs, not JPA entities. Email addresses are stripped and lowercased for

@@ -8,8 +8,10 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import edu.campussignal.service.EmailActionNotFoundException;
 import edu.campussignal.service.EmailNotFoundException;
 import edu.campussignal.service.IncompleteEmailClassificationException;
+import edu.campussignal.service.InvalidEmailActionTransitionException;
 import edu.campussignal.service.ProfileNotFoundException;
 
 @RestControllerAdvice
@@ -22,6 +24,17 @@ public class ApiExceptionHandler {
     @ExceptionHandler(EmailNotFoundException.class)
     public ProblemDetail emailNotFound() {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Email not found");
+    }
+
+    @ExceptionHandler(EmailActionNotFoundException.class)
+    public ProblemDetail actionNotFound() {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Action not found");
+    }
+
+    @ExceptionHandler(InvalidEmailActionTransitionException.class)
+    public ProblemDetail invalidActionTransition() {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
+                "Action status transition is not allowed");
     }
 
     @ExceptionHandler(IncompleteEmailClassificationException.class)
