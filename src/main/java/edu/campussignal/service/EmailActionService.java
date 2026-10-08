@@ -2,15 +2,12 @@ package edu.campussignal.service;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import edu.campussignal.dto.EmailActionCreateRequest;
-import edu.campussignal.dto.EmailActionEffectiveStatus;
 import edu.campussignal.dto.EmailActionReadResponse;
 import edu.campussignal.dto.EmailActionResponse;
 import edu.campussignal.dto.EmailActionStatus;
@@ -26,11 +23,17 @@ public class EmailActionService {
     private final EmailActionRepository actions;
     private final EmailRepository emails;
     private final Clock clock;
+    private final ActionDeadlinePresentationService deadlinePresentation;
 
-    public EmailActionService(EmailActionRepository actions, EmailRepository emails, Clock clock) {
+    public EmailActionService(
+            EmailActionRepository actions,
+            EmailRepository emails,
+            Clock clock,
+            ActionDeadlinePresentationService deadlinePresentation) {
         this.actions = actions;
         this.emails = emails;
         this.clock = clock;
+        this.deadlinePresentation = deadlinePresentation;
     }
 
     @Transactional
@@ -100,32 +103,19 @@ public class EmailActionService {
     }
 
     private EmailActionReadResponse readResponse(EmailAction action) {
+        var presentation = deadlinePresentation.present(action.getStatus(), action.getDeadline());
         return new EmailActionReadResponse(
                 action.getId(),
                 action.getEmail().getId(),
                 action.getEmail().getSubject(),
                 action.getActionType(),
                 action.getStatus(),
-                effectiveStatus(action),
+                presentation.effectiveStatus(),
+                presentation.urgency(),
+                presentation.daysRemaining(),
                 action.getDeadline(),
                 action.getActionUrl(),
                 action.getCompletedAt(),
                 action.getCreatedAt());
-    }
-
-    private EmailActionEffectiveStatus effectiveStatus(EmailAction action) {
-        return switch (action.getStatus()) {
-            case COMPLETED -> EmailActionEffectiveStatus.COMPLETED;
-            case NOT_INTERESTED -> EmailActionEffectiveStatus.NOT_INTERESTED;
-            case PENDING -> missedDeadline(action)
-                    ? EmailActionEffectiveStatus.MISSED
-                    : EmailActionEffectiveStatus.PENDING;
-        };
-    }
-
-    private boolean missedDeadline(EmailAction action) {
-        LocalDate deadline = action.getDeadline();
-        return deadline != null
-                && deadline.isBefore(LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC));
     }
 }

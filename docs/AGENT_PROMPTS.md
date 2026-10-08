@@ -4536,3 +4536,30 @@ Implement Action / Registration Tracker V1 test-first and additively: persist mu
 Implement deadline-derived effective action status and conservative deterministic action-candidate extraction test-first, keep persisted action lifecycle and every completed subsystem unchanged, expose previews without persistence or provider/classifier/network calls, verify all regressions and static-analysis baselines, and defer ranking, reminders, ownership, LLMs, and automatic mutation.
 
 ---
+
+## 2026-10-08 — Urgency / Deadline Presentation V1
+
+### Task prompt
+
+Implement Urgency / Deadline Presentation V1 test-first on the clean 181-test baseline. Convert
+persisted action lifecycle/deadline data into deterministic, clock-derived read metadata without
+persisting urgency or changing existing action state. Add explicit urgency values `COMPLETED`,
+`NOT_INTERESTED`, `MISSED`, `DUE_TODAY`, `DUE_SOON`, `UPCOMING`, and `NO_DEADLINE`; define
+`DUE_SOON` as 1–3 days remaining and `UPCOMING` as 4 or more days. Expose a non-negative
+`daysRemaining` only for pending actions due today or later, with null for terminal, missed, and
+no-deadline cases. Extend existing action GET responses while preserving mutation endpoints,
+creation semantics, extraction, deterministic ordering, every protected Gmail/classification/
+backfill/read/profile subsystem, H2 data, and build/static-analysis configuration. Use an injected
+fixed `Clock`, prove advancing time changes derived data without database mutation, verify no
+classifier/Gmail/extractor interaction, keep GET idempotent, and run focused action/deadline tests,
+the full Java suite, SpotBugs, and PMD. Update the required logs/API documentation; do not implement
+ranking, reminders, scheduling, notifications, authentication, frontend, LLM extraction, external
+URL access, automatic actions, destructive repository operations, commits, or pushes.
+
+### Prompt summary
+
+Add side-effect-free deadline urgency and a nullable countdown to existing action reads through a
+small pure clock-based component, preserving all persistence, lifecycle, extraction, ordering, and
+protected integrations while verifying boundary values and established quality baselines.
+
+---

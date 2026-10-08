@@ -198,6 +198,24 @@ date-only deadline is strictly before the current UTC date; a deadline equal to 
 `PENDING`. Completed and dismissed actions retain their terminal effective state regardless of
 deadline. This value is clock-derived during mapping: GET requests never update the database.
 
+Action GET responses additionally expose `urgency` and nullable `daysRemaining`. Urgency is a
+clock-derived presentation value, not a persisted priority or ranking score:
+
+| Action state | `urgency` | `daysRemaining` |
+|---|---|---|
+| Completed | `COMPLETED` | `null` |
+| Not interested | `NOT_INTERESTED` | `null` |
+| Pending with expired deadline | `MISSED` | `null` |
+| Pending, due today | `DUE_TODAY` | `0` |
+| Pending, due in 1–3 days | `DUE_SOON` | exact non-negative count |
+| Pending, due in 4 or more days | `UPCOMING` | exact non-negative count |
+| Pending without deadline | `NO_DEADLINE` | `null` |
+
+The same UTC `Clock` calculation produces both `effectiveStatus` and urgency, so deadline semantics
+are not duplicated. Existing collection ordering remains `createdAt DESC, id DESC`; urgency does
+not reorder or rank actions. No urgency column, scheduler, reminder, timestamp, or GET-side update
+is introduced.
+
 ## Deterministic action candidate API
 
 `GET /api/v1/emails/{emailId}/action-candidate` reads the persisted email subject/body and returns

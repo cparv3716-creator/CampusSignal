@@ -1421,3 +1421,48 @@ PR created by: Pending
 Specify user ownership/authentication for emails and actions before building a personalized actionable feed. Keep ranking, reminders, and scheduled deadline mutation separate until ownership and access-control rules are explicit.
 
 ---
+
+## Work Entry
+Date: 2026-10-08
+Contributor: Codex
+Milestone: Urgency / Deadline Presentation V1
+Stage: Deterministic read-side urgency metadata
+Branch: phase4-live-demo
+Starting commit: 6585e15d7f1842bce6a7348cdfcf9be08e7847d7
+
+### Starting state and architecture
+- `git status`, `git diff`, and `git diff --stat` were clean; the branch was two commits ahead of its remote tracking branch.
+- Inspected `EmailAction`, persisted/effective statuses, read response/service/controller, injected UTC `Clock`, action/deadline/extraction tests, API conventions, and documentation.
+- Persisted status remained `PENDING`, `COMPLETED`, or `NOT_INTERESTED`; `MISSED` was already read-derived. Ordering was `createdAt DESC, id DESC`.
+
+### Design and course concepts
+- Added pure `ActionDeadlinePresentationService` as the single owner of effective status, urgency, and countdown, demonstrating derived versus persisted state and avoiding duplicate deadline logic.
+- Urgency values: `COMPLETED`, `NOT_INTERESTED`, `MISSED`, `DUE_TODAY`, `DUE_SOON`, `UPCOMING`, `NO_DEADLINE`. They are presentation states, not priority scores.
+- Threshold: 1–3 days is `DUE_SOON`; 4+ is `UPCOMING`; today is `DUE_TODAY`.
+- `daysRemaining` is exact and non-negative only for pending today/future deadlines; it is null for missed, terminal, and no-deadline actions.
+- No backend label was added; clients can localize display text. The read DTO changed additively; controllers, repositories, entities/schema, mutations, transitions, extraction, and ordering did not change.
+- Fixed-Clock boundary tests and an advancing-clock test demonstrate pure business logic, deterministic time, side-effect-free GET, API evolution, regression protection, static analysis, and review of generated code.
+
+### Test-first and verification
+- Initial RED: 11 focused tests, 11 failures, 0 errors; JSON lacked `urgency` and `daysRemaining`.
+- Focused GREEN: 11/11 passed in 53.082 seconds.
+- Action/deadline/extraction/urgency regression group: 40 tests, 0 failures/errors/skips in 44.041 seconds.
+- Full suite: BUILD SUCCESS; **192 tests, 0 failures, 0 errors, 0 skipped** in 1:06.
+- SpotBugs: BUILD SUCCESS, 2 accepted baseline findings. PMD: BUILD SUCCESS, 27 accepted baseline findings. No new finding or genuine defect.
+
+### Files and safety review
+- New production: `ActionUrgency`, `ActionDeadlinePresentationService`. New test: `EmailActionUrgencyApiTest`.
+- Modified production: `EmailActionReadResponse` (two additive fields), `EmailActionService` (delegate one presentation calculation and remove duplicated private effective-status logic).
+- Updated `AGENT_PROMPTS.md`, `JAVA_BACKEND.md`, `TEST_LOG.md`, and `WORK_LOG.md`; `BUG_LOG.md` unchanged.
+- No protected subsystem, database data/schema, background process, scheduler, ranking, build/static-analysis configuration, file/test, commit, or remote was altered destructively.
+
+### Deferred and next step
+- Labels/localization, ownership/authentication, ranking, reminders, scheduler/notifications, confirmation detection, frontend, LLM extraction, URL fetching, and automatic actions remain deferred.
+- Next: specify user ownership/authentication and access control before a personalized action feed; keep ranking and reminders separate.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---

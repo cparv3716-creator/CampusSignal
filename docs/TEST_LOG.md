@@ -262,6 +262,28 @@ At the test-creation stage these six failures were treated as test-first specifi
 
 ---
 
+## 2026-10-08 — Urgency / Deadline Presentation V1
+
+New JUnit tests: **11**. Baseline: 181 Java tests. Final: **192 Java tests**.
+
+- Terminal boundaries: completed → `COMPLETED`, dismissed → `NOT_INTERESTED`, and expired pending → `MISSED`, all with null countdowns.
+- Deadline boundaries: today → `DUE_TODAY`/0; tomorrow and three days → `DUE_SOON`/1 or 3; four days and far future → `UPCOMING` with exact counts.
+- Null deadline → `NO_DEADLINE` with null `daysRemaining`; negative countdowns are never exposed.
+- A fixed mocked `Clock` proves deterministic values. Advancing it changes the derived presentation without changing persisted deadline/status.
+- Repeated GET remains idempotent, collection ordering is unchanged, and classifier, Gmail authorization, and action extraction receive no calls.
+
+### Test-first and verification results
+
+- Initial focused RED: `EmailActionUrgencyApiTest` — **11 tests, 11 failures, 0 errors, 0 skipped** because `urgency` and `daysRemaining` were absent.
+- Focused GREEN: **11 tests, 0 failures, 0 errors, 0 skipped** in 53.082 seconds.
+- Action regression group (`EmailActionUrgencyApiTest`, `EmailActionApiTest`, `EmailActionDeadlineAndExtractionTest`): **40 tests, 0 failures, 0 errors, 0 skipped** in 44.041 seconds.
+- Full suite: `.\mvnw.cmd -B -ntp -Ddebug=false clean test` — BUILD SUCCESS; **192 tests, 0 failures, 0 errors, 0 skipped** in 1:06.
+- SpotBugs: BUILD SUCCESS; **2 accepted findings**, unchanged.
+- PMD: BUILD SUCCESS; **27 accepted findings**, unchanged.
+- No genuine behavioral defect was discovered; `docs/BUG_LOG.md` remains unchanged.
+
+---
+
 ## 2026-10-08 — Deadline Semantics + Deterministic Action Metadata Extraction V1
 
 New focused JUnit executions: **19**. Baseline: 162 Java tests. Final: **181 Java tests**.

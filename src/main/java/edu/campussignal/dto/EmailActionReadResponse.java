@@ -10,6 +10,8 @@ public record EmailActionReadResponse(
         EmailActionType actionType,
         EmailActionStatus status,
         EmailActionEffectiveStatus effectiveStatus,
+        ActionUrgency urgency,
+        Integer daysRemaining,
         LocalDate deadline,
         String actionUrl,
         Instant completedAt,
