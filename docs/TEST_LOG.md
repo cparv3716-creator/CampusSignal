@@ -262,6 +262,62 @@ At the test-creation stage these six failures were treated as test-first specifi
 
 ---
 
+## 2026-10-08 — Personalized Action Relevance + Ranked Actionable Feed V1
+
+New JUnit tests: **9**. Baseline: **192 Java tests**. Final: **201 Java tests**.
+
+### Test-first evidence
+
+- Focused command: `.\mvnw.cmd -B -ntp -Ddebug=false -Dtest=ProfileActionFeedApiTest test`.
+- Initial RED: BUILD FAILURE — **9 tests run, 9 failures, 0 errors, 0 skipped**. Every feed
+  request reached static-resource handling because the profile action-feed route did not exist;
+  expected API results were 404 responses.
+- Focused GREEN: BUILD SUCCESS — **9 tests, 0 failures, 0 errors, 0 skipped** in 48.004 seconds.
+
+### Ranking, filtering, and isolation coverage
+
+- A strong explicit profile/category match ranks above a weak match, and a spy verifies that the
+  production feed delegates to the existing `CategoryScoreService` for both category keys.
+- Otherwise identical `HIGH` classification confidence produces 59 relevance points and outranks
+  `LOW` at 33, following the documented deterministic weighting rule.
+- Otherwise equal actions rank `DUE_TODAY` (89) above `DUE_SOON` (79), `UPCOMING` (69), and
+  `NO_DEADLINE` (59), covering every urgency boundary used by ranking.
+- The deliberate tradeoff proves the formula rather than an ad hoc order: a strong relevant
+  no-deadline action (59) beats a weak due-today action (53).
+- Persisted `COMPLETED` and `NOT_INTERESTED` and derived `MISSED` items are excluded; an actionable
+  persisted/effective `PENDING` item is included.
+- Deadline, creation time, and ID tie-breaking are exercised, and two unchanged GETs return the
+  same order.
+- The same two actions reverse order for career-interested and academic-research-interested
+  profiles; an unknown profile returns the established safe 404 `ProblemDetail`.
+- Repeated reads preserve profile/email/action counts and action state/deadline, and invoke no
+  Gmail authorization, classifier, or deterministic action extractor.
+
+### Focused regression results
+
+- Profile/scoring/feed group: **48 tests**, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.
+- Existing action API: **10 tests**, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.
+- Existing urgency API: **11 tests**, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.
+- Existing deadline/extraction API: **19 tests**, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.
+- Complete command: `.\mvnw.cmd -B -ntp -Ddebug=false clean test`.
+- Complete result: BUILD SUCCESS — **201 tests, 0 failures, 0 errors, 0 skipped** in 1:09.
+
+### Static analysis
+
+- `.\mvnw.cmd -B -ntp -Ddebug=false -DskipTests compile spotbugs:spotbugs` — BUILD SUCCESS;
+  report contains exactly **2 accepted baseline findings** and no feed finding.
+- `.\mvnw.cmd -B -ntp -Ddebug=false -DskipTests compile pmd:pmd` — BUILD SUCCESS; report
+  contains exactly **27 accepted baseline violations** and no feed violation.
+- `.\mvnw.cmd -B -ntp -Ddebug=false spotbugs:check` reproduced exactly **2 accepted baseline
+  findings** and 0 errors. The check goal reports BUILD FAILURE because those reviewed findings
+  remain configured as failures; all new feed files and the repository addition have zero findings.
+- `.\mvnw.cmd -B -ntp -Ddebug=false pmd:check` reproduced exactly **27 accepted baseline
+  violations**. The check goal reports the expected baseline BUILD FAILURE; no new feed or
+  repository violation was introduced.
+- No genuine product defect was discovered; `docs/BUG_LOG.md` was not changed.
+
+---
+
 ## 2026-10-08 — Urgency / Deadline Presentation V1
 
 New JUnit tests: **11**. Baseline: 181 Java tests. Final: **192 Java tests**.

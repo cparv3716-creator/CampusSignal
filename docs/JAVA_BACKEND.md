@@ -334,9 +334,60 @@ Example User A response:
 }
 ```
 
-These scores describe category preferences only. Email classification is persisted separately;
-there is no final user-email ranking, summarization, extraction, embedding, semantic similarity,
-behavior-learning feedback, personalized feed, critical-message override, or frontend.
+These scores describe category preferences only. Email classification is persisted separately.
+The read-side action feed below consumes the score without changing its calculation; there is no
+summarization, embedding, semantic similarity, behavior-learning feedback, critical-message
+override, or frontend.
+
+## Personalized actionable feed V1
+
+`GET /api/v1/profiles/{profileId}/action-feed` returns the currently actionable email actions in
+deterministic personalized order. The explicit `profileId` selects the existing profile scoring
+inputs; there is no authentication or inferred ownership in this milestone. An unknown profile
+uses the established safe 404 response.
+
+The feed converts each persisted `EmailCategory` to its stable lowercase, space-separated key
+(`ACADEMIC_RESEARCH` becomes `academic research`) and passes that key and the existing normalized
+profile to `CategoryScoreService`. This is only an enum-to-existing-score key conversion: no
+second interest model or category aliases are introduced. The existing category score remains in
+`[0,1]` with its configured `0.40E + 0.15P + 0.35B + 0.10R` semantics.
+
+Classification confidence is used as a deterministic weighting factor, never as a calibrated
+probability: `HIGH = 0.9`, `MEDIUM = 0.7`, and `LOW = 0.5`. Ranking uses bounded integer points:
+
+```text
+relevanceScore = round(categoryScore × classificationConfidenceWeight × 100)  // 0..90
+rankingScore   = relevanceScore + urgencyWeight                              // 0..120
+```
+
+Relevance labels are `HIGH` for 50 or more relevance points, `MEDIUM` for 30–49, and `LOW` below
+30. Urgency weights reuse the existing `ActionUrgency` result: `DUE_TODAY = 30`, `DUE_SOON = 20`,
+`UPCOMING = 10`, and `NO_DEADLINE = 0`. These round-number weights make a full urgency-tier step
+worth 10 points and due-today worth at most 30, allowing a materially stronger profile match to
+beat a weak urgent item while still ordering otherwise equal items by urgency. For example, the
+tested strong-match/no-deadline item scores 59 and beats a weak-match/due-today item scoring 53.
+
+The default feed first limits the database read to persisted `PENDING` actions, then removes those
+whose shared deadline presentation is effectively `MISSED`. Persisted `COMPLETED` and
+`NOT_INTERESTED` actions and derived `MISSED` actions remain stored but are absent from this feed.
+Email associations are loaded with the pending-action query using an entity graph, avoiding an
+obvious per-action lazy-load query pattern.
+
+Exact tie order is: ranking score descending, relevance score descending, urgency weight
+descending, deadline ascending with null last, creation time descending, then action ID
+descending. The final ID rule guarantees stable ordering even if all earlier values tie.
+
+Each item contains `id`, `emailId`, `emailSubject`, `emailCategory`,
+`classificationConfidence`, `actionType`, optional `deadline`, optional `actionUrl`,
+`effectiveStatus`, `urgency`, optional `daysRemaining`, `relevance`, integer `relevanceScore`,
+integer `rankingScore`, deterministic `rankingExplanation`, and `createdAt`. The explanation has
+the fixed form `HIGH relevance + DUE_SOON`; the structured relevance, urgency, and countdown fields
+provide the same explanation without generative text. Full email bodies and provider/OAuth/Pub/Sub
+internals are never returned.
+
+All relevance, urgency, and ranking values are derived during a read-only transaction. GET does
+not update profile, email, action, preference, or rank data; it does not rerun ingestion,
+classification, Gmail, or action extraction; and it introduces no ranking/relevance column.
 
 ## Verification and remaining account setup
 

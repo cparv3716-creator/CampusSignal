@@ -43,6 +43,132 @@ User Profile API/service persistence, followed by Initial Category Preference Sc
 ---
 
 ## Work Entry
+Date: 2026-10-08
+Contributor: Codex
+Milestone: Personalized Action Relevance + Ranked Actionable Feed V1
+Stage: Deterministic personalized read-side ranking
+Branch: phase4-live-demo
+Starting commit: a36a16e4e3100f0eccd7bd53d63aaff5fdcede9a
+
+### Starting repository safety state
+
+- `git status --short --branch` showed a clean `phase4-live-demo` tree, three commits ahead of
+  `origin/phase4-live-demo`; `git diff` was empty.
+- Inspected the profile entity/interest normalization, profile API/repository/service,
+  `CategoryScoreService` and its configuration/tests, category/confidence types and persistence,
+  email/action entities and repositories, action service/read DTO/controller, shared deadline
+  presentation, urgency/effective-status rules, exception handling, injected UTC `Clock`, and all
+  profile/action/urgency/extraction tests before implementation.
+- Minimum production scope was four additive feed files plus one three-line repository method;
+  no completed subsystem required a material change.
+
+### Existing personalization architecture discovered
+
+- Profile interests are a normalized, ordered JPA element collection of extensible lowercase
+  strings; profile creation strips values and removes duplicates in first-occurrence order.
+- `CategoryScoreService` owns the existing bounded `[0,1]` score:
+  `0.40 explicit + 0.15 profile + 0.35 behavioral + 0.10 related`. Explicit is exact interest
+  membership; behavioral cold-start is 0.5; related cold-start is 0.0. Profile relevance is a
+  transparent internships/research/hackathons heuristic and 0.5 for other category strings.
+- The feed converts each `EmailCategory` enum to lowercase words and delegates to that service.
+  It does not duplicate scoring, invent aliases, or add a competing interest model.
+
+### Relevance, urgency, and exact ranking
+
+- Classification confidence contributes only as its established deterministic weight (`HIGH 0.9`,
+  `MEDIUM 0.7`, `LOW 0.5`), not as probability.
+- `relevanceScore = round(categoryScore × confidenceWeight × 100)`, producing integer 0–90 points.
+  Labels are `HIGH >= 50`, `MEDIUM >= 30`, else `LOW`.
+- Existing `ActionUrgency` is reused without recalculating dates: `DUE_TODAY +30`, `DUE_SOON +20`,
+  `UPCOMING +10`, and `NO_DEADLINE +0`.
+- `rankingScore = relevanceScore + urgencyWeight`, bounded 0–120. Round-number ten-point urgency
+  steps are manually explainable; urgency distinguishes otherwise equal relevance while a
+  materially stronger match can still beat a weak urgent item (verified 59 versus 53).
+- Ordering is ranking score descending, relevance score descending, urgency weight descending,
+  deadline ascending/null last, creation instant descending, and ID descending.
+- Persisted terminal statuses are omitted by the pending-only query; shared deadline presentation
+  then omits derived `MISSED`. Records remain stored and existing action APIs remain unchanged.
+
+### Read API, query, and explainability
+
+- Added `GET /api/v1/profiles/{profileId}/action-feed`; explicit profile ID is used because
+  authentication/ownership is intentionally absent. Unknown profiles reuse the safe 404 handler.
+- Items expose action/email identifiers, subject, category, classification level, action metadata,
+  effective status, urgency/countdown, relevance label/integer points, integer ranking points,
+  deterministic explanation, and creation time—never email body or provider/security internals.
+- Explanation is fixed structured text such as `HIGH relevance + DUE_SOON`; no LLM is involved.
+- One additive `@EntityGraph(attributePaths = "email")` pending-action repository query supplies
+  the needed email metadata without an obvious N+1 lazy-load pattern.
+- The service and transaction are read-only. No entity/schema/migration changed; relevance,
+  urgency, and ranking are neither persisted nor written back.
+
+### Test-first, boundary, regression, and static analysis evidence
+
+- Initial RED: 9 focused tests, 9 failures, 0 errors; the absent route returned 404 for every case.
+- Focused GREEN: 9/9 in 48.004 seconds. Tests cover strong/weak relevance, confidence levels,
+  urgency ordering at today/soon/upcoming/no-deadline boundaries, a formula-driven relevance versus
+  urgency tradeoff, all terminal/missed filters, stable tie-breaking/repeated reads, two profiles
+  producing different rankings, safe missing-profile behavior, scorer reuse, protected-subsystem
+  isolation, and persistence non-mutation.
+- Unchanged profile/scoring plus feed tests: 48/48. Existing action: 10/10. Existing urgency:
+  11/11. Existing deadline/extraction: 19/19.
+- Full Java suite: `.\mvnw.cmd -B -ntp -Ddebug=false clean test` — BUILD SUCCESS; **201 tests,
+  0 failures, 0 errors, 0 skipped** in 1:09.
+- SpotBugs check reproduced 2 accepted findings and no new feed finding. PMD check reproduced 27
+  accepted violations and no new feed violation. Both check goals retain their expected nonzero
+  result for accepted baseline findings; no suppression/configuration was changed.
+- The corresponding report goals (`spotbugs:spotbugs` and `pmd:pmd`) both completed with BUILD
+  SUCCESS and confirmed those exact baseline counts.
+- No genuine defect was discovered; `BUG_LOG.md` remains unchanged.
+
+### Course concepts and human verification
+
+- Persisted versus derived state: action/profile/email data stay persisted; relevance, urgency,
+  explanations, and order are calculated only on GET.
+- Deterministic/explainable algorithms: fixed score conversion, integer weights, label thresholds,
+  and complete tie order can be calculated manually without ML opacity.
+- Test-first and boundary-value testing: route absence supplied RED; confidence, deadline urgency
+  boundaries, terminal filtering, deadline tie order, and exact tradeoff scores supply GREEN proof.
+- API contract and read-side architecture: a dedicated feed DTO/controller avoids changing existing
+  action responses or mutation semantics, while a read-only service composes established services.
+- Stable sorting/regression testing: the final ID tie-break and repeated-read assertion prevent
+  nondeterministic row order; all 192 prior tests remained green.
+- Static analysis and AI-assisted implementation with human verification: generated changes were
+  checked against explicit arithmetic expectations, focused tests, full regressions, SpotBugs,
+  PMD, and a file-by-file diff/safety review rather than accepted without evidence.
+
+### Files and protected-area review
+
+- New production: `ActionRelevance`, `ProfileActionFeedItemResponse`,
+  `ProfileActionFeedService`, and `ProfileActionFeedController`.
+- Existing production modified: only `EmailActionRepository`, adding a pending-status query with an
+  email entity graph required for efficient read composition. Existing methods and semantics are
+  unchanged.
+- New test: `ProfileActionFeedApiTest`. No existing test was edited, weakened, removed, disabled,
+  or skipped.
+- Documentation updated: `AGENT_PROMPTS.md`, `JAVA_BACKEND.md`, `TEST_LOG.md`, and `WORK_LOG.md`.
+- No entity, persisted column, H2 data, migration, Gmail/OAuth/Pub/Sub/history/ingestion code,
+  classifier/preprocessor/persistence/backfill code, existing email/profile/action API behavior,
+  action lifecycle/extraction/deadline/urgency code, Maven configuration, or static-analysis
+  configuration changed. No file was deleted, renamed, or moved. No commit or push occurred.
+
+### Deferred and exact next milestone
+
+- Deferred: authentication/authorization/sessions, ownership enforcement, reminders, scheduling,
+  notifications, confirmation-email detection, frontend, LLM ranking/explanations, external URL
+  fetching, automatic actions, behavioral learning, and persisted ranking.
+- Recommended next milestone: **Student Action Ownership + Authorization V1**—define and enforce
+  which authenticated student may read each profile/action feed, without adding reminders,
+  notification scheduling, behavioral learning, or changing this deterministic ranking formula.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## Work Entry
 Date: 2026-10-07
 Contributor: Codex
 Milestone: CS5013 Code Coverage

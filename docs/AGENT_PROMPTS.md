@@ -213,6 +213,37 @@ If you encounter an architectural conflict with the existing repository, stop an
 
 ---
 
+## 2026-10-08 — Personalized Action Relevance + Ranked Actionable Feed V1
+
+### Task prompt
+
+Implement **Personalized Action Relevance + Ranked Actionable Feed V1** for CampusSignal. The
+product question is: “Given all pending/actionable opportunities, which ones matter most to this
+student right now?” Reuse the existing profile `CategoryScoreService`, inspect and preserve its
+actual scale and semantics, optionally apply persisted deterministic classification-confidence
+levels only as documented weighting factors, combine relevance with the already-derived
+`ActionUrgency` through a small explicit formula, and expose a deterministic, explainable,
+profile-specific, read-only action-feed endpoint. Exclude `COMPLETED`, `NOT_INTERESTED`, and derived
+`MISSED` items from the default feed; define stable tie-breakers; avoid N+1 queries; do not persist
+relevance, urgency, or rank; and do not invoke Gmail, classification, ingestion, or action
+extraction. Work test-first and record RED/GREEN evidence, meaningful relevance/urgency tradeoffs,
+filtering, deterministic ordering, differing profile results, safe 404 behavior, subsystem
+isolation, and non-mutation. Preserve every protected completed milestone, existing API and state
+semantics, H2 data, Maven/static-analysis configuration, and all existing tests. Run focused and
+regression test groups, the complete Java suite, SpotBugs, and PMD; update `TEST_LOG.md`,
+`WORK_LOG.md`, `AGENT_PROMPTS.md`, and `JAVA_BACKEND.md`; perform the required final repository
+safety review; do not commit or push. Do not implement authentication, authorization, sessions,
+reminders, schedulers, notifications, confirmation-email detection, frontend work, LLM ranking or
+explanations, external URL fetching, automatic action creation, or unrelated cleanup.
+
+### Prompt summary
+
+Add a deterministic, explainable, side-effect-free profile action feed that reuses current category
+scores and deadline presentation, with test-first evidence and complete regression/static-analysis
+verification while leaving persistence and protected integrations unchanged.
+
+---
+
 ## 2026-10-07 — Final classifier coverage batch
 
 ### Exact task prompt
