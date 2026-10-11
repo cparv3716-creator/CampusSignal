@@ -1,9 +1,7 @@
 # CampusSignal Java backend
 
-Java + Maven + Spring Boot is the course-compliant CS5013 implementation going forward.
-The existing `app/`, `tests/`, and `requirements.txt` remain the earlier Python/FastAPI
-prototype and behavioral reference. Do not add new Python product features unless explicitly
-approved. No Python code, database, credentials, or token files are migrated or deleted by this work.
+The active CampusSignal implementation is Java, Maven and Spring Boot. Production source code is
+under `src/main/java` and automated Java tests are under `src/test/java`.
 
 ## Toolchain and layout
 
@@ -22,22 +20,24 @@ mvnw / mvnw.cmd
 .mvn/wrapper/maven-wrapper.properties
 src/main/java/edu/campussignal/
   CampusSignalApplication.java
-  config/       # Gmail settings, score settings, strict JSON input
-  controller/   # Profile API and safe HTTP errors
+  command/      # Explicit maintenance commands
+  config/       # Gmail settings, score settings, clocks, strict JSON input
+  controller/   # Email, profile, action, feed APIs, and safe HTTP errors
   dto/          # Validated requests, responses, normalized email contract
-  entity/       # Email and UserProfile
+  entity/       # Email, UserProfile, EmailAction, and GmailWatchState
   repository/   # Spring Data JPA
-  service/      # Profiles, ingestion, retrieval, category scores
+  service/      # Ingestion, classification, actions, profiles, and ranking
   gmail/        # OAuth, Google API adapter, MIME parsing, local command
+  pubsub/       # Google Cloud Pub/Sub pull adapter
 src/main/resources/application.properties
 src/test/java/edu/campussignal/
 src/test/resources/application-test.properties
 ```
 
-Dependencies cover Spring Web, Spring Data JPA, Bean Validation, Google Gmail/OAuth clients,
-H2, MIME decoding (Jakarta Mail), HTML-to-text parsing (jsoup), and Spring Boot Test/JUnit.
-There are no AI/LLM dependencies. MIME/HTML parsing only retrieves the email body; it does not
-extract events, deadlines, eligibility, categories, or summaries.
+Dependencies cover Spring Web, Spring Data JPA, Bean Validation, Google Gmail/OAuth and Pub/Sub
+clients, H2, MIME decoding (Jakarta Mail), HTML-to-text parsing (jsoup), and Spring Boot Test/JUnit.
+There are no AI/LLM dependencies. Classification, action extraction, urgency, and ranking use
+deterministic application rules.
 
 ## Build and run
 
@@ -63,16 +63,16 @@ to a contributor-specific absolute path.
 
 ## Gmail authorization and retrieval
 
-This milestone supports one authorized local Gmail mailbox per Java database/token directory.
-It does not port Python watch, Pub/Sub, Gmail history synchronization, or real-time monitoring.
+CampusSignal supports one authorized local Gmail mailbox per database/token directory. It provides
+one-shot retrieval plus Gmail watch registration, Pub/Sub pull listening, Gmail history
+synchronization, duplicate protection, and bounded recovery from a stale history cursor.
 
 1. Enable the Gmail API in your Google Cloud project.
 2. Configure the OAuth consent screen and allow your account as a test user when applicable.
 3. Create a **Desktop app** OAuth client and save its downloaded JSON outside the source tree
    (or as the ignored root `credentials.json`).
 4. Set `GMAIL_CREDENTIALS_FILE` to that file. Optionally set `GMAIL_TOKEN_DIRECTORY` to a private
-   directory; its default is the ignored `.gmail-tokens/`. Java uses its own credential store,
-   separate from the Python `token.json` format.
+   directory; its default is the ignored `.gmail-tokens/`.
 5. Build the executable jar and run the explicit authorization command on your local machine:
 
 ```powershell
@@ -80,6 +80,8 @@ $env:GMAIL_CREDENTIALS_FILE = 'C:\path\outside-repository\credentials.json'
 .\mvnw.cmd package
 java -jar target/campussignal-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --gmail.command=authorize
 java -jar target/campussignal-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --gmail.command=retrieve --gmail.max-results=10
+java -jar target/campussignal-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --gmail.command=watch
+java -jar target/campussignal-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --gmail.command=listen
 ```
 
 The authorization command uses Google's installed-app flow, a browser consent step, and a
@@ -94,7 +96,7 @@ configured limit (1–500), then requests `format=full` for each message. It dec
 headers, sender addresses, Base64URL bodies, declared charsets, and nested multipart text.
 Plain text takes priority over HTML, which is converted to text with script/style content removed.
 Attachments are not ingested. A valid Date header is preferred, with Gmail's `internalDate`
-(epoch milliseconds) as fallback, matching the prototype's timestamp behavior. Missing optional
+(epoch milliseconds) as fallback. Missing optional
 subject/sender headers use `(no subject)`/`unknown`; no usable timestamp or ID counts as a failed message.
 
 The command prints counts only: `fetched`, `created`, `alreadyExisted`, and `failed`.
@@ -106,6 +108,20 @@ and private keys must never be committed or copied into documentation.
 Setup references: [Google's Java Gmail quickstart](https://developers.google.com/workspace/gmail/api/quickstart/java),
 [Google Java OAuth support](https://developers.google.com/api-client-library/java/google-api-java-client/oauth2),
 [Gmail message representation](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages).
+
+### Gmail realtime synchronization
+
+Set `GOOGLE_CLOUD_PROJECT`, `GMAIL_PUBSUB_TOPIC`, and `GMAIL_PUBSUB_SUBSCRIPTION`. The topic and
+subscription may be short names or fully qualified resource paths. Grant
+`gmail-api-push@system.gserviceaccount.com` permission to publish to the topic and configure Google
+Application Default Credentials for the local Pub/Sub subscriber.
+
+The `watch` command registers the inbox watch and persists the returned history ID and expiration.
+The `listen` command pulls notifications, validates their mailbox/history payload, ignores already
+processed history IDs, follows every Gmail history page, deduplicates added message IDs, and only
+advances stored history state after successful processing. If Gmail rejects an expired history
+cursor, the listener performs bounded retrieval using `GMAIL_RECOVERY_MAX_RESULTS` and then resumes
+from the mailbox's current history ID. A failed notification is not acknowledged.
 
 ## Relational storage
 
@@ -392,10 +408,15 @@ classification, Gmail, or action extraction; and it introduces no ranking/releva
 ## Verification and remaining account setup
 
 JUnit exercises the real JPA schema and repositories, duplicate constraints and concurrent
-ingestion, profile validation/API, configurable scores, MIME decoding, Gmail pagination,
-stored OAuth reuse and automatic token refresh, command errors/exit codes, and the complete
-simulated Gmail HTTP-response-to-database path. Tests use synthetic values and an in-memory HTTP
-transport; they do not read real credentials, open a consent browser, or call a Gmail account.
+ingestion, deterministic classification and backfill, profile validation/API, configurable scores,
+action extraction and tracking, urgency and ranking, MIME decoding, Gmail pagination/history,
+notification handling, stored OAuth reuse and automatic token refresh, command errors/exit codes,
+and the complete simulated Gmail HTTP-response-to-database path. Tests use synthetic values and an
+in-memory HTTP transport; they do not read real credentials, open a consent browser, or call a
+Gmail account.
+
+SpotBugs and PMD provide static analysis, and JaCoCo generates coverage reports during tests. Run
+`./mvnw spotbugs:check`, `./mvnw pmd:check`, and inspect `target/site/jacoco/` after the test phase.
 
 A live Google consent/retrieval demonstration still requires the account owner's local
 OAuth configuration and consent. Automated success does not claim that this live step occurred.

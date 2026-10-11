@@ -4594,3 +4594,331 @@ small pure clock-based component, preserving all persistence, lifecycle, extract
 protected integrations while verifying boundary values and established quality baselines.
 
 ---
+## 2026-10-11 — Java-only CS5013 evaluation branch cleanup
+
+### Exact task prompt
+
+> You are working in the CampusSignal repository.
+>
+> Repository:
+> cparv3716-creator/CampusSignal
+>
+> Current branch:
+> phase4-live-demo
+>
+> GOAL
+> Prepare the repository for CS5013 evaluation so that the CURRENT branch represents only the active Java/Maven/Spring Boot implementation.
+>
+> The earlier Python/FastAPI implementation is no longer part of the evaluated project. Remove the legacy Python implementation and remove/update current-branch documentation that still describes Python as an active or reference implementation.
+>
+> IMPORTANT SAFETY RULES
+>
+> 1. DO NOT rewrite Git history.
+> 2. DO NOT use git reset --hard.
+> 3. DO NOT use git clean.
+> 4. DO NOT use force push.
+> 5. DO NOT amend or rewrite old commits.
+> 6. DO NOT commit or push automatically.
+> 7. DO NOT delete Java production code or Java tests.
+> 8. DO NOT modify working Java behavior unless required to remove a genuine Python dependency.
+> 9. DO NOT weaken, skip, disable, or delete Java tests.
+> 10. DO NOT delete Maven, Spring Boot, Gmail, H2, classifier, action tracking, urgency, relevance, or ranked-feed functionality.
+> 11. Before deleting anything, inspect it and confirm whether it belongs to the legacy Python implementation.
+> 12. If any Python file is unexpectedly required by the Java build/runtime, STOP and report it rather than deleting blindly.
+>
+> CURRENT JAVA PROJECT THAT MUST REMAIN
+>
+> Preserve:
+> - pom.xml
+> - mvnw
+> - mvnw.cmd
+> - .mvn/
+> - src/main/java/
+> - src/main/resources/
+> - src/test/java/
+> - src/test/resources/
+> - config/
+> - Java-related docs
+> - Gmail OAuth Java implementation
+> - Gmail realtime/watch/history Java implementation
+> - H2 database configuration
+> - email classification
+> - classification backfill
+> - profile API
+> - CategoryScoreService
+> - action tracking
+> - action candidate extraction
+> - deadline/urgency logic
+> - personalized ranked actionable feed
+> - SpotBugs/PMD/JaCoCo configuration
+>
+> STEP 1 — INSPECT CURRENT STATE
+>
+> Run and report:
+>
+> git status
+> git branch --show-current
+> git ls-files "*.py"
+> git ls-files "requirements.txt"
+> git ls-files "app/**"
+> git ls-files "tests/**"
+>
+> Also search:
+>
+> git grep -n -i "python"
+> git grep -n -i "fastapi"
+> git grep -n -i "pytest"
+> git grep -n -i "sqlalchemy"
+> git grep -n -i "pydantic"
+> git grep -n -i "requirements.txt"
+> git grep -n -i "sqlite"
+>
+> Classify every hit as:
+> A. executable legacy Python code
+> B. obsolete public-facing documentation
+> C. historical development record
+> D. legitimate Java/current-project text
+>
+> Do not make changes until this classification is complete.
+>
+> STEP 2 — REMOVE LEGACY PYTHON IMPLEMENTATION
+>
+> If still tracked and confirmed legacy-only, remove:
+>
+> - app/
+> - root-level tests/ belonging to Python
+> - requirements.txt
+>
+> IMPORTANT:
+> src/test/java/ is Java and MUST NOT be removed.
+>
+> Remove other Python-only executable files only after inspecting them and confirming they are not required by Java.
+>
+> STEP 3 — CLEAN PUBLIC-FACING PROJECT DOCUMENTATION
+>
+> Rewrite README.md so it describes ONLY the current Java project.
+>
+> It should describe CampusSignal as:
+>
+> Java + Maven + Spring Boot backend with:
+> - Gmail OAuth
+> - Gmail retrieval
+> - Gmail watch/history/realtime synchronization where currently implemented
+> - email persistence and duplicate protection
+> - deterministic email classification
+> - classification confidence
+> - legacy classification backfill
+> - email read API
+> - user profiles
+> - CategoryScoreService / relevance scoring
+> - action candidate extraction
+> - deadline and URL extraction
+> - action tracking
+> - effective status
+> - urgency and countdown
+> - personalized ranked actionable feed
+> - H2 persistence
+> - JUnit testing
+> - SpotBugs
+> - PMD
+> - JaCoCo
+>
+> Remove README sections referring to:
+> - Python/FastAPI prototype
+> - SQLAlchemy
+> - Pydantic
+> - pytest
+> - requirements.txt
+> - Python setup commands
+> - Python FastAPI startup
+> - Python repository structure
+> - SQLite Python implementation
+>
+> The README must not claim functionality that is not present in Java.
+>
+> STEP 4 — CLEAN AGENTS.md
+>
+> Remove Python-specific instructions such as:
+> - earlier Python/FastAPI prototype
+> - app/models
+> - app/schemas
+> - Python reference maintenance
+> - SQLAlchemy/Pydantic conventions
+> - Python version requirements
+>
+> Rewrite AGENTS.md around the current Java project structure and safety rules.
+>
+> The active codebase should be described as:
+> - src/main/java
+> - src/test/java
+> - Spring Boot
+> - Maven
+> - JPA/H2
+> - JUnit
+> - Gmail Java integrations
+> - deterministic classification and ranking
+>
+> STEP 5 — CLEAN .env.example
+>
+> Replace Python-era configuration with Java-era variables only.
+>
+> Use variables actually supported by application.properties, including where appropriate:
+>
+> DATABASE_URL=jdbc:h2:file:./data/campussignal
+> DATABASE_USERNAME=sa
+> DATABASE_PASSWORD=
+>
+> GMAIL_CREDENTIALS_FILE=credentials.json
+> GMAIL_TOKEN_DIRECTORY=.gmail-tokens
+> GMAIL_CALLBACK_PORT=8888
+> GMAIL_MAX_RESULTS=10
+> GMAIL_USER_ID=me
+>
+> GOOGLE_CLOUD_PROJECT=
+> GMAIL_PUBSUB_TOPIC=
+> GMAIL_PUBSUB_SUBSCRIPTION=
+> GMAIL_RECOVERY_MAX_RESULTS=10
+>
+> CATEGORY_SCORE_EXPLICIT_WEIGHT=0.40
+> CATEGORY_SCORE_PROFILE_WEIGHT=0.15
+> CATEGORY_SCORE_BEHAVIORAL_WEIGHT=0.35
+> CATEGORY_SCORE_RELATED_WEIGHT=0.10
+> CATEGORY_SCORE_INITIAL_BEHAVIORAL=0.5
+> CATEGORY_SCORE_INITIAL_RELATED=0.0
+>
+> Do not include Python SQLite configuration or GMAIL_TOKEN_FILE if the Java application does not use it.
+>
+> STEP 6 — CLEAN docs/JAVA_BACKEND.md
+>
+> Remove wording such as:
+> "The existing app/, tests/, and requirements.txt remain the earlier Python/FastAPI prototype..."
+>
+> Rewrite it so it states clearly:
+>
+> "The active CampusSignal implementation is Java, Maven and Spring Boot. Production source code is under src/main/java and automated Java tests are under src/test/java."
+>
+> Retain useful Java setup, architecture, Gmail OAuth, persistence, APIs, ranking, testing, and static-analysis documentation.
+>
+> STEP 7 — HANDLE HISTORICAL DOCS CAREFULLY
+>
+> Inspect:
+> - docs/AGENT_PROMPTS.md
+> - docs/WORK_LOG.md
+> - docs/TEST_LOG.md
+> - docs/BUG_LOG.md
+> - docs/COVERAGE_LOG.md
+> - docs/STATIC_ANALYSIS_LOG.md
+> - docs/PMD_ANALYSIS_LOG.md
+>
+> The evaluation branch should not confuse reviewers into thinking Python is part of the current implementation.
+>
+> For historical records:
+> - preserve truthful Java development evidence;
+> - remove obsolete Python commands/code snippets if they are no longer useful to evaluating the Java implementation;
+> - do not fabricate history;
+> - do not change Java test counts or results;
+> - do not remove the evidence for Java prompt engineering, debugging, testing, Git, static analysis, or coverage.
+>
+> If historical Python references are needed only to explain an earlier migration, reduce them to a short neutral note such as:
+> "An earlier prototype preceded the current Java implementation and is not part of this evaluation branch."
+>
+> Do not retain large Python code blocks, Python setup instructions, Python test commands, or obsolete Python architecture descriptions in the active evaluation documentation.
+>
+> STEP 8 — CLEAN .gitignore
+>
+> Remove Python-specific ignore entries only if they are no longer useful.
+>
+> Do NOT remove security-sensitive ignores for:
+> - credentials
+> - OAuth tokens
+> - .gmail-tokens/
+> - data/
+> - target/
+> - .m2/
+> - IDE files
+> - secrets
+>
+> A few harmless generic Python ignore entries are not functionally important, but make the file consistent with a Java-only project if safe.
+>
+> STEP 9 — VERIFY NO CURRENT PYTHON IMPLEMENTATION REMAINS
+>
+> Run:
+>
+> git ls-files "*.py"
+> git ls-files "requirements.txt"
+> git ls-files "app/**"
+> git ls-files "tests/**"
+>
+> Expected:
+> no tracked legacy Python implementation.
+>
+> Then search again:
+>
+> git grep -n -i "python"
+> git grep -n -i "fastapi"
+> git grep -n -i "pytest"
+> git grep -n -i "sqlalchemy"
+> git grep -n -i "pydantic"
+> git grep -n -i "requirements.txt"
+>
+> Report every remaining match and explain why it remains.
+>
+> The preferred final state is no active Python implementation and no current documentation suggesting Python is part of CampusSignal.
+>
+> STEP 10 — PROVE JAVA IS INDEPENDENT
+>
+> Do NOT use Python or .venv for verification.
+>
+> Run:
+>
+> .\mvnw.cmd clean test
+>
+> Expected:
+> BUILD SUCCESS
+> 201 tests
+> 0 failures
+> 0 errors
+> 0 skipped
+>
+> Then run:
+>
+> .\mvnw.cmd clean package
+>
+> Expected:
+> BUILD SUCCESS
+>
+> Also verify that Maven does not reference Python source directories or requirements.txt.
+>
+> Search pom.xml and Java source for:
+> - app/
+> - requirements.txt
+> - python
+> - pytest
+> - FastAPI
+>
+> Any such dependency must be reported.
+>
+> STEP 11 — REVIEW CHANGES
+>
+> Run:
+>
+> git status
+> git diff --stat
+> git diff
+>
+> Provide a file-by-file summary of:
+> - files deleted
+> - files modified
+> - why each change was necessary
+> - Java verification results
+> - any remaining Python references
+>
+> STOP BEFORE COMMITTING OR PUSHING.
+>
+> Do not commit.
+> Do not push.
+> Wait for human review.
+
+### Prompt summary
+
+Prepare the current evaluation branch as a Java-only Maven/Spring Boot project, preserve all Java behavior and tests, remove confirmed legacy implementation files, update current-facing documentation and configuration, retain append-only historical evidence, verify the complete Java build independently, and stop before commit or push.

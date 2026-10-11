@@ -2,57 +2,48 @@
 
 ## Purpose
 
-CampusSignal is an intelligent university information-routing system. Its intended flow is raw campus messages through ingestion, classification, structured extraction, validation, storage, student matching, and finally personalised feeds and reminders.
+CampusSignal is an intelligent university information-routing system. It ingests campus email, classifies and stores it, extracts actionable metadata, matches it to student profiles, and presents deterministic personalized action feeds.
 
-## Architecture
+## Active architecture
 
-The course-compliant backend uses Java + Maven + Spring Boot under `src/main/java/edu/campussignal`, with controllers, DTOs, entities, Spring Data repositories, services, configuration, and a separate Gmail adapter. Java tests live under `src/test/java`.
+CampusSignal is a Java 25, Maven, and Spring Boot application.
 
-The earlier Python/FastAPI prototype remains as a behavioral reference:
+- Production code: `src/main/java/edu/campussignal`
+- Application configuration: `src/main/resources`
+- Automated Java tests: `src/test/java`
+- Test configuration: `src/test/resources`
+- Static-analysis configuration: `config`
+- Build definition and wrapper: `pom.xml`, `mvnw`, `mvnw.cmd`, `.mvn/`
 
-- `app/api`: HTTP routes and request dependencies.
-- `app/schemas`: Pydantic API and canonical data contracts.
-- `app/models`: SQLAlchemy persistence models.
-- `app/repositories`: database access operations.
-- `app/services`: business logic and source adapters.
-- `app/core` and `app/db`: configuration and database infrastructure.
-- `tests`: automated behaviour and persistence tests.
+Use Spring MVC controllers and validated DTOs at HTTP boundaries, Spring Data JPA entities and repositories for persistence, and H2 for local and test storage. Gmail OAuth, Gmail API, watch/history synchronization, and Pub/Sub adapters are implemented in Java. Deterministic services provide classification, confidence, action extraction, category relevance, urgency, and feed ranking.
 
-Keep source adapters behind the `EmailSource` contract. Business ingestion must remain independent of Gmail, HTTP, and other provider-specific details.
-
-## Current milestone
-
-The 11 September 2026 milestone covers Java Gmail OAuth and retrieval, relational email storage with duplicate protection, user profiles and their API, and initial category preference scores. Python watch/Pub/Sub/history remains reference-only. AI/NLP, embeddings, final email ranking, behavioral learning, feeds, frontend, and deployment infrastructure remain out of scope.
-
-## Backend stack rules
-
-- The course-compliant backend is Java + Maven + Spring Boot.
-- The existing Python implementation is a prototype/reference only.
-- New backend product functionality must be implemented in Java unless an explicit project decision changes the stack.
-- Every agent must continue maintaining AGENT_PROMPTS.md and WORK_LOG.md.
+Keep provider adapters behind application contracts such as `EmailSource`. Business ingestion must remain independent of Gmail, HTTP, and other provider-specific details.
 
 ## Coding conventions
 
-- Target Java 25; follow normal Spring Boot conventions and keep controllers thin.
-- Keep routes thin; put business decisions in services and persistence operations in repositories.
-- Use validated request/response DTOs at Java HTTP boundaries and Spring Data JPA with database constraints for integrity.
-- Python reference maintenance retains Python 3.11+, type hints, Pydantic schemas, and SQLAlchemy 2 conventions.
+- Target Java 25 and follow normal Spring Boot conventions.
+- Keep controllers thin; put decisions in services and persistence operations in repositories.
+- Use validated request/response DTOs and never expose JPA entities directly from controllers.
+- Enforce integrity with validation, transactions, repository operations, and database constraints.
+- Keep deterministic classification and ranking explainable and stable.
 - Prefer small, readable modules and descriptive names.
-- Add or update tests for every behaviour change.
+- Add or update JUnit tests for every behavior change.
 
-## Working rules for future Codex tasks
+## Safety and scope
 
 - Make small, testable changes and do not expand the requested milestone implicitly.
-- Never expose secrets in output, logs, source code, fixtures, or documentation.
-- Never commit credentials or local `.env` files.
-- Run the relevant tests after every change and report the command and result.
-- Preserve duplicate protection and source independence when extending ingestion.
+- Preserve email duplicate protection and source independence when extending ingestion.
+- Do not weaken, skip, disable, or delete Java tests to obtain a passing build.
+- Preserve Gmail OAuth, retrieval, watch/history synchronization, H2 persistence, classification, backfill, profiles, category scores, action tracking, urgency, and ranked-feed behavior unless a task explicitly changes it.
+- Never expose secrets in output, logs, source, fixtures, or documentation.
+- Never commit credentials, OAuth tokens, private keys, local `.env` files, or local databases.
+- Run relevant Maven tests after every change and report the exact command and result.
 
-## Project Traceability Rules
+## Project traceability
 
-- Every coding-agent task must append the exact task prompt to docs/AGENT_PROMPTS.md before or during implementation.
-- Every completed development task must append an entry to docs/WORK_LOG.md.
+- Every coding-agent task must append the exact task prompt to `docs/AGENT_PROMPTS.md` before or during implementation.
+- Every completed development task must append an entry to `docs/WORK_LOG.md`.
 - Never overwrite previous entries.
 - Never invent commit hashes, PR numbers, PR URLs, authors, dates, or test results.
-- If a PR has not yet been created, record its status as "Pending".
+- If a PR has not been created, record its status as `Pending`.
 - Documentation updates are part of the definition of done.

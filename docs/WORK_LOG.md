@@ -1592,3 +1592,43 @@ PR: Pending
 PR created by: Pending
 
 ---
+
+## Work Entry
+Date: 2026-10-11
+Contributor: Codex
+Milestone: CS5013 Java-only evaluation branch preparation
+Stage: Legacy implementation removal and documentation alignment
+Branch: cleanup/java-only-evaluation
+
+### Starting state and safety review
+- The checked-out branch was `cleanup/java-only-evaluation`, not the task prompt's stated `phase4-live-demo` branch.
+- The legacy `app/`, root-level `tests/`, and `requirements.txt` deletions were already staged before this task; unrelated `.postman/` and `postman/` directories were untracked and left untouched.
+- Inspected the deleted files from `HEAD`. They were exclusively the earlier prototype source, provider adapters, CLI commands, schemas/models/repositories/services, dependency manifest, and associated tests.
+- Confirmed that `pom.xml`, Java source, Java tests, resources, and PMD configuration contain no dependency on those deleted files or directories.
+- No Git history rewrite, reset, clean, force operation, commit, push, Java source change, Java test change, or test suppression occurred.
+
+### Work completed
+- Retained the confirmed legacy-only staged deletions while preserving all Maven, Spring Boot, Gmail, Pub/Sub, H2, classification, action, urgency, relevance, feed, and Java test files.
+- Rewrote `README.md` around the active Java feature set, project layout, build/run commands, Gmail retrieval and realtime commands, APIs, persistence, ranking, testing, and analysis tooling.
+- Rewrote `AGENTS.md` around the active Java/Maven/Spring Boot/JPA/H2/JUnit structure, provider boundaries, deterministic services, safety rules, and append-only traceability requirements.
+- Replaced `.env.example` with only environment variables supported by `application.properties`, including datasource, Gmail OAuth/retrieval, Pub/Sub/history recovery, and category-score values.
+- Updated `docs/JAVA_BACKEND.md` to state the active source/test locations and accurately document the implemented Gmail watch/history/listener path and current Java verification scope.
+- Removed obsolete environment, virtual-environment, coverage, and local-database ignore patterns. Retained narrow local `.venv/` and compiled-bytecode ignores because ignored local artifacts still exist outside the tracked evaluation branch; credential, OAuth token, data, Maven, build, and IDE protections remain.
+- Preserved earlier prompt/work/test/debugging/coverage/static-analysis entries unchanged as truthful historical records, then appended this task prompt and work entry as required.
+
+### Verification
+- `.\mvnw.cmd clean test` — BUILD SUCCESS; 201 tests, 0 failures, 0 errors, 0 skipped; JaCoCo analyzed 79 classes.
+- `.\mvnw.cmd clean package` — BUILD SUCCESS; 201 tests, 0 failures, 0 errors, 0 skipped; executable Spring Boot jar created.
+- No interpreter, virtual environment, or legacy test command was used for verification.
+- Maven and Java dependency scan found no reference to the removed source directories, dependency manifest, or legacy runtime/framework names.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Human review
+- Review the deletions and documentation diff before staging the documentation changes or creating a commit.
+- The ignored local `.venv/` and compiled-bytecode cache artifacts are not tracked and are not part of the evaluation branch.
+
+---
