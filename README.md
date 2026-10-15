@@ -1,206 +1,136 @@
 # CampusSignal
 
-CampusSignal is a campus-email processing system that ingests Gmail messages and provides the backend foundation for identifying useful academic, internship, competition, event, and opportunity-related signals from high-volume university email.
+CampusSignal is a Java 25, Maven, and Spring Boot backend for turning university email into structured, actionable, and personalized information. The active implementation combines Gmail ingestion with deterministic classification, action tracking, deadline presentation, and a ranked profile feed.
 
-## Why I Built It
+Detailed behavior and operational notes are in [docs/JAVA_BACKEND.md](docs/JAVA_BACKEND.md).
 
-University inboxes can contain large numbers of:
-* academic notices
-* club announcements
-* competitions
-* internships
-* events
-* administrative communication
-* other campus information
+## Current capabilities
 
-Important opportunities can be difficult to identify in a high-volume inbox. CampusSignal explores a software pipeline for ingesting and eventually structuring these signals.
+- Gmail desktop OAuth with a local token directory
+- One-shot Gmail retrieval with MIME and HTML-to-text handling
+- Gmail `users.watch`, Google Cloud Pub/Sub pull listening, and Gmail history synchronization
+- Stale-history recovery through bounded mailbox retrieval
+- H2/JPA email persistence with stable-ID duplicate protection
+- Deterministic email classification with persisted confidence
+- Explicit classification backfill for older incomplete rows
+- Read-only email list and detail APIs
+- Validated user profile creation and lookup
+- Configurable `CategoryScoreService` relevance scoring
+- Deterministic action candidate, deadline, and safe HTTP/HTTPS URL extraction
+- Persisted action tracking with guarded status transitions
+- Derived effective status, urgency, and deadline countdown
+- Personalized ranked actionable feed with deterministic explanations
+- JUnit/Spring Boot tests, JaCoCo coverage reports, SpotBugs, and PMD
 
-## Current Status
-
-| Component                      | Status         |
-| ------------------------------ | -------------- |
-| Gmail OAuth authentication     | Implemented    |
-| Gmail message synchronization  | Implemented    |
-| Raw-email persistence          | Implemented    |
-| Gmail watch registration       | Implemented    |
-| Pub/Sub notification reception | Implemented    |
-| Gmail history synchronization  | Implemented    |
-| Opportunity classification     | In Development |
-| Structured field extraction    | In Development |
-
-## What Currently Works
-
-The implemented working flow is approximately:
-
-```mermaid
-graph TD
-    A[Gmail Account] -->|users.watch| B[Google Cloud Pub/Sub]
-    B -->|Pull Subscription| C[CampusSignal Listener]
-    C -->|Extract History ID| D[Gmail history.list]
-    D -->|Fetch New Messages| E[Ingestion Service]
-    E -->|Idempotency Check| F[Email Repository]
-    F -->|RawEmail Model| G[(SQLite)]
-```
-
-## Architecture
-
-```mermaid
-flowchart TD
-    Manual[Manual JSON] --> ManualSrc[ManualEmailSource]
-    Gmail[Gmail API] --> GmailSrc[GmailEmailSource]
-    
-    ManualSrc --> Ingestion[Ingestion Service]
-    GmailSrc --> Ingestion
-    
-    Ingestion --> Repo[Email Repository]
-    Repo --> Model[SQLAlchemy RawEmail]
-    Model --> DB[(SQLite)]
-    
-    Watch[Gmail users.watch] --> PubSub[Pub/Sub Topic]
-    PubSub --> Sub[Pull Subscription]
-    Sub --> Listener[Local Listener]
-    Listener --> Hist[Gmail history.list]
-    Hist --> GmailSrc
-```
-
-## Technology Stack
-
-* Python 3.11+
-* FastAPI
-* Uvicorn
-* SQLAlchemy
-* Pydantic
-* SQLite
-* Google API Client Libraries (Gmail API)
-* Google Cloud Pub/Sub
-* pytest
-
-## Repository Structure
+## Project layout
 
 ```text
-CampusSignal/
-├── app/
-│   ├── api/                 # Routes and HTTP dependencies
-│   ├── cli/                 # Gmail auth, sync, watch, and listener commands
-│   ├── core/                # Environment-based settings
-│   ├── db/                  # SQLAlchemy base and sessions
-│   ├── integrations/        # Gmail API and Pub/Sub boundaries
-│   ├── models/              # Raw email and Gmail state database models
-│   ├── repositories/        # Email and Gmail state persistence
-│   ├── schemas/             # Pydantic request/response contracts
-│   ├── services/            # Source adapters, sync, and ingestion logic
-│   └── main.py              # FastAPI application factory
-├── tests/                   # Endpoint and persistence tests
-├── .env.example
-├── .gitignore
-├── AGENTS.md
-└── requirements.txt
+pom.xml
+mvnw / mvnw.cmd
+.mvn/wrapper/
+config/pmd/
+src/main/java/edu/campussignal/
+  command/       classification maintenance commands
+  config/        application configuration
+  controller/    HTTP endpoints and exception handling
+  dto/           validated API and service contracts
+  entity/        JPA entities
+  gmail/         Gmail OAuth and API adapter
+  pubsub/        Google Cloud Pub/Sub adapter
+  repository/    Spring Data JPA repositories
+  service/       ingestion, classification, actions, profiles, and ranking
+src/main/resources/application.properties
+src/test/java/edu/campussignal/
+src/test/resources/application-test.properties
 ```
 
-## Gmail Ingestion Pipeline
+Provider-specific Gmail and Pub/Sub code stays behind application services. Core retrieval consumes the `EmailSource` contract, keeping ingestion independent of the provider adapter.
 
-1. User authenticates using Gmail OAuth (Desktop Application flow).
-2. CampusSignal registers a Gmail mailbox watch on the INBOX.
-3. Gmail sends change notifications through Google Cloud Pub/Sub.
-4. The local pull listener receives the notification and extracts the history ID.
-5. The Gmail History API (`history.list`) identifies `messagesAdded` since the previous successfully processed history ID.
-6. Newly received messages are fetched from Gmail.
-7. Messages are passed to the `IngestionService` and `EmailRepository`.
-8. Raw email metadata and text content are persisted locally in SQLite, protected by idempotency checks using the `gmail:<id>` format.
+## Prerequisites
 
-## Local Setup
+- JDK 25 with `JAVA_HOME` configured
+- Network access for the Maven Wrapper's first dependency download
+- A Google Cloud desktop OAuth client only when using Gmail commands
+- A Google Cloud Pub/Sub topic and pull subscription only when using realtime synchronization
 
-Run these commands from the repository root. Python 3.11 or newer is required.
+Copy `.env.example` values into your local environment as needed. Never commit credentials, generated OAuth tokens, or local database files.
 
-```bash
-git clone <repository-url>
-cd CampusSignal
-python -m venv .venv
-# On Windows PowerShell:
-.\.venv\Scripts\Activate.ps1
-# On Linux/macOS:
-source .venv/bin/activate
+## Build, test, and analyze
 
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-cp .env.example .env
+From PowerShell in the repository root:
+
+```powershell
+.\mvnw.cmd clean test
+.\mvnw.cmd clean package
+.\mvnw.cmd spotbugs:check
+.\mvnw.cmd pmd:check
 ```
 
-### Google Cloud and OAuth Prerequisites
-- Create a Google Cloud project, enable Gmail and Pub/Sub APIs.
-- Configure an OAuth consent screen (Desktop App) with read-only Gmail scope (`https://www.googleapis.com/auth/gmail.readonly`).
-- Download `credentials.json` to the project root.
-- Set up a Pub/Sub topic and subscription, and grant `gmail-api-push@system.gserviceaccount.com` Publisher access.
-- Run `gcloud auth application-default login` for local Pub/Sub subscription access.
-- Configure `.env` with your project and topic details.
+JaCoCo generates coverage output under `target/site/jacoco/` during the test lifecycle. On Unix-like systems, use `./mvnw` in place of `.\mvnw.cmd`.
 
-## Running the Project
+## Run the HTTP API
 
-Gmail authentication:
-```bash
-python -m app.cli.gmail_auth
+```powershell
+.\mvnw.cmd spring-boot:run
 ```
 
-Initial Gmail sync (fetch 10 messages):
-```bash
-python -m app.cli.gmail_sync --max-results 10
+The default address is `http://127.0.0.1:8080`. The application uses file-backed H2 at `./data/campussignal` by default; tests use isolated in-memory H2 databases.
+
+## Gmail authorization and synchronization
+
+Enable the Gmail API, create a desktop OAuth client, and keep the downloaded credentials outside source control. For realtime synchronization, also enable Pub/Sub, configure a topic and pull subscription, and grant the Gmail push service account permission to publish to the topic.
+
+After building, the supported command modes are:
+
+```powershell
+java -jar target/campussignal-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --gmail.command=authorize
+java -jar target/campussignal-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --gmail.command=retrieve --gmail.max-results=10
+java -jar target/campussignal-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --gmail.command=watch
+java -jar target/campussignal-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --gmail.command=listen
 ```
 
-Gmail watch registration:
-```bash
-python -m app.cli.gmail_watch
+`authorize` performs the browser-based consent flow. `retrieve` fetches current inbox messages. `watch` registers Gmail push notifications and stores the returned history state. `listen` consumes the configured pull subscription, synchronizes new messages through Gmail history, ignores already-processed notifications, and performs bounded recovery when Gmail reports a stale history cursor.
+
+## Classification and backfill
+
+Newly ingested email is classified deterministically and stores both an `EmailCategory` and a `ClassificationConfidence`. To classify older rows whose category or confidence is missing, stop other CampusSignal processes, back up the local database, and run:
+
+```powershell
+java -jar target/campussignal-0.1.0-SNAPSHOT.jar --spring.main.web-application-type=none --classification.backfill=true
 ```
 
-Start Pub/Sub listener:
-```bash
-python -m app.cli.gmail_listener
-```
+Backfill is explicit, transactional, and idempotent. It does not run during normal startup or API reads.
 
-Start FastAPI backend:
-```bash
-python -m uvicorn app.main:app --reload
-```
+## HTTP API
 
-## Tests
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/v1/emails` | List persisted email metadata and classification |
+| `GET /api/v1/emails/{id}` | Read one persisted email |
+| `GET /api/v1/emails/{emailId}/action-candidate` | Preview deterministic action metadata |
+| `POST /api/v1/profiles` | Create a validated user profile |
+| `GET /api/v1/profiles/{id}` | Read a profile by ID |
+| `GET /api/v1/profiles/by-email/{email}` | Read a profile by normalized email |
+| `GET /api/v1/profiles/{id}/category-score?category=...` | Explain a category preference score |
+| `POST /api/v1/emails/{emailId}/actions` | Create a tracked action |
+| `GET /api/v1/actions` | List tracked actions |
+| `GET /api/v1/actions/{actionId}` | Read one tracked action |
+| `GET /api/v1/emails/{emailId}/actions` | List actions for an email |
+| `PATCH /api/v1/actions/{actionId}/status` | Complete or dismiss a pending action |
+| `GET /api/v1/profiles/{profileId}/action-feed` | Return the personalized ranked actionable feed |
 
-The project uses `pytest` for unit and integration testing. Tests use a separate temporary in-memory SQLite database.
+Action responses derive effective status, urgency, and `daysRemaining` from the current UTC date without mutating stored state. The profile feed combines category preference, classification confidence, and urgency using stable tie-breaking and exposes a deterministic ranking explanation.
 
-```bash
-python -m pytest
-```
+## Configuration
 
-## Development Approach
+`src/main/resources/application.properties` defines every supported environment override. The main groups are:
 
-CampusSignal was developed using an AI-assisted programming workflow. AI coding tools were used during implementation, debugging, testing, and iteration, while project requirements, architecture decisions, integration choices, testing, validation, and final acceptance were directed and reviewed by the developer.
+- server binding: `SERVER_ADDRESS`, `PORT`
+- H2 datasource: `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`
+- Gmail OAuth and retrieval: `GMAIL_CREDENTIALS_FILE`, `GMAIL_TOKEN_DIRECTORY`, `GMAIL_CALLBACK_PORT`, `GMAIL_MAX_RESULTS`, `GMAIL_USER_ID`
+- realtime synchronization: `GOOGLE_CLOUD_PROJECT`, `GMAIL_PUBSUB_TOPIC`, `GMAIL_PUBSUB_SUBSCRIPTION`, `GMAIL_RECOVERY_MAX_RESULTS`
+- category scoring: the six `CATEGORY_SCORE_*` values shown in `.env.example`
 
-## Current Development Direction
+## Evaluation evidence
 
-**Planned / In Development**
-
-```text
-RawEmail
-   ↓
-Classifier
-   ↓
-Structured Extraction
-   ├── Title
-   ├── Deadline
-   ├── Eligibility
-   ├── Link
-   └── Category
-```
-
-## My Contributions
-
-* Designed and assembled the event-driven Gmail ingestion pipeline
-* Integrated Gmail API OAuth authentication and one-shot synchronization
-* Configured real-time Gmail notifications using Google Cloud Pub/Sub and `users.watch`
-* Implemented delta-based synchronization using the Gmail History API (`history.list`)
-* Developed reliable backend components including FastAPI endpoints, SQLAlchemy models, and Pydantic validation
-* Designed idempotent local storage for raw email persistence using SQLite
-* Wrote comprehensive test suites using pytest
-* Debugged Google Cloud authentication (ADC vs OAuth) and Pub/Sub permission configurations
-* Developed using an AI-assisted programming workflow
-
----
-> Course Project — Programming with AI
+Java test, debugging, coverage, and static-analysis evidence is recorded under `docs/`. Historical traceability files preserve the prompts and results that produced the current implementation; the code evaluated from this branch is the Java source and tests under `src/`.

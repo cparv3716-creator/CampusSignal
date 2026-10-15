@@ -1,0 +1,12 @@
+package edu.campussignal.dto;
+
+public enum EmailCategory {
+    ACADEMIC_RESEARCH,
+    CAREER,
+    EVENT_ACTIVITY,
+    CALL_FOR_PARTICIPATION,
+    ADMINISTRATIVE_NOTICE,
+    WELLBEING_SUPPORT,
+    RECOGNITION_ACHIEVEMENT,
+    GENERAL_OTHER
+}
