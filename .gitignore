@@ -28,3 +28,8 @@ data/
 *.jks
 *.p12
 *.pem
+.gmail-tokens-*/
+
+# Local Postman metadata and globals
+.postman/
+postman/globals/
