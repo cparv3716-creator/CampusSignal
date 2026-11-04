@@ -645,3 +645,69 @@ New JUnit tests: **10**. Baseline: 152 Java tests. Final: **162 Java tests**.
 - No genuine product defect was discovered, so `docs/BUG_LOG.md` was not changed.
 
 ---
+
+---
+
+## 2026-11-04 - Final Backend Verification
+
+### Environment
+- Branch: main
+- Java runtime: 26.0.2
+- Java compilation target: 25
+- Spring Boot: 3.5.16
+- Build system: Maven Wrapper
+- Database: File-backed H2
+
+### Automated Test Results
+- Initial clean test: Surefire class-loading failure before test execution.
+- Non-forked diagnostic test run: BUILD SUCCESS.
+- Standard Maven package: BUILD SUCCESS.
+- Total tests: 201
+- Failures: 0
+- Errors: 0
+- Skipped: 0
+- Executable JAR generated successfully.
+
+### JaCoCo Coverage
+- Instruction coverage: 95.12%
+- Line coverage: 94.30%
+- Branch coverage: 83.00%
+- Source: target/site/jacoco/jacoco.csv
+
+### Live Gmail Integration
+- First retrieval: fetched=10 created=10 alreadyExisted=0 failed=0
+- Duplicate check: fetched=10 created=0 alreadyExisted=10 failed=0
+- New demo email: fetched=10 created=1 alreadyExisted=9 failed=0
+- Gmail OAuth, retrieval, ingestion and duplicate protection verified.
+- Live Pub/Sub watch/listen not verified.
+
+### REST API Verification
+- GET /api/v1/emails: Email metadata and classifications returned.
+- GET /api/v1/emails/22/action-candidate: APPLY, deadline and URL extracted.
+- POST /api/v1/profiles: Demo profile 65 created.
+- GET category-score: CAREER score 0.65 verified.
+- POST /api/v1/emails/22/actions: Action 33 created as PENDING.
+- GET /api/v1/actions/33: DUE_SOON and 3 days remaining verified.
+- GET /api/v1/profiles/65/action-feed: Relevance score 59 and ranking score 79 verified.
+- PATCH /api/v1/actions/33/status: COMPLETED.
+- Final action feed: Empty list; completed action excluded.
+- Final action read: COMPLETED status retained.
+
+### Error Handling
+- Unknown email: HTTP 404.
+- Invalid student profile year: HTTP 400.
+- Prohibited COMPLETED to NOT_INTERESTED transition: HTTP 409.
+- Final action status remained COMPLETED after rejected transition.
+
+### Static Analysis
+- SpotBugs report generation: BUILD SUCCESS; 2 findings.
+- PMD report generation: BUILD SUCCESS; 27 findings.
+- SpotBugs EI_EXPOSE_REP reviewed: ProfileCreateRequest uses Stream.toList().
+- SpotBugs EI_EXPOSE_REP2 reviewed: Shared Spring-injected ObjectMapper.
+- No changes made to suppress findings.
+- Static-analysis check goals were not rerun in this session.
+
+### Outstanding Verification
+- Live Pub/Sub synchronization.
+- Formal classification accuracy evaluation.
+- Detailed review of selected PMD findings.

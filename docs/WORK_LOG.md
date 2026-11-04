@@ -1632,3 +1632,50 @@ PR created by: Pending
 - The ignored local `.venv/` and compiled-bytecode cache artifacts are not tracked and are not part of the evaluation branch.
 
 ---
+
+---
+
+## Work Entry
+Date: 2026-11-04
+Contributor: Student with ChatGPT guidance
+Milestone: Final backend verification and submission readiness
+Branch: main
+
+### Work completed
+- Verified the Java 25-targeted Spring Boot application using Java 26.0.2.
+- Successfully packaged the executable Spring Boot JAR.
+- Verified live Gmail OAuth retrieval and H2 persistence.
+- Confirmed duplicate-safe Gmail ingestion across repeated retrievals.
+- Verified email classification and action-candidate extraction.
+- Created demo student profile 65 and verified career score 0.65.
+- Created action 33 for email 22, due 2026-11-07.
+- Verified DUE_SOON urgency with 3 days remaining.
+- Verified personalized relevance score 59 and ranking score 79.
+- Completed action 33 and confirmed its exclusion from the pending feed.
+- Verified HTTP 400, 404, and 409 error responses.
+- Added Git ignore protections for local Gmail tokens and Postman metadata.
+- Pushed the security update as commit 8262a81.
+
+### Automated verification
+- Initial clean test encountered a Surefire class-loading failure.
+- Diagnostic non-forked execution passed all 201 tests.
+- Subsequent standard Maven package passed all 201 tests.
+- JaCoCo instruction coverage: 95.12%.
+- JaCoCo line coverage: 94.30%.
+- JaCoCo branch coverage: 83.00%.
+- SpotBugs: 2 findings.
+- PMD: 27 findings.
+- Static-analysis report-generation goals completed successfully.
+
+### Limitations and outstanding work
+- Live Pub/Sub synchronization not verified during this session.
+- Classification accuracy not formally measured.
+- Two potentially questionable real-email classifications require further evidence.
+- Existing PMD resource and exception findings require source-level review.
+- Official PAI submission rubric remains to be checked.
+- Final screenshots and submission report remain to be completed.
+
+### Change scope
+- No Java production source or test code changed.
+- No existing tests weakened, removed, or skipped.
+- Existing project history preserved.

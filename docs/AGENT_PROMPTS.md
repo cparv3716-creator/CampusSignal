@@ -4922,3 +4922,40 @@ protected integrations while verifying boundary values and established quality b
 ### Prompt summary
 
 Prepare the current evaluation branch as a Java-only Maven/Spring Boot project, preserve all Java behavior and tests, remove confirmed legacy implementation files, update current-facing documentation and configuration, retain append-only historical evidence, verify the complete Java build independently, and stop before commit or push.
+
+---
+
+## 2026-11-04 - CampusSignal Final Backend Verification
+
+### Development prompt summary
+
+Audit the existing CampusSignal Java 25 / Spring Boot repository
+without replacing the implementation or introducing unnecessary
+features.
+
+Verify the Maven test suite, executable package, Gmail OAuth,
+live email retrieval, duplicate protection, classification,
+profile preferences, action extraction, deadline urgency,
+personalized ranking, action completion and API error handling.
+
+Inspect existing static-analysis findings before suggesting
+changes. Preserve all existing tests and project history.
+
+Protect local OAuth credentials and Postman configuration
+from accidental Git commits.
+
+Update the work and test logs with independently observed
+results, distinguishing automated testing from live integration
+verification.
+
+Prioritize stability, reproducibility and final PAI submission
+documentation over additional functionality.
+
+### Implementation constraints
+
+- Preserve the Java/Spring Boot backend.
+- Do not introduce Python, LLM classification or a frontend.
+- Do not weaken or remove tests.
+- Do not expose credentials or OAuth tokens.
+- Make only necessary, testable changes.
+- Preserve historical documentation entries.
