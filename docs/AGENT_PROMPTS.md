@@ -4922,3 +4922,581 @@ protected integrations while verifying boundary values and established quality b
 ### Prompt summary
 
 Prepare the current evaluation branch as a Java-only Maven/Spring Boot project, preserve all Java behavior and tests, remove confirmed legacy implementation files, update current-facing documentation and configuration, retain append-only historical evidence, verify the complete Java build independently, and stop before commit or push.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 frontend
+Task: Improve CampusSignal React + Vite frontend UI
+
+### Prompt
+Improve the existing CampusSignal React + Vite frontend UI in the current Phase 4 frontend worktree. Keep all existing API integrations and backend logic unchanged. Use a modern purple-and-white university dashboard design with a compact header, dark sidebar, dashboard summary cards, spacious ranked action feed, and smaller student profile section. Improve responsiveness, loading states, and empty states. Investigate HTTP 409 on profile creation and, if it represents a duplicate email, show a friendly message guiding the user to find the existing profile instead. Do not fake data, invent backend features, or modify Java files. Read AGENTS.md and follow repository logging rules. Run npm run build and report results.
+
+---
+
+## 2026-11-04 - Phase 4 React + Vite frontend
+
+Build a clean, responsive React + Vite frontend for the CampusSignal Java Spring Boot Phase 4 project.
+First read AGENTS.md, README.md, and the actual Java controllers and DTOs. Follow repository instructions, including prompt/work logging. Do not assume endpoints or response shapes; derive them from source code.
+Create the frontend in a new frontend/ directory without modifying existing Java backend logic. Use React, Vite, and straightforward CSS. No authentication, external UI services, LLMs, or unnecessary dependencies.
+Implement: (1) student profile creation and lookup, (2) personalized action feed from GET /api/v1/profiles/{profileId}/action-feed, (3) urgency and category indicators, (4) action completion/not-interested controls using actual supported endpoints, and (5) clear empty, loading, and error states. Add an action candidate preview only if it can be supported cleanly by existing APIs.
+Use Vite's development proxy to route /api requests to [http://localhost:8080](http://localhost:8080), avoiding hardcoded backend URLs. Never fabricate action records or display mock data as real results.
+Keep the interface polished, mobile-responsive, and suitable for a university project demo. Do not change existing Git branches or touch the original CampusSignal directory. Do not commit secrets. Add frontend setup instructions to appropriate documentation and test the frontend build.
+Before making edits, briefly report the implementation plan and API mappings. Then implement and report changed files, commands run, and any remaining limitations.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 synthetic demo fixture
+Task: Implement an isolated synthetic demo-data fixture
+
+### Prompt
+Implement a safe, isolated synthetic demo-data fixture for CampusSignal Phase 4 in the current CampusSignal-phase4-frontend worktree.
+
+First read AGENTS.md, the existing Java entities, IncomingEmail DTO, EmailIngestionService, EmailActionService, action candidate extraction, and API tests. Follow repository requirements for docs/AGENT_PROMPTS.md and docs/WORK_LOG.md.
+
+Requirements:
+1. Do not use Gmail credentials, Gmail APIs, OAuth tokens, or any real student data.
+2. Do not add a public demo-seeding HTTP endpoint.
+3. Implement a development-only, explicitly invoked fixture mechanism, preferably a CLI command or dedicated opt-in runner, disabled by default and guarded against production use.
+4. Seed 5–6 synthetic campus emails through the existing EmailIngestionService, not direct H2 inserts. Use clearly fictional senders and example.com URLs.
+5. Cover internships, scholarships, workshops, academic submissions, and campus events. Include recognizable action verbs, varied future deadlines relative to the injected Clock/current date, and one email without an action.
+6. Use deterministic unique synthetic message IDs. Re-running the fixture must not create duplicate emails or actions.
+7. Where suitable, use existing action-candidate extraction and explicit EmailActionService creation to create PENDING actions. Do not bypass validation or persistence rules. Ensure at least 3 pending, non-missed actions appear in the existing personalized feed.
+8. Do not change production classification, urgency, ranking, or action lifecycle logic just to make the demo pass.
+9. Keep fixture data isolated in a dedicated H2 database path and clearly label the UI/demo as synthetic data. Never seed an existing real-mailbox database.
+10. Provide tests for idempotency, isolation, expected categories, deadlines, action creation, and feed behavior.
+11. Do not modify the original CampusSignal checkout or switch/reset Git branches.
+12. Run Maven tests and report the exact results. Run npm run build if frontend files change.
+
+Before editing, report your proposed mechanism, safety guard, exact invocation commands, and affected files. Then implement after approval.
+
+Finally provide exact PowerShell commands to start the demo backend using the isolated database, seed the fixture, start the React frontend, and verify the action feed. Explain how to clean up the demo database safely without touching real data.
+
+User clarification after approval: The final CampusSignal application must work with real, authorised IIT Madras Gmail emails. Synthetic emails are only for testing. Keep demo and real data completely separate, use the same existing classification and action-processing pipeline, and never hardcode demo results in the frontend. Demo seeding must be disabled by default, idempotent, and unable to overwrite real email data. Preserve Gmail OAuth integration and require explicit confirmation before creating actions. Do not expose private emails or credentials.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 frontend
+Task: Configurable frontend API proxy target
+
+### Prompt
+In the CampusSignal-phase4-frontend worktree, inspect frontend/vite.config.js and make the existing /api proxy target configurable using an environment variable such as CAMPUSSIGNAL_API_TARGET, defaulting to http://127.0.0.1:8080. Preserve the existing production API behavior, all request paths, and the current frontend UI. Document how to run the frontend against the isolated demo backend at http://127.0.0.1:8091. Do not modify Java files or hardcode synthetic data into React. Follow AGENTS.md and append the required prompt/work-log entries. Run npm run build and report the result.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 frontend
+Task: Production-safe relevance aliases and deadline extraction
+
+### Prompt
+Implement production-safe category aliases for relevance scoring, including career/internships/placements, academic/research/workshops, and scholarships where supported by existing categories. Extend deadline extraction for explicit phrases such as 'submit by DATE', 'upload by DATE', 'register before DATE', and 'attend on DATE'. Never invent deadlines or treat every event date as a submission deadline. Preserve existing classification, Gmail OAuth, action lifecycle, and isolated demo safeguards. Add regression tests, run the full Maven suite, and report the exact changes. Do not alter real Gmail data or reset branches.
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 frontend
+Task: Implement real-data Email Review / Inbox UI
+
+### Prompt
+Approved. Implement the proposed frontend-only Email Review/Inbox UI in the CampusSignal-phase4-frontend worktree. Preserve all existing backend logic, Gmail OAuth, demo database, action statuses, and other uncommitted work. Do not reset or reseed the database. Ensure candidate preview is read-only and POST action creation occurs only after explicit user confirmation. Since all five existing demo actions are terminal, the Inbox must recognize existing actions and must not allow duplicate creation or reopening through a new action. Improve the empty-feed messaging, add Inbox navigation, and move Create Profile into its own view. Use actual backend data only, with no mock inbox items or misleading Live Gmail indicators. Do not display full private email bodies. Test the UI using non-mutating requests first; do not POST or PATCH real or existing demo actions as part of verification without separate approval. Run npm run build and report results, changed files, and any remaining limitations.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 executable JAR build
+
+### Prompt
+Approved to perform the build remediation, but no POM or source-code edits are approved.
+
+Work only in C:\Users\Aniket raj\CampusSignal-phase4-frontend.
+
+1. Identify any running Java process locking this worktree's target JAR. Confirm its command line before stopping it. Stop only the matching process, if necessary.
+2. Run ./mvnw.cmd -B -ntp clean package from this worktree.
+3. If the build fails, capture the exact error and diagnose it before making further changes. Do not repeatedly rebuild blindly.
+4. If the build succeeds, inspect META-INF/MANIFEST.MF and verify the Spring Boot Main-Class and Start-Class. Also confirm BOOT-INF exists.
+5. Verify the packaged JAR can start without invoking Gmail authorization, retrieving messages, or connecting to the existing demo or real H2 databases. Use an isolated safe configuration if needed.
+6. Report BUILD SUCCESS/FAILURE, manifest verification, tests, and any remaining issues.
+
+Safety:
+- Work ONLY in CampusSignal-phase4-frontend.
+- Preserve all existing uncommitted work, frontend files, databases, OAuth credentials, and tokens.
+- Do not delete or reset anything.
+- Do not stop unrelated processes.
+- Do not run Gmail authorization or retrieval.
+- Follow AGENTS.md and update the project work log.
+- Do not modify pom.xml or Java source without asking me first.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Local real-mail frontend verification
+
+### Prompt
+I approve the next CampusSignal integration step: a LOCALHOST-ONLY, READ-ONLY frontend test using a COPY of the real Gmail H2 database.
+
+Work only in C:\Users\Aniket raj\CampusSignal-phase4-frontend.
+
+Please:
+1. Verify no Java process is using the original real-mail H2 database. Do not stop unrelated processes.
+2. Safely create a consistent copy of the existing campussignal-iitm-real H2 database, including any necessary companion files, without modifying the original. Do not overwrite an existing test database.
+3. Start the backend using only that copied database on 127.0.0.1:8092. Ensure demo initialization, Gmail retrieval, and classification backfill are disabled. Avoid schema/data changes during the test.
+4. Configure the Vite development proxy to use http://127.0.0.1:8092 and bind Vite to 127.0.0.1 only.
+5. Verify GET /api/v1/emails, GET /api/v1/actions, and GET action-candidate for an actual returned email ID. Do not send POST, PATCH, or DELETE requests.
+6. Confirm the React Inbox displays the 10 real Gmail-derived metadata rows and that no email bodies are exposed.
+7. Report the exact localhost frontend URL, the backend URL, test results, and any errors. Do not print email addresses, subjects, bodies, OAuth tokens, or credentials.
+
+IMPORTANT: Preserve all uncommitted work. Do not edit source or POM, merge branches, modify original H2 databases, or expose the server to LAN/public networks. If any step cannot be performed safely without code changes, stop and ask for approval. Follow AGENTS.md and record the work in the project logs.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Secure local Gmail dashboard synchronization
+
+### Prompt
+Implement secure on-demand Gmail synchronization for my CampusSignal LOCAL development dashboard.
+
+Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+
+CURRENT STATE:
+- Frontend on 127.0.0.1:5174; backend on 127.0.0.1:8092.
+- Backend uses ONLY the copied H2 database jdbc:h2:file:./data/campussignal-iitm-real-ui-test.
+- Gmail OAuth has already been authorized; tokens and credentials are outside the repository.
+- Existing Gmail CLI retrieve command works and EmailRetrievalService already handles ingestion/deduplication.
+- Inbox has 10 non-demo messages, View message, Quick summary, and Read full message.
+
+GOAL:
+Add a 'Sync Gmail' button to the Inbox so I can explicitly fetch recent Gmail messages and then see them in CampusSignal.
+
+FIRST: Inspect existing Gmail retrieval service, configuration, controllers, security constraints, API client, and frontend. Explain the proposed minimal design before editing.
+
+IMPLEMENTATION:
+1. Reuse the existing Gmail retrieval and ingestion services. Do not duplicate Gmail parsing, persistence, or classification logic.
+2. Add a POST /api/v1/gmail/sync endpoint protected by an explicit local-operator secret stored only in an environment variable, not in source code, browser storage, or frontend bundles. Do not accept the secret as a query parameter.
+3. IMPORTANT: A browser-only frontend cannot securely hold an operator secret. Design a safe localhost-only mechanism (such as a server-side operator session or separate local companion process) before connecting the button. Do not embed the secret in frontend JavaScript, Vite configuration, or client-visible environment variables. If a secure design requires additional operator setup, explain it and ask before proceeding.
+4. Reject requests when the backend is not bound exclusively to loopback, and reject non-loopback clients. Treat Origin/Host checks as defense in depth, not authentication. A CORS restriction alone is insufficient.
+5. Default sync to a small, configurable maximum of 10 recent Gmail Inbox messages. Enforce a strict server-side maximum, prevent overlapping sync jobs, and return only counts: fetched, created, alreadyExisted, failed.
+6. Handle expired Gmail authorization, API errors, and offline conditions with safe user-facing messages; never expose credentials, access tokens, email bodies, or private Gmail error details.
+7. On successful sync, refresh the Inbox list and preserve View message, Quick summary, action detection, and tracking.
+8. Add backend security, authorization, deduplication, concurrency, and failure tests, plus frontend sync-state tests.
+9. Keep the current metadata-only list endpoint and bounded content endpoint unchanged.
+10. Keep all services bound to 127.0.0.1; do not introduce public deployment access.
+
+SAFETY:
+- Preserve all uncommitted work and follow AGENTS.md.
+- Do not use or modify the original real-mail H2 database.
+- Do not delete existing messages or reset data.
+- Do not reauthorize Gmail or perform an actual sync during development/testing without asking me first.
+- Do not print secrets, tokens, private subjects, senders, or bodies in terminal logs.
+- Use mocks and isolated databases for tests.
+- Do not commit, merge, or change branches.
+- Keep the dashboard running if possible; coordinate any necessary restart.
+
+STOP BEFORE implementing the browser-to-sync authentication mechanism if its security cannot be established without user setup. Report the design and exact setup needed rather than choosing an insecure shortcut.
+
+After implementation, run relevant tests, verify the localhost dashboard, and report what is complete versus what still requires my approval.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 real Gmail Inbox
+
+### Prompt
+Improve the CampusSignal 'View message' feature to show a concise, structured bullet-point summary instead of the full email body by default.
+
+Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+
+Current state: Phase 1 is implemented and verified. The Inbox shows 10 non-demo emails and GET /api/v1/emails/{id}/content returns bounded message content. All 213 backend tests passed.
+
+REQUIREMENTS:
+1. When the student clicks 'View message', display a concise summary in 3–5 bullet points, using only facts supported by the email content.
+2. Extract when available: main announcement, eligibility, date/deadline, action required, and important link.
+3. Never invent missing dates, eligibility, links, or action requirements. Omit unavailable fields.
+4. For simple emails, use fewer bullets. For security alerts, highlight the security-related action only if the email explicitly requests it.
+5. Reuse existing deterministic classification, deadline, URL, and action-extraction logic where appropriate. Do not add an external AI API, paid service, or model dependency without asking me first.
+6. Label the result 'Quick summary'. Do not present basic heuristic extraction as AI-generated summarization.
+7. Keep a collapsible 'Read full message' option for students who want the original stored content.
+8. Do not include email bodies in the Inbox list API, logs, or browser console.
+9. Add tests for long emails, short emails, missing fields, security alerts, and unsupported or misleading extracted details.
+10. Preserve existing action tracking, candidate previews, profiles, and feed features.
+
+SAFETY: Keep localhost-only, preserve uncommitted changes, use the copied test database, do not retrieve Gmail, modify credentials, delete data, or commit/merge. Follow AGENTS.md.
+
+First inspect the existing code and propose the smallest reliable implementation, then implement and test it. Keep the dashboard running and report the exact URL.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 real Gmail Inbox
+
+### Prompt
+Implement Phase 1 of CampusSignal's real Gmail Inbox experience.
+
+Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+
+Current state: Backend on localhost:8092 uses the copied database campussignal-iitm-real-ui-test. It contains 10 Gmail-derived emails and 6 synthetic demo emails. Gmail bodies are persisted but omitted from read DTOs.
+
+GOALS:
+1. In the frontend Inbox, show real Gmail messages by default. For this LOCAL prototype, filtering senders ending with @demo.example.com is acceptable, but label it clearly as a temporary heuristic, not a permanent provider/source solution. Do not delete any emails or change database schema.
+2. Add a 'View message' action on each email card. Clicking it should open a readable email-detail panel showing subject, sender, received date, and stored plain-text body.
+3. Implement a separate GET /api/v1/emails/{id}/content backend endpoint with a bounded response DTO. Do not add body to the existing email list or metadata DTO.
+4. Keep all existing action-candidate, classification, tracking, profile, and feed features working.
+5. Keep backend bound to 127.0.0.1 and never expose private email content through logs. This endpoint is for localhost-only development and must not be deployed without authentication and authorization.
+6. Add backend tests for the content endpoint, preview bounding, missing email IDs, and unchanged metadata-only endpoints.
+7. Run relevant tests and report results.
+
+SAFETY:
+- Preserve all uncommitted changes and follow AGENTS.md.
+- Do not modify or delete original H2 databases.
+- Do not retrieve Gmail or change OAuth credentials/tokens.
+- Use an isolated test database for automated tests.
+- Do not stop servers without checking process ownership; coordinate any required restart and keep the dashboard available afterward.
+- Do not commit or merge.
+
+First inspect the affected code and explain the proposed edits briefly, then implement the minimal changes and verify the Inbox and content preview work.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Local real-email dashboard connection
+
+### Prompt
+Fix my CampusSignal dashboard connection now.
+
+Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+
+The frontend is running on port 5174 but is trying to reach backend port 8091, causing ECONNREFUSED. The real-email test backend should run on port 8092.
+
+1. Identify the CampusSignal Vite process and any backend processes. Do not stop unrelated processes.
+2. Start the Spring Boot backend on 127.0.0.1:8092 using ONLY jdbc:h2:file:./data/campussignal-iitm-real-ui-test, with spring.jpa.hibernate.ddl-auto=none and classification.backfill=false.
+3. Restart the CampusSignal Vite server with CAMPUSSIGNAL_API_TARGET=http://127.0.0.1:8092, bound to localhost. Use the installed Vite CLI directly if npm.cmd is broken.
+4. Verify that GET /api/v1/emails and GET /api/v1/actions work through the frontend proxy.
+5. KEEP BOTH SERVERS RUNNING after verification.
+6. Give me the exact working dashboard URL.
+
+Do not modify source code, original databases, credentials, or tokens. Do not run Gmail retrieval. Preserve all uncommitted work.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 real Gmail Inbox
+
+### Prompt
+URGENT: Fix the blank white screen in my CampusSignal dashboard.
+
+Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Dashboard URL: http://127.0.0.1:5174/
+
+After implementing the Gmail Sync frontend, the browser displays a completely blank page, including when I try to open Inbox.
+
+Please:
+1. Check whether Vite is serving the frontend and inspect browser DevTools Console errors using the available browser testing tools.
+2. Inspect App.jsx, gmailSync.js, api.js, and the recently added Gmail Sync/session initialization code for runtime errors, missing imports, undefined values, or render failures.
+3. Reproduce the blank page and identify the exact root cause before editing.
+4. Apply the smallest possible frontend fix. Do not revert the Gmail Sync implementation or unrelated changes.
+5. Run frontend tests and the Vite production build.
+6. Verify in a real browser that the Overview and Inbox render, the Inbox lists the 10 non-demo emails, View message opens Quick summary, and the Sync Gmail button displays an appropriate setup-required state without crashing.
+7. Check that the existing backend API is reachable through the Vite proxy. Do not perform an actual Gmail sync.
+8. Keep the frontend and backend running and report the working URL and exact fix.
+
+SAFETY: Follow AGENTS.md. Preserve all uncommitted work, databases, credentials, and tokens. Do not restart or stop unrelated processes. Do not run Gmail retrieval, change OAuth settings, commit, merge, reset, or switch branches. Do not expose email content in logs.
+
+Prioritize restoring the dashboard before any further Gmail Sync setup.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 real Gmail Inbox
+
+### Prompt
+The blank dashboard is fixed. I now approve activating the localhost-only Gmail Sync setup, including the bootstrap helper's loopback URL validation.
+
+Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+
+IMPORTANT: Use the Gmail credentials and tokens from the previously successful Gmail authorization:
+GMAIL_CREDENTIALS_FILE=<EXTERNAL_GMAIL_CREDENTIALS_PATH>
+GMAIL_TOKEN_DIRECTORY=<EXTERNAL_GMAIL_TOKEN_DIRECTORY>
+
+Verify these paths exist without opening, printing, or modifying secret contents. Do not silently substitute files from the original CampusSignal checkout.
+
+1. Inspect the current processes and bootstrap helper.
+2. Add strict loopback-only URL validation to the helper.
+3. Generate a strong random operator secret securely and keep it out of source files, command lines, logs, and browser storage.
+4. Confirm the updated backend JAR is built and contains the new Gmail Sync implementation.
+5. Restart ONLY the verified CampusSignal backend on 127.0.0.1:8092 using jdbc:h2:file:./data/campussignal-iitm-real-ui-test, spring.jpa.hibernate.ddl-auto=none, and classification.backfill=false.
+6. Supply the verified Gmail paths and operator secret through the backend process environment.
+7. Run the approved one-time operator bootstrap helper using the same secret, and establish the browser session.
+8. Verify that the Inbox still displays 10 non-demo messages, Quick Summary works, and the Sync Gmail button is ready.
+9. Keep both backend and frontend running.
+
+DO NOT click Sync Gmail or perform real Gmail retrieval yet. Do not modify the original database, reauthorize Gmail, expose credentials or message contents, commit, merge, reset, or switch branches. Follow AGENTS.md.
+
+Report whether activation succeeded and what remains before the first controlled sync.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 real Gmail Inbox
+
+### Prompt
+CampusSignal Phase 4 — Improve email summary quality.
+
+Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Dashboard: http://127.0.0.1:5174/
+
+Current issue: The deterministic Quick summary often repeats the email subject or extracts greetings like 'Dear All' instead of explaining what the email actually communicates.
+
+Please follow AGENTS.md and:
+1. Inspect frontend/src/emailSummary.js, its tests, the View message component, and existing backend email extraction utilities.
+2. Improve the deterministic summarizer to produce 2–5 concise, meaningful bullet points based strictly on the stored email body and subject.
+3. Prioritize the substantive message: main announcement/opportunity, important details, explicit eligibility, dates/deadlines, required action, and relevant application/registration links.
+4. Remove greetings, signatures, disclaimers, repeated subject lines, email headers, boilerplate, and duplicate information.
+5. Do not invent facts, eligibility, deadlines, actions, or links. Clearly distinguish an ordinary event date from an application deadline. If no action is explicitly requested, say 'No action explicitly requested' only when appropriate.
+6. Handle campus announcements, academic deadlines, internships, placements, events, newsletters, security alerts, and short/long HTML-derived messages.
+7. Keep the summary brief, readable, and student-focused; do not simply copy the first sentences.
+8. Keep 'Read full message' available in a collapsed disclosure. Do not change the ranking algorithm, profile functionality, Gmail sync, database schema, or action creation.
+9. Add robust tests using synthetic email examples and regression cases, including 'Dear All' and misleading dates/URLs.
+10. Run frontend tests and Vite production build. Verify the summary in the browser using a synthetic test fixture or safe local test without printing private Gmail bodies.
+11. Preserve all uncommitted changes and running services. Do not restart the backend, perform Gmail retrieval, modify original databases, expose email bodies in logs, commit, merge, reset, or switch branches.
+12. Record the task in docs/AGENT_PROMPTS.md and docs/WORK_LOG.md.
+
+Report what improved, what remains limited by deterministic extraction, and the test results.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 real Gmail Inbox
+
+### Prompt
+CampusSignal Phase 4 — Implement Student Profile Editing and Interest Management.
+
+Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Dashboard: http://127.0.0.1:5174/
+
+Goal: Allow students to edit existing profiles, add/remove interests, and have their personalized email/action rankings update accordingly.
+
+Follow AGENTS.md. Preserve all uncommitted work and existing functionality.
+
+STEP 1 — READ-ONLY AUDIT
+Inspect:
+- Student Profile and Create Profile frontend components
+- Profile controller, service, repository, DTOs, and existing API endpoints
+- Profile interest storage and ranking/relevance logic
+- Current profile selection and action feed refresh behavior
+- Existing profile tests
+
+Identify whether profile updates are already supported and diagnose the previously reported 502 error when creating another profile. Do not assume the cause.
+
+STEP 2 — IMPLEMENT
+1. Add an Edit Profile button to the Student Profile page.
+2. Allow editing existing supported fields, especially interests.
+3. Support adding custom interests and removing existing ones.
+4. Prepopulate the edit form with the current profile data.
+5. Add Save Changes and Cancel buttons.
+6. Use an existing update endpoint if available; otherwise implement a validated PUT/PATCH endpoint without breaking existing APIs.
+7. Update the existing profile by ID; never create a duplicate when editing.
+8. Persist edits correctly in the copied H2 database.
+9. Refresh profile details and personalized ranked action feed after a successful save.
+10. Support multiple profiles and switching between them, using existing architecture.
+11. Investigate and fix the Create Profile 502 error only after confirming its exact root cause.
+12. Show clear validation, loading, success, and error messages.
+
+STEP 3 — SAFETY AND VERIFICATION
+- Add backend and frontend tests for editing, persistence, interest changes, duplicate prevention, profile switching, and ranking refresh.
+- Test with synthetic profile data where possible.
+- Run relevant tests and builds.
+- Do not modify Gmail sync, OAuth credentials, original H2 database, classification rules, or unrelated code.
+- Do not restart active services without checking process ownership and explaining why.
+- Do not commit, merge, reset, switch branches, or discard uncommitted changes.
+- Record changes in docs/AGENT_PROMPTS.md and docs/WORK_LOG.md.
+
+Report the root cause of any profile creation error, implemented changes, tests, and any limitations.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 real Gmail Inbox
+
+### Prompt
+CampusSignal — Summary Quality Redesign
+
+Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+
+The previous deterministic summarization improvements passed tests but failed real-world quality checks, including abbreviation splitting, promotional footer contamination, and fragmentary complaint summaries.
+
+Improve the deterministic baseline with abbreviation-safe sentence segmentation, promotional/footer filtering, substantive context selection, complaint issue/resolution extraction, synthetic regression tests, frontend verification, and an optional AI architecture proposal only. Do not add providers, keys, paid services, external transmission, or modify Gmail sync, ranking, profiles, databases, running services, or unrelated code. Record the task and run frontend tests/build.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 real Gmail Inbox
+
+### Prompt
+I approve a controlled restart of ONLY the verified CampusSignal backend on port 8092 and a fresh browser bootstrap. Before restarting, fix the operator session flow so that refreshing the dashboard does not permanently lose Gmail Sync authorization. Use a secure, loopback-only session restoration endpoint that validates the existing HttpOnly cookie and returns a fresh in-memory CSRF token, without exposing the operator secret. Preserve SameSite=Strict, origin validation, CSRF protection, and session expiry. Add focused tests. Then rebuild, verify the exact backend process, restart only the copied-database backend with the approved external Gmail paths, generate a new secret without exposing it, run the bootstrap helper, verify bootstrap exchange and restoration after refresh without exposing cookies or token values, keep both services running, and do not retrieve or sync Gmail.
+
+---
+
+## Prompt Entry
+Date: 2026-11-04
+Contributor: Copilot
+Branch: detached HEAD at phase4-live-demo
+Milestone: Phase 4 collaborative publication audit
+
+### Prompt
+Prepare CampusSignal for a collaborative GitHub demo.
+
+Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+
+Follow AGENTS.md.
+
+1. Audit git status, detached HEAD, existing worktrees, branches, and remote.
+2. Check all tracked, untracked, and staged files for Gmail credentials, tokens, secrets, real email data, H2 databases, logs, and build artifacts. Never print secret values.
+3. Ensure sensitive files are excluded. If any sensitive material is already tracked, STOP and report it before proceeding.
+4. Prepare a clear README with setup instructions, working features, and experimental limitations.
+5. Verify frontend and backend tests and builds.
+6. Recommend a safe demo branch name and identify the exact files to include.
+7. Preserve all uncommitted work and teammate changes.
+8. Do not reset, clean, stash, merge, force-push, or switch branches.
+9. STOP before staging, committing, pushing, or creating a pull request. Ask for approval and report the plan.
+
+Goal: Safely publish the current development version so my teammate can work on it, without publishing personal Gmail data.
+
+---
+
+## Prompt Entry
+Date: 2026-11-05
+Contributor: Copilot
+Branch: demo/phase4-safe-collaboration
+Milestone: Phase 4 personalized email ranking
+
+### Prompt
+CampusSignal — Correct the core personalized ranking feature.
+
+Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+
+IMPORTANT PRODUCT REQUIREMENT:
+CampusSignal must AUTOMATICALLY rank incoming emails according to the selected student's interests and academic profile.
+
+Students must NOT have to manually create an action or click "Preview detected action" to make an email appear in the ranked feed.
+
+Expected behavior:
+1. Gmail sync stores emails.
+2. Existing classification and relevance logic evaluates them.
+3. The selected student profile determines personalized relevance.
+4. The dashboard automatically displays ranked relevant emails.
+5. Deadlines, urgency, and required actions influence ranking when supported.
+6. Creating/tracking an action remains OPTIONAL and separate.
+
+PHASE 1 — AUDIT
+Inspect the existing ranked action feed, ProfileActionFeedService, profile relevance scoring, email classification, action candidates, action persistence, and frontend rendering.
+Identify whether the current feed only includes manually created actions.
+Explain why the feed is empty with 14 stored emails.
+
+PHASE 2 — IMPLEMENT
+1. Build or adapt a profile-specific ranked EMAIL feed that reads stored emails without requiring action creation.
+2. Reuse existing classification, relevance, and urgency scoring where appropriate.
+3. Rank by profile match and importance, using a documented deterministic score.
+4. Return email ID, category, score, ranking reasons, deadline if reliably detected, and action indication.
+5. Exclude obvious spam/promotional noise or rank it appropriately without silently deleting emails.
+6. Keep the Inbox unchanged and complete.
+7. Recalculate rankings when profile interests change.
+8. Restore last selected profile after refresh when the profile still exists.
+9. Clearly distinguish ranked emails from manually tracked actions.
+10. Do not invent deadlines, action requirements, or relevance explanations.
+11. Do not auto-create actions.
+12. Add synthetic tests proving two different student profiles produce different rankings from the same emails.
+
+PHASE 3 — VERIFY
+Run backend and frontend tests and builds.
+Verify ranking with synthetic emails and profiles.
+Preserve existing Gmail records, OAuth state, database, running services, and uncommitted work.
+Do not restart backend, commit, push, reset, merge, or switch branches without approval.
+Do not expose real email content in logs or tests.
+
+Report the exact root cause, implemented changes, test results, and what is needed to activate the feature in the running dashboard.
+
+---
+
+## Prompt Entry
+Date: 2026-11-05
+Contributor: Copilot
+Branch: demo/phase4-safe-collaboration
+Milestone: Phase 4 Gmail sync and automatic personalized ranking
+
+### Prompt
+CampusSignal — Fix Gmail Sync and Automatic Personalized Email Ranking
+
+You are working on my existing CampusSignal college project.
+
+Project worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Frontend: http://127.0.0.1:5174/
+Backend: http://127.0.0.1:8092/
+
+Follow AGENTS.md and preserve all existing work.
+
+CampusSignal is a personalized student email intelligence dashboard built with React/Vite, Spring Boot, H2, and Gmail read-only OAuth. The intended workflow is Gmail -> automatically sync emails -> classify emails -> match student interests -> rank important emails -> display personalized priority feed. Students should not have to manually create actions to make relevant emails appear.
+
+Diagnose the current Git state, services, copied database, Gmail operator session/bootstrap/restore/CSRF flow, profile feed, repositories, relevance scoring, classification, urgency, action candidates, action persistence, frontend ranking, and profile restoration. Report the Gmail authorization and empty-feed root causes before substantial changes.
+
+Restore reliable Gmail Sync using the existing secure local operator flow, preserving OAuth credentials and tokens, session restoration, bounded duplicate-safe manual sync, clear status/count errors, localhost binding, and no secret/token/body exposure. Do not run a real Gmail Sync without approval.
+
+Implement automatic personalized email ranking from stored classified emails without requiring action creation or candidate preview. Reuse deterministic relevance, profile/category matching, urgency, supported deadlines, and explainable scores. Keep Inbox complete, do not auto-create actions, distinguish ranked emails from manually tracked actions, and recalculate after profile edits and sync.
+
+Rename the main dashboard section to “For You — Ranked Emails”. Display rank, subject, category, relevance/priority score, explanation, reliable deadline, view-message control, and optional action tracking control.
+
+Persist and restore the last valid selected profile in browser-local state, verify it exists, clear invalid selections, and refresh rankings after profile changes.
+
+Add synthetic tests for session restoration, expired-session recovery messaging, email preservation, bounded sync refresh behavior, automatic ranking without actions, profile-specific ranking differences, internship relevance, unrelated-message ranking, interest changes, profile restoration, and duplicate protection. Run Spring Boot tests, frontend unit tests, frontend build, and git diff --check. Preserve services, databases, OAuth state, uncommitted changes, and branches. Do not restart, sync Gmail, commit, push, merge, reset, clean, stash, switch branches, enable Ollama, or modify unrelated worktrees without approval.
+
+Report root causes, changed files, test results, email/profile preservation, whether ranking works without manual actions, limitations, and exact activation steps. Distinguish implemented code from the currently running application.

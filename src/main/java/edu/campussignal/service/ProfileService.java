@@ -23,6 +23,13 @@ public class ProfileService {
         return ProfileResponse.from(repository.saveAndFlush(new UserProfile(request)));
     }
 
+    @Transactional
+    public ProfileResponse update(long id, @Valid ProfileCreateRequest request) {
+        UserProfile profile = repository.findById(id).orElseThrow(ProfileNotFoundException::new);
+        profile.updateFrom(request);
+        return ProfileResponse.from(repository.saveAndFlush(profile));
+    }
+
     public ProfileResponse get(long id) {
         return ProfileResponse.from(repository.findById(id).orElseThrow(ProfileNotFoundException::new));
     }

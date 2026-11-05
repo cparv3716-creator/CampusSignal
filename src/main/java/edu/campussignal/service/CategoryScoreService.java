@@ -1,6 +1,8 @@
 package edu.campussignal.service;
 
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import edu.campussignal.config.CategoryScoreProperties;
 import edu.campussignal.dto.CategoryScoreResponse;
@@ -9,6 +11,15 @@ import edu.campussignal.dto.ProfileResponse;
 
 @Service
 public class CategoryScoreService {
+    private static final Map<String, Set<String>> CATEGORY_INTEREST_ALIASES = Map.of(
+            "career", Set.of("career", "internships", "placements"),
+            "academic research", Set.of(
+                    "academic", "academic research", "research", "workshop", "workshops"),
+            "event activity", Set.of("event activity", "events", "cultural events"),
+            "recognition achievement", Set.of(
+                    "recognition achievement", "achievement", "achievements", "scholarship",
+                    "scholarships"));
+
     private final CategoryScoreProperties settings;
 
     public CategoryScoreService(CategoryScoreProperties settings) { this.settings = settings; }
@@ -23,7 +34,7 @@ public class CategoryScoreService {
             throw new IllegalArgumentException("Category must not be blank");
         }
         String normalized = category.strip().toLowerCase(Locale.ROOT);
-        double explicit = profile.interests().contains(normalized) ? 1.0 : 0.0;
+        double explicit = matchesInterest(profile, normalized) ? 1.0 : 0.0;
         var components = new Components(explicit, profileRelevance(profile, normalized),
                 behavioralPreference == null ? settings.initialBehavioral() : behavioralPreference,
                 settings.initialRelated());
@@ -32,6 +43,13 @@ public class CategoryScoreService {
                 + settings.behavioralWeight() * components.behavioralPreference()
                 + settings.relatedWeight() * components.relatedInterestSimilarity();
         return new CategoryScoreResponse(normalized, Math.clamp(score, 0.0, 1.0), components);
+    }
+
+    private boolean matchesInterest(ProfileResponse profile, String category) {
+        Set<String> acceptedInterests = CATEGORY_INTEREST_ALIASES.get(category);
+        return acceptedInterests == null
+                ? profile.interests().contains(category)
+                : profile.interests().stream().anyMatch(acceptedInterests::contains);
     }
 
     private double profileRelevance(ProfileResponse profile, String category) {
