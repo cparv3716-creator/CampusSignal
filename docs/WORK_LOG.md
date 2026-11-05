@@ -160,6 +160,74 @@ Commit: Pending
 PR: Pending
 PR created by: Pending
 
+---
+
+## 2026-11-05 - GitHub PR #3 merge conflicts resolved
+
+### Changes
+- Fetched the latest `origin/main` and merged it into `demo/phase4-safe-collaboration` only after approval.
+- Combined `.gitignore` protections for secrets, OAuth tokens, local databases, logs, Java and frontend artifacts, and Postman metadata.
+- Preserved the feature branch's append-only prompt and work history and incorporated main's final backend verification entries.
+- Generalized historical local worktree, copied-database, and credential-filename references in publishable documentation.
+
+### Verification
+- `git diff --cached --check` passed.
+- No merge conflict markers remain.
+- Staged-path artifact scan passed.
+- Staged sensitive-content scan passed with no credential, token, private-key, database artifact, or email-address matches.
+
+### Git
+Commit: Pending
+PR: #3
+PR merge into `main`: Pending owner approval
+
+---
+
+## Work Entry
+Date: 2026-11-04
+Contributor: Student with ChatGPT guidance
+Milestone: Final backend verification and submission readiness
+Branch: main
+
+### Work completed
+- Verified the Java 25-targeted Spring Boot application using Java 26.0.2.
+- Successfully packaged the executable Spring Boot JAR.
+- Verified live Gmail OAuth retrieval and H2 persistence.
+- Confirmed duplicate-safe Gmail ingestion across repeated retrievals.
+- Verified email classification and action-candidate extraction.
+- Created demo student profile 65 and verified career score 0.65.
+- Created action 33 for email 22, due 2026-11-07.
+- Verified DUE_SOON urgency with 3 days remaining.
+- Verified personalized relevance score 59 and ranking score 79.
+- Completed action 33 and confirmed its exclusion from the pending feed.
+- Verified HTTP 400, 404, and 409 error responses.
+- Added Git ignore protections for local Gmail tokens and Postman metadata.
+- Pushed the security update as commit 8262a81.
+
+### Automated verification
+- Initial clean test encountered a Surefire class-loading failure.
+- Diagnostic non-forked execution passed all 201 tests.
+- Subsequent standard Maven package passed all 201 tests.
+- JaCoCo instruction coverage: 95.12%.
+- JaCoCo line coverage: 94.30%.
+- JaCoCo branch coverage: 83.00%.
+- SpotBugs: 2 findings.
+- PMD: 27 findings.
+- Static-analysis report-generation goals completed successfully.
+
+### Limitations and outstanding work
+- Live Pub/Sub synchronization not verified during this session.
+- Classification accuracy not formally measured.
+- Two potentially questionable real-email classifications require further evidence.
+- Existing PMD resource and exception findings require source-level review.
+- Official PAI submission rubric remains to be checked.
+- Final screenshots and submission report remain to be completed.
+
+### Change scope
+- No Java production source or test code changed.
+- No existing tests weakened, removed, or skipped.
+- Existing project history preserved.
+
 ## 2026-11-05 - Gmail sync and automatic personalized ranking refinements
 
 ### Changes
@@ -373,13 +441,13 @@ PR created by: Pending
 ### Verification
 - Verified the explicitly supplied Gmail credential file and token directory exist without opening or printing their contents.
 - Generated the operator secret with a local cryptographically secure generator; it was kept out of source, command-line arguments, logs, browser storage, and chat.
-- Started only the CampusSignal backend on `127.0.0.1:8092` using the copied `jdbc:h2:file:./data/campussignal-iitm-real-ui-test` database, `ddl-auto=none`, and classification backfill disabled.
+- Started only the CampusSignal backend on `127.0.0.1:8092` using the copied `jdbc:h2:file:./data/<COPIED_H2_DATABASE_NAME>` database, `ddl-auto=none`, and classification backfill disabled.
 - Ran the one-time bootstrap helper against loopback URLs; the browser session was established using the bootstrap code, not the operator secret.
 - Backend metadata API returned HTTP 200 with 16 persisted rows; the frontend proxy returned HTTP 200 with 10 non-demo rows.
 - Browser Inbox displayed 10 non-demo messages and the `Sync Gmail` control was ready without performing a sync. No Gmail retrieval was performed.
 
 ### Notes
-- The first launch attempt failed because the JAR path containing spaces was not quoted in `Start-Process`; it was diagnosed from the exact `Unable to access jarfile C:\Users\Aniket` error and corrected without repeated blind retries.
+- The first launch attempt failed because the JAR path containing spaces was not quoted in `Start-Process`; it was diagnosed from the exact `Unable to access jarfile <REDACTED_PATH>` error and corrected without repeated blind retries.
 - The backend and existing Vite frontend remain running. A controlled first sync still requires separate approval.
 
 Commit: Pending
@@ -558,7 +626,7 @@ PR created by: Pending
 
 ### Verification
 - Stopped only the stale Vite processes from this worktree.
-- Started the backend on `127.0.0.1:8092` using only `jdbc:h2:file:./data/campussignal-iitm-real-ui-test`.
+- Started the backend on `127.0.0.1:8092` using only `jdbc:h2:file:./data/<COPIED_H2_DATABASE_NAME>`.
 - Set `spring.jpa.hibernate.ddl-auto=none` and `classification.backfill=false`.
 - Started Vite on `127.0.0.1:5174` using `CAMPUSSIGNAL_API_TARGET=http://127.0.0.1:8092`.
 - `GET http://127.0.0.1:5174/api/v1/emails` returned HTTP 200 with 16 rows.
@@ -583,13 +651,13 @@ Blocked pending approval for a new backend launch attempt after the debugger lau
 
 ### Read-only preparation completed
 - Confirmed no Java process was using the original `data/campussignal-iitm-real.mv.db`; the only matching process was the inspection shell itself.
-- Created `data/campussignal-iitm-real-ui-test.mv.db` only because it did not exist.
+- Created `data/<COPIED_H2_DATABASE_NAME>.mv.db` only because it did not exist.
 - Verified the copied file's SHA-256 hash matched the original.
 - The original database was not modified.
 
 ### Launch attempt
 - Requested localhost-only backend startup on `127.0.0.1:8092`.
-- Used the copied database with `jdbc:h2:file:./data/campussignal-iitm-real-ui-test`.
+- Used the copied database with `jdbc:h2:file:./data/<COPIED_H2_DATABASE_NAME>`.
 - Set `spring.jpa.hibernate.ddl-auto=none`.
 - Did not set Gmail, demo-fixture, or classification-backfill properties.
 - Java debugger timed out after 120 seconds without an active session.

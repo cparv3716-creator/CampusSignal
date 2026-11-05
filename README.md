@@ -116,7 +116,7 @@ with a strong environment variable and loopback binding:
 $env:CAMPUSSIGNAL_OPERATOR_SECRET = "<strong-local-secret-at-least-32-characters>"
 $env:SERVER_ADDRESS = "127.0.0.1"
 $env:PORT = "8092"
-$env:DATABASE_URL = "jdbc:h2:file:./data/campussignal-iitm-real-ui-test"
+$env:DATABASE_URL = "jdbc:h2:file:./data/<COPIED_H2_DATABASE_NAME>"
 .\mvnw.cmd spring-boot:run
 ```
 

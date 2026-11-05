@@ -4768,7 +4768,7 @@ protected integrations while verifying boundary values and established quality b
 > DATABASE_USERNAME=sa
 > DATABASE_PASSWORD=
 >
-> GMAIL_CREDENTIALS_FILE=credentials.json
+> GMAIL_CREDENTIALS_FILE=<EXTERNAL_GMAIL_CREDENTIALS_PATH>
 > GMAIL_TOKEN_DIRECTORY=.gmail-tokens
 > GMAIL_CALLBACK_PORT=8888
 > GMAIL_MAX_RESULTS=10
@@ -5027,7 +5027,7 @@ Milestone: Phase 4 executable JAR build
 ### Prompt
 Approved to perform the build remediation, but no POM or source-code edits are approved.
 
-Work only in C:\Users\Aniket raj\CampusSignal-phase4-frontend.
+Work only in <FEATURE_WORKTREE_PATH>.
 
 1. Identify any running Java process locking this worktree's target JAR. Confirm its command line before stopping it. Stop only the matching process, if necessary.
 2. Run ./mvnw.cmd -B -ntp clean package from this worktree.
@@ -5056,7 +5056,7 @@ Milestone: Local real-mail frontend verification
 ### Prompt
 I approve the next CampusSignal integration step: a LOCALHOST-ONLY, READ-ONLY frontend test using a COPY of the real Gmail H2 database.
 
-Work only in C:\Users\Aniket raj\CampusSignal-phase4-frontend.
+Work only in <FEATURE_WORKTREE_PATH>.
 
 Please:
 1. Verify no Java process is using the original real-mail H2 database. Do not stop unrelated processes.
@@ -5080,11 +5080,11 @@ Milestone: Secure local Gmail dashboard synchronization
 ### Prompt
 Implement secure on-demand Gmail synchronization for my CampusSignal LOCAL development dashboard.
 
-Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Worktree: <FEATURE_WORKTREE_PATH>
 
 CURRENT STATE:
 - Frontend on 127.0.0.1:5174; backend on 127.0.0.1:8092.
-- Backend uses ONLY the copied H2 database jdbc:h2:file:./data/campussignal-iitm-real-ui-test.
+- Backend uses ONLY the copied H2 database jdbc:h2:file:./data/<COPIED_H2_DATABASE_NAME>.
 - Gmail OAuth has already been authorized; tokens and credentials are outside the repository.
 - Existing Gmail CLI retrieve command works and EmailRetrievalService already handles ingestion/deduplication.
 - Inbox has 10 non-demo messages, View message, Quick summary, and Read full message.
@@ -5131,7 +5131,7 @@ Milestone: Phase 4 real Gmail Inbox
 ### Prompt
 Improve the CampusSignal 'View message' feature to show a concise, structured bullet-point summary instead of the full email body by default.
 
-Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Worktree: <FEATURE_WORKTREE_PATH>
 
 Current state: Phase 1 is implemented and verified. The Inbox shows 10 non-demo emails and GET /api/v1/emails/{id}/content returns bounded message content. All 213 backend tests passed.
 
@@ -5162,9 +5162,9 @@ Milestone: Phase 4 real Gmail Inbox
 ### Prompt
 Implement Phase 1 of CampusSignal's real Gmail Inbox experience.
 
-Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Worktree: <FEATURE_WORKTREE_PATH>
 
-Current state: Backend on localhost:8092 uses the copied database campussignal-iitm-real-ui-test. It contains 10 Gmail-derived emails and 6 synthetic demo emails. Gmail bodies are persisted but omitted from read DTOs.
+Current state: Backend on localhost:8092 uses the copied database <COPIED_H2_DATABASE_NAME>. It contains 10 Gmail-derived emails and 6 synthetic demo emails. Gmail bodies are persisted but omitted from read DTOs.
 
 GOALS:
 1. In the frontend Inbox, show real Gmail messages by default. For this LOCAL prototype, filtering senders ending with @demo.example.com is acceptable, but label it clearly as a temporary heuristic, not a permanent provider/source solution. Do not delete any emails or change database schema.
@@ -5196,12 +5196,12 @@ Milestone: Local real-email dashboard connection
 ### Prompt
 Fix my CampusSignal dashboard connection now.
 
-Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Worktree: <FEATURE_WORKTREE_PATH>
 
 The frontend is running on port 5174 but is trying to reach backend port 8091, causing ECONNREFUSED. The real-email test backend should run on port 8092.
 
 1. Identify the CampusSignal Vite process and any backend processes. Do not stop unrelated processes.
-2. Start the Spring Boot backend on 127.0.0.1:8092 using ONLY jdbc:h2:file:./data/campussignal-iitm-real-ui-test, with spring.jpa.hibernate.ddl-auto=none and classification.backfill=false.
+2. Start the Spring Boot backend on 127.0.0.1:8092 using ONLY jdbc:h2:file:./data/<COPIED_H2_DATABASE_NAME>, with spring.jpa.hibernate.ddl-auto=none and classification.backfill=false.
 3. Restart the CampusSignal Vite server with CAMPUSSIGNAL_API_TARGET=http://127.0.0.1:8092, bound to localhost. Use the installed Vite CLI directly if npm.cmd is broken.
 4. Verify that GET /api/v1/emails and GET /api/v1/actions work through the frontend proxy.
 5. KEEP BOTH SERVERS RUNNING after verification.
@@ -5220,7 +5220,7 @@ Milestone: Phase 4 real Gmail Inbox
 ### Prompt
 URGENT: Fix the blank white screen in my CampusSignal dashboard.
 
-Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Worktree: <FEATURE_WORKTREE_PATH>
 Dashboard URL: http://127.0.0.1:5174/
 
 After implementing the Gmail Sync frontend, the browser displays a completely blank page, including when I try to open Inbox.
@@ -5250,7 +5250,7 @@ Milestone: Phase 4 real Gmail Inbox
 ### Prompt
 The blank dashboard is fixed. I now approve activating the localhost-only Gmail Sync setup, including the bootstrap helper's loopback URL validation.
 
-Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Worktree: <FEATURE_WORKTREE_PATH>
 
 IMPORTANT: Use the Gmail credentials and tokens from the previously successful Gmail authorization:
 GMAIL_CREDENTIALS_FILE=<EXTERNAL_GMAIL_CREDENTIALS_PATH>
@@ -5262,7 +5262,7 @@ Verify these paths exist without opening, printing, or modifying secret contents
 2. Add strict loopback-only URL validation to the helper.
 3. Generate a strong random operator secret securely and keep it out of source files, command lines, logs, and browser storage.
 4. Confirm the updated backend JAR is built and contains the new Gmail Sync implementation.
-5. Restart ONLY the verified CampusSignal backend on 127.0.0.1:8092 using jdbc:h2:file:./data/campussignal-iitm-real-ui-test, spring.jpa.hibernate.ddl-auto=none, and classification.backfill=false.
+5. Restart ONLY the verified CampusSignal backend on 127.0.0.1:8092 using jdbc:h2:file:./data/<COPIED_H2_DATABASE_NAME>, spring.jpa.hibernate.ddl-auto=none, and classification.backfill=false.
 6. Supply the verified Gmail paths and operator secret through the backend process environment.
 7. Run the approved one-time operator bootstrap helper using the same secret, and establish the browser session.
 8. Verify that the Inbox still displays 10 non-demo messages, Quick Summary works, and the Sync Gmail button is ready.
@@ -5283,7 +5283,7 @@ Milestone: Phase 4 real Gmail Inbox
 ### Prompt
 CampusSignal Phase 4 — Improve email summary quality.
 
-Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Worktree: <FEATURE_WORKTREE_PATH>
 Dashboard: http://127.0.0.1:5174/
 
 Current issue: The deterministic Quick summary often repeats the email subject or extracts greetings like 'Dear All' instead of explaining what the email actually communicates.
@@ -5315,7 +5315,7 @@ Milestone: Phase 4 real Gmail Inbox
 ### Prompt
 CampusSignal Phase 4 — Implement Student Profile Editing and Interest Management.
 
-Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Worktree: <FEATURE_WORKTREE_PATH>
 Dashboard: http://127.0.0.1:5174/
 
 Goal: Allow students to edit existing profiles, add/remove interests, and have their personalized email/action rankings update accordingly.
@@ -5368,7 +5368,7 @@ Milestone: Phase 4 real Gmail Inbox
 ### Prompt
 CampusSignal — Summary Quality Redesign
 
-Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Worktree: <FEATURE_WORKTREE_PATH>
 
 The previous deterministic summarization improvements passed tests but failed real-world quality checks, including abbreviation splitting, promotional footer contamination, and fragmentary complaint summaries.
 
@@ -5396,7 +5396,7 @@ Milestone: Phase 4 collaborative publication audit
 ### Prompt
 Prepare CampusSignal for a collaborative GitHub demo.
 
-Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Worktree: <FEATURE_WORKTREE_PATH>
 
 Follow AGENTS.md.
 
@@ -5423,7 +5423,7 @@ Milestone: Phase 4 personalized email ranking
 ### Prompt
 CampusSignal — Correct the core personalized ranking feature.
 
-Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Worktree: <FEATURE_WORKTREE_PATH>
 
 IMPORTANT PRODUCT REQUIREMENT:
 CampusSignal must AUTOMATICALLY rank incoming emails according to the selected student's interests and academic profile.
@@ -5479,7 +5479,7 @@ CampusSignal — Fix Gmail Sync and Automatic Personalized Email Ranking
 
 You are working on my existing CampusSignal college project.
 
-Project worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Project worktree: <FEATURE_WORKTREE_PATH>
 Frontend: http://127.0.0.1:5174/
 Backend: http://127.0.0.1:8092/
 
@@ -5500,3 +5500,55 @@ Persist and restore the last valid selected profile in browser-local state, veri
 Add synthetic tests for session restoration, expired-session recovery messaging, email preservation, bounded sync refresh behavior, automatic ranking without actions, profile-specific ranking differences, internship relevance, unrelated-message ranking, interest changes, profile restoration, and duplicate protection. Run Spring Boot tests, frontend unit tests, frontend build, and git diff --check. Preserve services, databases, OAuth state, uncommitted changes, and branches. Do not restart, sync Gmail, commit, push, merge, reset, clean, stash, switch branches, enable Ollama, or modify unrelated worktrees without approval.
 
 Report root causes, changed files, test results, email/profile preservation, whether ranking works without manual actions, limitations, and exact activation steps. Distinguish implemented code from the currently running application.
+
+---
+
+## 2026-11-04 - CampusSignal Final Backend Verification
+
+### Development prompt summary
+
+Audit the existing CampusSignal Java 25 / Spring Boot repository
+without replacing the implementation or introducing unnecessary
+features.
+
+Verify the Maven test suite, executable package, Gmail OAuth,
+live email retrieval, duplicate protection, classification,
+profile preferences, action extraction, deadline urgency,
+personalized ranking, action completion and API error handling.
+
+Inspect existing static-analysis findings before suggesting
+changes. Preserve all existing tests and project history.
+
+Protect local OAuth credentials and Postman configuration
+from accidental Git commits.
+
+Update the work and test logs with independently observed
+results, distinguishing automated testing from live integration
+verification.
+
+Prioritize stability, reproducibility and final PAI submission
+documentation over additional functionality.
+
+### Implementation constraints
+
+- Preserve the Java/Spring Boot backend.
+- Do not introduce Python, LLM classification or a frontend.
+- Do not weaken or remove tests.
+- Do not expose credentials or OAuth tokens.
+- Make only necessary, testable changes.
+- Preserve historical documentation entries.
+
+---
+
+## 2026-11-05 - Resolve GitHub PR #3 merge conflicts safely
+
+### Prompt
+
+CampusSignal — Safely resolve merge conflicts for GitHub PR #3.
+
+Repository: https://github.com/cparv3716-creator/CampusSignal
+Working directory: <FEATURE_WORKTREE_PATH>
+Feature branch: demo/phase4-safe-collaboration
+Target branch: main
+
+Inspect the feature worktree, fetch the latest target and feature refs, and review conflicts in `.gitignore`, `docs/AGENT_PROMPTS.md`, and `docs/WORK_LOG.md`. Preserve both branches' important security protections, documentation, and history without exposing private paths, credentials, or email data. Do not resolve blindly, merge into main, or modify other worktrees. After approval, resolve and validate only the feature branch, leaving final PR merge approval to the repository owner.

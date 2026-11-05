@@ -29,7 +29,12 @@ data/
 *.p12
 *.pem
 *.log
+.gmail-tokens-*/
 
 # Frontend build and package artifacts
 frontend/node_modules/
 frontend/dist/
+
+# Local Postman metadata and globals
+.postman/
+postman/globals/
