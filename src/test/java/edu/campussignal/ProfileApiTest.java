@@ -108,6 +108,45 @@ class ProfileApiTest {
     }
 
     @Test
+    void updatesExistingProfileAndReplacesInterestsWithoutCreatingDuplicate() throws Exception {
+        var response = mvc.perform(post("/api/v1/profiles").contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(valid())))
+                .andExpect(status().isCreated()).andReturn();
+        long id = json.readTree(response.getResponse().getContentAsString()).get("id").asLong();
+        var updated = valid();
+        updated.put("department", "Electrical Engineering");
+        updated.put("interests", List.of("Scholarships", "robotics", "Scholarships"));
+
+        mvc.perform(put("/api/v1/profiles/{id}", id).contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(updated)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.department").value("Electrical Engineering"))
+                .andExpect(jsonPath("$.interests", org.hamcrest.Matchers.contains("scholarships", "robotics")));
+
+        assertThat(repository.count()).isEqualTo(1);
+        assertThat(profiles.get(id).interests()).containsExactly("scholarships", "robotics");
+    }
+
+    @Test
+    void updateRejectsEmailAlreadyUsedByAnotherProfile() throws Exception {
+        mvc.perform(post("/api/v1/profiles").contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(valid())))
+                .andExpect(status().isCreated());
+        var second = valid();
+        second.put("email", "second@example.edu");
+        var response = mvc.perform(post("/api/v1/profiles").contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(second)))
+                .andExpect(status().isCreated()).andReturn();
+        long secondId = json.readTree(response.getResponse().getContentAsString()).get("id").asLong();
+
+        mvc.perform(put("/api/v1/profiles/{id}", secondId).contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(valid())))
+                .andExpect(status().isConflict());
+        assertThat(repository.count()).isEqualTo(2);
+    }
+
+    @Test
     void missingProfilesReturn404() throws Exception {
         mvc.perform(get("/api/v1/profiles/999999")).andExpect(status().isNotFound());
         mvc.perform(get("/api/v1/profiles/by-email/missing@example.edu")).andExpect(status().isNotFound());

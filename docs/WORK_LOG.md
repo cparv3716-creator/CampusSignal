@@ -32,15 +32,9 @@ Completed
 - Environment: the initial global-Python attempt could not run because pytest was absent. Two virtual-environment attempts each reported 20 passed and 15 setup errors because sandbox permissions blocked pytest temporary directories. All successful runs used the existing .venv Python on PATH, approved execution outside the sandbox, and PYTEST_ADDOPTS specifying a fresh UUID-suffixed --basetemp directory under .pytest_cache. No application changes were needed to resolve these environment errors.
 - The single warning in each successful run is the existing Starlette/AnyIO BlockingPortal deprecation warning.
 
-### Git
-Commit: Pending
-PR: Pending
-PR created by: Pending
 
 ### Next stage
 User Profile API/service persistence, followed by Initial Category Preference Score implementation.
-
----
 
 ## Work Entry
 Date: 2026-10-08
@@ -167,6 +161,516 @@ PR: Pending
 PR created by: Pending
 
 ---
+
+## 2026-11-05 - GitHub PR #3 merge conflicts resolved
+
+### Changes
+- Fetched the latest `origin/main` and merged it into `demo/phase4-safe-collaboration` only after approval.
+- Combined `.gitignore` protections for secrets, OAuth tokens, local databases, logs, Java and frontend artifacts, and Postman metadata.
+- Preserved the feature branch's append-only prompt and work history and incorporated main's final backend verification entries.
+- Generalized historical local worktree, copied-database, and credential-filename references in publishable documentation.
+
+### Verification
+- `git diff --cached --check` passed.
+- No merge conflict markers remain.
+- Staged-path artifact scan passed.
+- Staged sensitive-content scan passed with no credential, token, private-key, database artifact, or email-address matches.
+
+### Git
+Commit: Pending
+PR: #3
+PR merge into `main`: Pending owner approval
+
+---
+
+## Work Entry
+Date: 2026-11-04
+Contributor: Student with ChatGPT guidance
+Milestone: Final backend verification and submission readiness
+Branch: main
+
+### Work completed
+- Verified the Java 25-targeted Spring Boot application using Java 26.0.2.
+- Successfully packaged the executable Spring Boot JAR.
+- Verified live Gmail OAuth retrieval and H2 persistence.
+- Confirmed duplicate-safe Gmail ingestion across repeated retrievals.
+- Verified email classification and action-candidate extraction.
+- Created demo student profile 65 and verified career score 0.65.
+- Created action 33 for email 22, due 2026-11-07.
+- Verified DUE_SOON urgency with 3 days remaining.
+- Verified personalized relevance score 59 and ranking score 79.
+- Completed action 33 and confirmed its exclusion from the pending feed.
+- Verified HTTP 400, 404, and 409 error responses.
+- Added Git ignore protections for local Gmail tokens and Postman metadata.
+- Pushed the security update as commit 8262a81.
+
+### Automated verification
+- Initial clean test encountered a Surefire class-loading failure.
+- Diagnostic non-forked execution passed all 201 tests.
+- Subsequent standard Maven package passed all 201 tests.
+- JaCoCo instruction coverage: 95.12%.
+- JaCoCo line coverage: 94.30%.
+- JaCoCo branch coverage: 83.00%.
+- SpotBugs: 2 findings.
+- PMD: 27 findings.
+- Static-analysis report-generation goals completed successfully.
+
+### Limitations and outstanding work
+- Live Pub/Sub synchronization not verified during this session.
+- Classification accuracy not formally measured.
+- Two potentially questionable real-email classifications require further evidence.
+- Existing PMD resource and exception findings require source-level review.
+- Official PAI submission rubric remains to be checked.
+- Final screenshots and submission report remain to be completed.
+
+### Change scope
+- No Java production source or test code changed.
+- No existing tests weakened, removed, or skipped.
+- Existing project history preserved.
+
+## 2026-11-05 - Gmail sync and automatic personalized ranking refinements
+
+### Changes
+- Preserved the existing localhost-only Gmail operator session, bootstrap, restore, CSRF, and bounded manual sync flow; no real sync was invoked.
+- Updated the dashboard sync success path to refresh both Inbox data and the selected profile's ranked email feed.
+- Renamed the main feed to `For You - Ranked Emails` and added visible rank, score, explanation, supported deadline, message view, and optional action tracking controls.
+- Kept tracked actions separate from automatic ranking.
+
+### Verification
+- Personalized ranking backend test: 10 tests passed.
+- Full backend suite from the implementation state: 233 tests passed, 0 failures, 0 errors, 0 skipped.
+- Frontend tests: 17 passed.
+- Vite production build passed.
+- `git diff --check` passed.
+
+### Safety and activation
+- No Gmail sync, OAuth operation, backend restart, database write, branch operation, commit, or push was performed.
+- The running backend still uses the older JAR and needs a separately approved rebuild/restart before the new `/email-feed` endpoint and dashboard changes are active.
+
+## 2026-11-05 - Automatic personalized email ranking implemented
+
+### Root cause
+- The existing `/api/v1/profiles/{id}/action-feed` iterated only `PENDING` `EmailAction` rows.
+- Inbox emails did not enter that feed until a user previewed and explicitly created an action.
+- The running database had stored emails, but its persisted actions were terminal, so the action-only feed was empty.
+
+### Changes
+- Added read-only `/api/v1/profiles/{id}/email-feed`.
+- The new service ranks every classified stored email using the existing category score and classification confidence, adds supported deadline urgency and action-indication weights, and preserves low-relevance/promotional messages at the bottom instead of deleting them.
+- Feed responses include email ID, category, confidence, relevance score, deterministic ranking explanation, supported deadline, action indication, tracked-action status, urgency, and received time.
+- No actions are created or changed by the new feed.
+- Overview now renders the automatic ranked email feed and distinguishes tracked actions from ranked emails.
+- Selected profile ID is restored from browser local storage after refresh; a missing profile clears the saved selection.
+- Added synthetic coverage proving different profiles produce different rankings from the same emails and that no action is persisted.
+- Documented the endpoint and behavior in the root and frontend READMEs.
+
+### Verification
+- Full backend suite passed: 233 tests, 0 failures, 0 errors, 0 skipped.
+- Frontend tests passed: 17 tests.
+- Vite production build passed.
+- `git diff --check` passed.
+
+### Activation
+- The currently running backend JAR predates this endpoint; a read-only request to `/api/v1/profiles/2/email-feed` did not return a successful endpoint response.
+- Activating the feature requires a separately approved controlled backend rebuild/restart using the existing copied database. No restart or database modification was performed.
+
+## 2026-11-04 - Collaborative publication audit completed
+
+### Audit
+- Worktree remains detached at `47acf7b`; no branch switch, reset, clean, stash, merge, or destructive operation was performed.
+- Existing worktrees, local branches, and the `origin` remote were inspected.
+- No tracked or publishable untracked credentials, OAuth tokens, private keys, local databases, or real-mail database files were found.
+- `repackage-error.log`, Java `target/`, frontend `node_modules/`, and frontend `dist/` are excluded from publication; generated logs are now covered by `.gitignore`.
+- Generic OAuth test identifiers and configuration names were the only sensitive-term matches; no secret values were present.
+
+### Documentation
+- README now describes the working dashboard, synthetic collaborative demo, Gmail sync and local AI experimental boundaries, recommended branch name, and publication file set.
+- The exact task prompt was appended to `docs/AGENT_PROMPTS.md`.
+
+### Verification
+- Frontend tests passed: 16 tests via Node's built-in test runner.
+- Vite production build passed.
+- Full backend `.\mvnw.cmd -B -ntp test` passed: 232 tests, 0 failures, 0 errors, 0 skipped.
+- `clean test` could not remove a locked generated backend log owned by the verified running CampusSignal process.
+- Non-destructive `package -DskipTests` reached Spring Boot repackage but could not replace the locked running JAR.
+- `git diff --check` passed.
+
+### Publication status
+- Staging, committing, pushing, branch creation, and pull-request creation remain pending approval.
+
+## 2026-11-04 - Local AI summarization layer implemented
+
+### Changes
+- Added a disabled-by-default server-side Ollama summarization service with a loopback-only HTTP client.
+- Added bounded input, one-request concurrency, timeout handling, prompt-injection-resistant prompt instructions, evidence validation, and deterministic fallback behavior.
+- Added structured summary fields for summary, important details, action, deadline, eligibility, evidence, and AI-used status.
+- Added synthetic regression coverage for NCC appointments, internship deadlines, unsupported promotional claims, unavailable Ollama, prompt injection, and disabled mode.
+
+### Verification
+- Focused local AI suite passed: 5 tests.
+- Focused backend regression suite passed: 55 tests.
+- `git diff --check` passed.
+- Frontend unit tests passed: 16 tests via Node's built-in test runner.
+- Vite production build passed using the installed Vite CLI.
+
+### Safety
+- Ollama is not installed and no model was downloaded.
+- AI remains disabled by default, unexposed through HTTP, non-persistent, loopback-only, and was not connected to real email content.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+## 2026-11-04 — Redesigned deterministic summary quality baseline
+
+### Diagnosis
+- Sentence splitting used a generic period-plus-space rule, which split honorifics such as `Dr.` and could expose fragments.
+- HTML/plain-text normalization treated footer/navigation lines as message content, allowing promotional labels such as app links and unsubscribe controls into summaries.
+- Substantive selection scored individual fragments without requiring meaningful context, so complaint summaries could omit the reported outcome or requested resolution.
+
+### Changes
+- Added protected segmentation for honorifics, initials, abbreviations, and decimal values.
+- Added footer-region and promotional/navigation filtering for unsubscribe, app, privacy, report-problem, and similar boilerplate.
+- Penalized unrelated URLs and fragment-leading clauses during substantive sentence selection.
+- Added evidence-only `Reported issue` and `Requested resolution` bullets for complaint-like messages when explicitly present.
+- Preserved existing deadline/action/link safeguards and collapsed full-message disclosure.
+
+### Synthetic before/after coverage
+- NCC: no standalone `Dr.` fragment; the announcement retains the named speaker and context.
+- Promotional email: app/navigation/footer labels are excluded.
+- Complaint: the reported failed/withdrawn transaction and explicit investigation/reversal request are represented separately.
+
+### Verification
+- `node --test .\src\emailSummary.test.js .\src\gmailSync.test.js .\src\profileForm.test.js` — 16 passed, 0 failures.
+- `node .\node_modules\vite\bin\vite.js build` — successful.
+- Browser dashboard at `http://127.0.0.1:5174/` rendered without a frontend runtime error; the observed 401s were the existing unauthorized Gmail-session restoration requests and no email body was printed.
+- No backend restart, Gmail retrieval, sync, database change, credential/token access, commit, merge, or external AI call was performed.
+
+### Optional AI architecture proposal
+- Add a server-side `EmailSummaryProvider` interface with deterministic implementation as the default.
+- Add an explicit local opt-in setting before any content leaves the machine; default remains disabled.
+- Configure provider/model, endpoint, timeout, token budget, estimated per-message cost, and daily/rate limits through server-only configuration.
+- Send only bounded content to the provider, never log bodies or prompts, and redact provider errors.
+- Require a schema containing `summary`, `action`, `deadline`, and `evidence` spans; validate every field against the bounded source text and reject unsupported claims.
+- Fall back deterministically on timeout, quota, validation failure, or provider outage.
+- Cache by content hash with an expiry and model/configuration version; store an `AI-assisted` indicator only with the summary metadata.
+
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+## 2026-11-04 — Added student profile editing and interest management
+
+### Audit findings
+- Existing profile APIs supported creation and lookup only; no update endpoint existed.
+- Interests were already normalized, deduplicated, ordered, and persisted through `ProfileCreateRequest` and the `profile_interests` element collection.
+- The backend has no profile-creation path that intentionally returns 502. Duplicate email handling is a 409 through the unique constraint and existing exception handling. The prior 502 was therefore not reproducible as an application-level duplicate response and is consistent with an unavailable or mismatched frontend proxy/backend.
+
+### Changes
+- Added validated `PUT /api/v1/profiles/{id}` using the existing request DTO and profile ID.
+- Added entity/service update logic that replaces supported fields and interests without creating a new profile.
+- Added Student Profile edit mode with prepopulated fields, comma-separated interest add/remove support, Save Changes, Cancel, validation, loading, conflict, and success states.
+- Refreshes the selected profile and personalized action feed after a successful update.
+
+### Verification
+- `.\mvnw.cmd -B -ntp '-Dtest=ProfileApiTest,ProfileActionFeedApiTest' test` — 37 passed, 0 failures, 0 errors.
+- `node --test .\src\profileForm.test.js .\src\emailSummary.test.js .\src\gmailSync.test.js` — 13 passed.
+- `node .\node_modules\vite\bin\vite.js build` — successful.
+- Browser dashboard remained available at `http://127.0.0.1:5174/`; the Student Profile view rendered without a runtime error. No backend restart, Gmail retrieval, sync, database modification, or private-message logging was performed.
+
+### Limitations
+- The current UI selects profiles by ID or email; no separate profile list endpoint exists, so switching continues to use the existing lookup flow.
+- The active backend process predates the new PUT endpoint and was intentionally not restarted under the no-restart safety requirement. The endpoint is covered by isolated Spring tests and will be available after the next approved backend restart.
+
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+## 2026-11-04 — Improved deterministic email summaries
+
+### Changes
+- Reworked `frontend/src/emailSummary.js` to normalize HTML-derived content, remove headers/greetings/signatures/disclaimers, de-duplicate subject text, and select substantive body sentences.
+- Date extraction now requires explicit deadline/application language; ordinary event dates remain part of the announcement instead of being mislabeled as deadlines.
+- Preserved strict body-supported eligibility, action, and application-link extraction, including security-alert safeguards.
+- Added an appropriate `No action explicitly requested` bullet only for otherwise informational summaries.
+- Kept the collapsed `Read full message` disclosure and all backend/ranking/sync behavior unchanged.
+
+### Verification
+- `node --test .\src\emailSummary.test.js .\src\gmailSync.test.js` — 11 passed, 0 failures.
+- `node .\node_modules\vite\bin\vite.js build` — successful.
+- Browser remained available at `http://127.0.0.1:5174/`; Inbox rendered persisted cards and View message controls. No private message body was printed or logged.
+- Synthetic summary fixtures covered greetings, repeated subjects, HTML content, event dates versus deadlines, misleading URLs, security alerts, and short/long messages.
+
+### Limitations
+- This remains deterministic extraction, not semantic or AI summarization; unusual templates and ambiguous wording may still require the full-message disclosure.
+
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Browser-session note
+- The active shared browser tab did not receive the helper-opened one-time fragment; its restoration request correctly returned 401 because it had no session cookie.
+- The backend and frontend remain running. No sync request was made. The helper-opened browser tab must be shared or the bootstrap must be repeated with a newly generated secret before Sync Gmail is ready in the active tab.
+
+## 2026-11-04 — Restored Gmail sync sessions after dashboard refresh
+
+### Changes
+- Added a loopback/origin-validated `POST /api/v1/gmail/operator/session/restore` endpoint.
+- Restored sessions rotate the in-memory CSRF token while preserving the existing HttpOnly SameSite=Strict cookie and session expiry.
+- Updated the frontend to restore authorization on startup when no one-time bootstrap fragment is present.
+- Added focused controller coverage for successful restoration, missing sessions, and cross-site rejection.
+
+### Verification
+- `.\mvnw.cmd -B -ntp '-Dtest=GmailSyncControllerTest,LocalOperatorSessionServiceTest' test` — 8 passed, 0 failures, 0 errors.
+- `node --test .\src\gmailSync.test.js .\src\emailSummary.test.js` — 7 passed.
+- `node .\node_modules\vite\bin\vite.js build` — successful.
+- No Gmail sync or retrieval was performed.
+
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+## 2026-11-04 — Activated localhost Gmail Sync setup
+
+### Changes
+- Added strict plain-HTTP loopback URL validation to `scripts/campussignal-gmail-bootstrap.ps1`.
+- Fixed the helper's PowerShell secret validation so it parses and reads the operator secret only from the environment.
+- Confirmed the rebuilt executable JAR contains the Gmail Sync/session implementation and Spring Boot launcher metadata.
+
+### Verification
+- Verified the explicitly supplied Gmail credential file and token directory exist without opening or printing their contents.
+- Generated the operator secret with a local cryptographically secure generator; it was kept out of source, command-line arguments, logs, browser storage, and chat.
+- Started only the CampusSignal backend on `127.0.0.1:8092` using the copied `jdbc:h2:file:./data/<COPIED_H2_DATABASE_NAME>` database, `ddl-auto=none`, and classification backfill disabled.
+- Ran the one-time bootstrap helper against loopback URLs; the browser session was established using the bootstrap code, not the operator secret.
+- Backend metadata API returned HTTP 200 with 16 persisted rows; the frontend proxy returned HTTP 200 with 10 non-demo rows.
+- Browser Inbox displayed 10 non-demo messages and the `Sync Gmail` control was ready without performing a sync. No Gmail retrieval was performed.
+
+### Notes
+- The first launch attempt failed because the JAR path containing spaces was not quoted in `Start-Process`; it was diagnosed from the exact `Unable to access jarfile <REDACTED_PATH>` error and corrected without repeated blind retries.
+- The backend and existing Vite frontend remain running. A controlled first sync still requires separate approval.
+
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## 2026-11-04 - Restored dashboard after Gmail Sync frontend change
+
+### Status
+Completed
+
+### Root cause
+- Browser console reported `ReferenceError: syncGmail is not defined`.
+- The `syncGmail` callback had been accidentally nested inside `viewContent`, so the JSX render path could not resolve it.
+
+### Work completed
+- Moved only `syncGmail` to the App component scope.
+- Preserved the Gmail Sync session, CSRF, setup-required, and refresh behavior.
+- Did not modify backend code, databases, credentials, OAuth tokens, or unrelated frontend functionality.
+
+### Tests
+- `node --test .\src\gmailSync.test.js .\src\emailSummary.test.js` from `frontend` - 7 passed, 0 failed.
+- `node .\node_modules\vite\bin\vite.js build` from `frontend` - BUILD SUCCESS; 19 modules transformed.
+- `GET http://127.0.0.1:5174/api/v1/emails` - HTTP 200; 16 backend metadata rows; no body field.
+- Browser verification at `http://127.0.0.1:5174/`:
+  - Overview rendered.
+  - Inbox rendered 10 non-demo email cards.
+  - View message opened Quick summary and Read full message.
+  - Sync Gmail displayed the expected bootstrap-required state without invoking Gmail sync.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## 2026-11-04 - Secure localhost Gmail synchronization
+
+### Status
+Completed - implementation verified; operational backend restart requires operator setup
+
+### Work completed
+- Added loopback-only operator bootstrap protected by `CAMPUSSIGNAL_OPERATOR_SECRET`, requiring a strong value of at least 32 characters.
+- Added one-time bootstrap codes, short-lived HttpOnly SameSite session cookies, and in-memory CSRF tokens; the operator secret never enters React, browser storage, URLs, or bundles.
+- Added loopback binding, loopback client, Host, and allowed-Origin defense-in-depth checks.
+- Added `POST /api/v1/gmail/sync` that reuses `GmailAuthorizationService` and `EmailRetrievalService`, enforces a maximum of 10 messages, rejects overlapping jobs, and returns only retrieval counts.
+- Added safe generic handling for authorization, provider, offline, and unexpected failures.
+- Added the Inbox Sync Gmail button, bootstrap-fragment exchange, sync state, count-only notice, and automatic Inbox refresh.
+- Added a PowerShell bootstrap helper and local setup documentation.
+- Preserved metadata-only email APIs, bounded content API, summaries, action previews, action creation, profiles, feed, and status tracking.
+
+### Files changed
+- src/main/java/edu/campussignal/security/LocalOperatorSessionService.java
+- src/main/java/edu/campussignal/security/LocalRequestSecurity.java
+- src/main/java/edu/campussignal/dto/GmailSyncRequest.java
+- src/main/java/edu/campussignal/dto/GmailSessionResponse.java
+- src/main/java/edu/campussignal/service/GmailSyncService.java
+- src/main/java/edu/campussignal/controller/GmailSyncController.java
+- src/main/resources/application.properties
+- src/test/java/edu/campussignal/security/LocalOperatorSessionServiceTest.java
+- src/test/java/edu/campussignal/service/GmailSyncServiceTest.java
+- src/test/java/edu/campussignal/controller/GmailSyncControllerTest.java
+- frontend/src/gmailSync.js
+- frontend/src/gmailSync.test.js
+- frontend/src/App.jsx
+- frontend/src/styles.css
+- scripts/campussignal-gmail-bootstrap.ps1
+- README.md
+- frontend/README.md
+- docs/AGENT_PROMPTS.md
+- docs/WORK_LOG.md
+
+### Tests
+- `.\mvnw.cmd -B -ntp '-Dtest=GmailSyncServiceTest,LocalOperatorSessionServiceTest,GmailSyncControllerTest' test` - BUILD SUCCESS; 10 tests, 0 failures, 0 errors, 0 skipped.
+- `.\mvnw.cmd -B -ntp test` - BUILD SUCCESS; 223 tests, 0 failures, 0 errors, 0 skipped.
+- `node --test .\src\gmailSync.test.js .\src\emailSummary.test.js` from `frontend` - 7 passed, 0 failed.
+- `node .\node_modules\vite\bin\vite.js build` from `frontend` - BUILD SUCCESS; 19 modules transformed.
+- No real Gmail synchronization, OAuth authorization, database mutation, or private-message output was performed.
+
+### Operational status and limitations
+- The existing dashboard remains intended for `http://127.0.0.1:5174/`.
+- The existing backend process was not restarted because it lacks the newly required operator-secret environment variable; restarting it with a user-selected secret is still required before the new sync endpoint is operational.
+- The copied H2 database remains the only intended database for this local workflow.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## 2026-11-04 - Deterministic quick summary for email content
+
+### Status
+Completed
+
+### Work completed
+- Replaced the default full-body rendering after View message with a concise Quick summary.
+- Added conservative extraction for announcement, eligibility, explicit date/deadline, explicit action, and contextually relevant links.
+- Omitted unsupported fields and limited summaries to five bullets, with fewer bullets for simple messages.
+- Added security-alert handling that reports an action only when the message explicitly requests a security-related action.
+- Added a native collapsed Read full message disclosure for the bounded stored content.
+- Kept existing email metadata, action-candidate preview, explicit action creation, profiles, feed, and status tracking unchanged.
+
+### Files changed
+- frontend/src/emailSummary.js
+- frontend/src/emailSummary.test.js
+- frontend/src/App.jsx
+- frontend/src/styles.css
+- docs/AGENT_PROMPTS.md
+- docs/WORK_LOG.md
+
+### Tests
+- `node --test .\src\emailSummary.test.js` from `frontend` - 5 passed, 0 failed.
+- `node .\node_modules\vite\bin\vite.js build` from `frontend` - BUILD SUCCESS; 18 modules transformed.
+- No backend tests were rerun because no Java or backend behavior changed; the prior verified backend result remains 213 tests passed.
+
+### Safety and limitations
+- No external AI API, paid service, model dependency, Gmail retrieval, OAuth change, credential change, database change, action mutation, commit, or merge was performed.
+- Email bodies remain omitted from list APIs and are not logged or sent to the browser console.
+- The full stored content remains available only through the explicit collapsed disclosure and the existing bounded localhost endpoint.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## 2026-11-04 - Phase 1 real Gmail Inbox content preview
+
+### Status
+Completed
+
+### Work completed
+- Added a bounded, localhost-only-development email content response and `GET /api/v1/emails/{id}/content` endpoint without changing metadata DTOs.
+- Added backend coverage for short and truncated content, missing IDs, and metadata-only responses.
+- Updated the React Inbox to show non-demo persisted messages using a clearly labeled temporary `@demo.example.com` sender heuristic.
+- Added an explicit View message panel showing only the requested subject, sender, received date, and bounded plain-text body.
+- Preserved candidate preview, explicit action creation, classification, profile, feed, and action lifecycle behavior.
+- Verified the Inbox through the running localhost dashboard without Gmail retrieval or database mutation.
+
+### Files changed
+- src/main/java/edu/campussignal/dto/EmailContentResponse.java
+- src/main/java/edu/campussignal/service/EmailReadService.java
+- src/main/java/edu/campussignal/controller/EmailController.java
+- src/test/java/edu/campussignal/EmailReadApiTest.java
+- frontend/src/App.jsx
+- frontend/src/styles.css
+- docs/AGENT_PROMPTS.md
+- docs/WORK_LOG.md
+
+### Tests
+- `.\mvnw.cmd -B -ntp -Dtest=EmailReadApiTest test` - BUILD SUCCESS; 8 tests, 0 failures, 0 errors, 0 skipped.
+- `.\mvnw.cmd -B -ntp package` - BUILD SUCCESS; 213 tests, 0 failures, 0 errors, 0 skipped.
+- `node .\node_modules\vite\bin\vite.js build` - BUILD SUCCESS; 17 modules transformed.
+- Browser verification at `http://127.0.0.1:5174/` showed 10 filtered Inbox rows and a working message preview panel.
+
+### Safety and limitations
+- Backend remained bound to `127.0.0.1:8092` and used only the copied H2 database.
+- No Gmail retrieval, OAuth changes, original database changes, credentials, tokens, POST/PATCH/DELETE requests, commit, or merge were performed.
+- The content endpoint is unauthenticated and must not be exposed beyond localhost without authentication and authorization.
+- The sender-domain filter is a temporary heuristic; a persisted provider/source field is still needed for a durable real-mail filter.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## 2026-11-04 — Restored local real-email dashboard connection
+
+### Verification
+- Stopped only the stale Vite processes from this worktree.
+- Started the backend on `127.0.0.1:8092` using only `jdbc:h2:file:./data/<COPIED_H2_DATABASE_NAME>`.
+- Set `spring.jpa.hibernate.ddl-auto=none` and `classification.backfill=false`.
+- Started Vite on `127.0.0.1:5174` using `CAMPUSSIGNAL_API_TARGET=http://127.0.0.1:8092`.
+- `GET http://127.0.0.1:5174/api/v1/emails` returned HTTP 200 with 16 rows.
+- `GET http://127.0.0.1:5174/api/v1/actions` returned HTTP 200 with 5 rows.
+- Both servers remained running after verification.
+
+### Safety
+- No source, POM, frontend implementation, original database, OAuth credentials, or tokens were modified.
+- No Gmail retrieval or mutating API request was performed.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## 2026-11-04 — Local real-mail frontend verification
+
+### Status
+Blocked pending approval for a new backend launch attempt after the debugger launch timed out without creating a session.
+
+### Read-only preparation completed
+- Confirmed no Java process was using the original `data/campussignal-iitm-real.mv.db`; the only matching process was the inspection shell itself.
+- Created `data/<COPIED_H2_DATABASE_NAME>.mv.db` only because it did not exist.
+- Verified the copied file's SHA-256 hash matched the original.
+- The original database was not modified.
+
+### Launch attempt
+- Requested localhost-only backend startup on `127.0.0.1:8092`.
+- Used the copied database with `jdbc:h2:file:./data/<COPIED_H2_DATABASE_NAME>`.
+- Set `spring.jpa.hibernate.ddl-auto=none`.
+- Did not set Gmail, demo-fixture, or classification-backfill properties.
+- Java debugger timed out after 120 seconds without an active session.
+- Follow-up checks found no Java process for the JAR and no listener on port 8092.
+
+### Safety
+- No source files, POM, frontend files, original database, OAuth credentials, or tokens were changed.
+- No POST, PATCH, DELETE, Gmail retrieval, or classification backfill was performed.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
 
 ## Work Entry
 Date: 2026-10-07
@@ -968,6 +1472,41 @@ Completed — reproducible PMD tooling added, 32 unsuppressed production-Java fi
 - Command: `.\mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -Ddebug=false test`.
 - Result: BUILD SUCCESS; **122 tests run, 0 failures, 0 errors, 0 skipped in 29.183 seconds**.
 
+---
+
+## Work Entry
+Date: 2026-11-04
+Contributor: Copilot
+Milestone: Phase 4 frontend
+Stage: Configurable frontend API proxy target
+Branch: detached HEAD at phase4-live-demo
+
+### Status
+Completed
+
+### Work completed
+- Made the Vite `/api` development proxy target configurable through `CAMPUSSIGNAL_API_TARGET`.
+- Preserved the default backend target as `http://127.0.0.1:8080` and left React request paths and UI unchanged.
+- Documented PowerShell commands for running the frontend against the isolated synthetic backend at `http://127.0.0.1:8091`.
+- Confirmed no Java files or synthetic data were added to React.
+
+### Files changed
+- frontend/vite.config.js
+- frontend/README.md
+- docs/AGENT_PROMPTS.md
+- docs/WORK_LOG.md
+
+### Tests
+- `npm run build` in `frontend/` — passed; Vite 8.3.5 transformed 17 modules and emitted production assets.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next stage
+Human review of the configurable frontend proxy with either the default backend or isolated demo backend.
+
 ### Scope confirmation
 - Classifier behavior, Gmail behavior, ingestion, database schema, profile scoring, and ranking were untouched.
 - Python was not deleted or modified.
@@ -1633,49 +2172,224 @@ PR created by: Pending
 
 ---
 
+## 2026-11-04 - Phase 4 React + Vite frontend
+
+- Created this work in a separate detached Phase 4 worktree at commit `47acf7bf8fdc9b2dbe7fc51f962efa2d3247ea22`; the original CampusSignal working directory, branch, and uncommitted work were not modified.
+- Read the Phase 4 `AGENTS.md`, `README.md`, actual profile/feed/action/candidate controllers, their DTOs, and the exception handler before implementation. The exact task prompt was appended to `docs/AGENT_PROMPTS.md`.
+- Added `frontend/` with React, Vite, a `/api` development proxy to `http://localhost:8080`, no UI-service or runtime API dependencies beyond React, and responsive plain CSS.
+- Implemented validated browser forms for `POST /api/v1/profiles`, lookup through the two supported profile GET routes, and feed rendering from `GET /api/v1/profiles/{profileId}/action-feed` using only response fields returned by the backend.
+- Added feed-card urgency, category, relevance, action type, deadline, score, and explanation presentation. Buttons call only `PATCH /api/v1/actions/{actionId}/status` with `COMPLETED` or `NOT_INTERESTED`, then reload the backend feed.
+- Added an on-demand, read-only action-candidate preview using `GET /api/v1/emails/{emailId}/action-candidate`. A `204 No Content` result is rendered as no detected candidate; the client never creates an action from a preview and contains no mock action records.
+- Added `frontend/README.md`, a root README frontend-demo link, and frontend build/package ignores. No Java source, tests, endpoints, persistence, or backend configuration were changed.
+
+### Verification
+
+- `npm install` in `frontend/` — completed successfully.
+- `npm run build` in `frontend/` — BUILD SUCCESS with Vite 8.3.5; 17 modules transformed and production assets emitted to ignored `frontend/dist/`.
+- `npm audit --json` in `frontend/` — 0 vulnerabilities.
+- No live backend or Gmail integration was started for this frontend-only task. The UI exposes backend loading, error, empty, and `204` candidate states for a separately running local Phase 4 API.
+
+### Git
+
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Limitations
+
+- The frontend intentionally has no authentication, so it reflects Phase 4's unauthenticated profile/action API boundaries.
+- It does not create actions; Phase 4 supports candidate preview and manual action creation separately, while this requested interface only manages existing feed actions.
+
 ---
 
 ## Work Entry
 Date: 2026-11-04
-Contributor: Student with ChatGPT guidance
-Milestone: Final backend verification and submission readiness
-Branch: main
+Contributor: Copilot
+Milestone: Phase 4 frontend
+Stage: React dashboard UI refinement
+Branch: detached HEAD at phase4-live-demo
+
+### Status
+Completed
 
 ### Work completed
-- Verified the Java 25-targeted Spring Boot application using Java 26.0.2.
-- Successfully packaged the executable Spring Boot JAR.
-- Verified live Gmail OAuth retrieval and H2 persistence.
-- Confirmed duplicate-safe Gmail ingestion across repeated retrievals.
-- Verified email classification and action-candidate extraction.
-- Created demo student profile 65 and verified career score 0.65.
-- Created action 33 for email 22, due 2026-11-07.
-- Verified DUE_SOON urgency with 3 days remaining.
-- Verified personalized relevance score 59 and ranking score 79.
-- Completed action 33 and confirmed its exclusion from the pending feed.
-- Verified HTTP 400, 404, and 409 error responses.
-- Added Git ignore protections for local Gmail tokens and Postman metadata.
-- Pushed the security update as commit 8262a81.
+- Reworked the frontend into a purple-and-white university dashboard with a compact header, dark workspace sidebar, responsive summary cards, ranked action feed, and compact profile/forms column.
+- Preserved all existing profile, feed, action status, and candidate preview API integrations and payloads.
+- Added explicit HTTP status propagation to the frontend request helper and friendly duplicate-email (409) guidance that pre-fills email lookup and offers a direct existing-profile action.
+- Improved responsive layouts, loading presentation, empty states, button states, and profile/feed summary information without adding fake data or backend features.
 
-### Automated verification
-- Initial clean test encountered a Surefire class-loading failure.
-- Diagnostic non-forked execution passed all 201 tests.
-- Subsequent standard Maven package passed all 201 tests.
-- JaCoCo instruction coverage: 95.12%.
-- JaCoCo line coverage: 94.30%.
-- JaCoCo branch coverage: 83.00%.
-- SpotBugs: 2 findings.
-- PMD: 27 findings.
-- Static-analysis report-generation goals completed successfully.
+### Files changed
+- frontend/src/App.jsx
+- frontend/src/api.js
+- frontend/src/styles.css
+- docs/AGENT_PROMPTS.md
+- docs/WORK_LOG.md
 
-### Limitations and outstanding work
-- Live Pub/Sub synchronization not verified during this session.
-- Classification accuracy not formally measured.
-- Two potentially questionable real-email classifications require further evidence.
-- Existing PMD resource and exception findings require source-level review.
-- Official PAI submission rubric remains to be checked.
-- Final screenshots and submission report remain to be completed.
+### Tests
+- `npm run build` in `frontend/` — passed; Vite 8.3.5 transformed 17 modules and emitted production assets.
 
-### Change scope
-- No Java production source or test code changed.
-- No existing tests weakened, removed, or skipped.
-- Existing project history preserved.
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next stage
+Human review of the Phase 4 frontend against a running Spring Boot API.
+
+---
+
+## Work Entry
+Date: 2026-11-04
+Contributor: Copilot
+Milestone: Phase 4 synthetic demo fixture
+Stage: Isolated synthetic demo data
+Branch: detached HEAD at phase4-live-demo
+
+### Status
+Completed
+
+### Work completed
+- Added a disabled-by-default opt-in fixture command requiring the `demo` profile, `synthetic-only` confirmation, and an isolated `campussignal-demo` H2 URL.
+- Added six deterministic fictional emails covering internships, scholarships, workshops, academic submissions, campus events, and an informational no-action announcement.
+- Routed fixture emails through EmailIngestionService and reused deterministic classification and action-candidate extraction.
+- Created pending actions through EmailActionService and a synthetic profile through ProfileService, with stable IDs and idempotent reruns.
+- Added tests covering fixture counts, categories, future deadlines, pending feed visibility, idempotency, and command safety guards.
+- Documented isolated demo invocation and separation from real Gmail data.
+
+### Files changed
+- src/main/java/edu/campussignal/demo/SyntheticDemoFixtureService.java
+- src/main/java/edu/campussignal/demo/SyntheticDemoFixtureCommand.java
+- src/main/java/edu/campussignal/CampusSignalApplication.java
+- src/test/java/edu/campussignal/SyntheticDemoFixtureServiceTest.java
+- src/test/java/edu/campussignal/SyntheticDemoFixtureCommandTest.java
+- README.md
+- docs/AGENT_PROMPTS.md
+- docs/WORK_LOG.md
+
+### Tests
+- Focused fixture tests: `.\mvnw.cmd -B -ntp -Dtest=SyntheticDemoFixtureServiceTest test` — 2 passed.
+- Safety guard tests added: `SyntheticDemoFixtureCommandTest`.
+- Full Maven suite and frontend build pending final verification.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next stage
+Run the complete Maven suite, verify the production build, and execute the fixture only against the isolated demo database.
+
+---
+
+## 2026-11-04 — Production-safe relevance aliases and deadline extraction
+
+### Summary
+- Added centralized aliases for existing feed categories so profile interests such as internships, placements, research, workshops, events, and supported scholarship/achievement terms can match without changing classification categories.
+- Extended deterministic deadline extraction only for explicit `register before`, `upload by`, and `attend ... on` contexts, while retaining ambiguity and context safeguards.
+- Strengthened synthetic fixture regression coverage to require all five seeded actions to have future deadlines relative to the application clock and to verify improved feed relevance.
+
+### Files changed
+- `src/main/java/edu/campussignal/service/CategoryScoreService.java`
+- `src/main/java/edu/campussignal/service/DeterministicEmailActionExtractor.java`
+- `src/test/java/edu/campussignal/CategoryScoreServiceTest.java`
+- `src/test/java/edu/campussignal/EmailActionDeadlineAndExtractionTest.java`
+- `src/test/java/edu/campussignal/SyntheticDemoFixtureServiceTest.java`
+- `docs/AGENT_PROMPTS.md`
+- `docs/WORK_LOG.md`
+
+### Tests
+- Focused regression suite: `.\mvnw.cmd -B -ntp '-Dtest=CategoryScoreServiceTest,EmailActionDeadlineAndExtractionTest,SyntheticDemoFixtureServiceTest' test` — 37 tests passed, 0 failures, 0 errors, 0 skipped.
+
+### Safety
+- No Gmail data, OAuth credentials, Java classification rules, action lifecycle rules, frontend files, branches, or real database paths were changed.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## 2026-11-04 — Real-data Email Review / Inbox UI
+
+### Summary
+- Added a real-data Inbox view backed by persisted email and action APIs.
+- Kept candidate preview read-only and gated action creation behind explicit confirmation.
+- Recognized existing actions, including terminal actions, to prevent duplicate creation or reopening.
+- Added accurate empty-feed messaging, Inbox navigation/counts, source labeling, and separate profile/create-profile views.
+
+### Files changed
+- `frontend/src/App.jsx`
+- `frontend/src/styles.css`
+- `frontend/README.md`
+- `docs/AGENT_PROMPTS.md`
+- `docs/WORK_LOG.md`
+
+### Tests
+- `npm run build` — 17 modules transformed; build successful.
+
+### Safety
+- No Java files, Gmail OAuth services, databases, branches, or action statuses were changed.
+- Verification used non-mutating GET requests only.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## 2026-11-04 — Executable JAR build remediation
+
+### Summary
+- Stopped only the Java process confirmed by command line to run this worktree's locked demo JAR.
+- Ran the approved clean Maven package lifecycle without changing the POM or Java source.
+- Verified Spring Boot repackaging produced an executable archive.
+- Started the packaged JAR with an isolated in-memory H2 database and no Gmail command, authorization, or retrieval.
+
+### Verification
+- `.\mvnw.cmd -B -ntp clean package` — BUILD SUCCESS.
+- Tests: 210 run, 0 failures, 0 errors, 0 skipped.
+- Manifest contains `Main-Class: org.springframework.boot.loader.launch.JarLauncher`.
+- Manifest contains `Start-Class: edu.campussignal.CampusSignalApplication`.
+- `BOOT-INF/` exists.
+- Isolated startup reached `Started CampusSignalApplication` using `jdbc:h2:mem:campussignal-jar-launch`.
+
+### Safety
+- No `pom.xml` or Java source files were modified.
+- No frontend files, databases, OAuth credentials, tokens, or other worktrees were touched.
+- The isolated startup process was stopped by its specific PID after verification.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## 2026-11-04 — Local real-mail frontend verification completed
+
+### Verification
+- Original database remained unchanged at `126976` bytes with its original timestamp.
+- No process remained using the original real-mail database after cleanup.
+- Backend ran only on `127.0.0.1:8092` using the copied H2 file and `spring.jpa.hibernate.ddl-auto=none`.
+- `GET /api/v1/emails` returned HTTP 200 and 16 metadata rows.
+- `GET /api/v1/actions` returned HTTP 200 and 5 action rows.
+- Candidate preview for the first returned email ID returned HTTP 204; no action was created.
+- Email response keys were limited to `id`, `subject`, `sender`, `receivedAt`, `category`, and `classificationConfidence`; no body field was exposed.
+- Vite ran on `127.0.0.1:5173` with `CAMPUSSIGNAL_API_TARGET=http://127.0.0.1:8092`.
+- Browser verification rendered 16 Inbox cards and zero email-body elements.
+
+### Findings and limitations
+- The copied database contained 16 persisted emails, not the reported 10. No rows were filtered, deleted, or modified.
+- H2 changed the copied file during startup despite `ddl-auto=none` (file size changed from the copied 126976 bytes to 122880 bytes). The original database was unaffected.
+- The normal `npm.cmd` launcher failed because its local npm modules were incomplete. The installed Vite CLI was started directly with Node, without installing dependencies or editing files.
+- The backend and Vite test processes were stopped by their specific PIDs.
+
+### Safety
+- No source files, POM, original H2 database, Gmail data, OAuth credentials, tokens, POST/PATCH/DELETE requests, or Gmail retrieval were changed or performed.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending

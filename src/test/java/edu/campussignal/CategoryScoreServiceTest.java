@@ -93,4 +93,22 @@ class CategoryScoreServiceTest {
         assertThat(result.components().profileRelevance()).isEqualTo(0.5);
         assertThatThrownBy(() -> scores.score(user, " ")).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void supportedProfileInterestAliasesMatchPersistedFeedCategories() {
+        var user = profile(2, "BTech", "Computer Science",
+                List.of("internships", "research", "workshops", "scholarships"));
+
+        assertThat(scores.score(user, "career").components().explicitPreference()).isOne();
+        assertThat(scores.score(user, "academic research").components().explicitPreference()).isOne();
+        assertThat(scores.score(user, "recognition achievement")
+                .components().explicitPreference()).isOne();
+    }
+
+    @Test
+    void unsupportedCategoryDoesNotMatchUnrelatedInterestAlias() {
+        var user = profile(2, "BTech", "Computer Science", List.of("scholarships"));
+
+        assertThat(scores.score(user, "general other").components().explicitPreference()).isZero();
+    }
 }

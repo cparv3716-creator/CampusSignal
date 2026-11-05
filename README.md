@@ -20,6 +20,10 @@ Detailed behavior and operational notes are in [docs/JAVA_BACKEND.md](docs/JAVA_
 - Persisted action tracking with guarded status transitions
 - Derived effective status, urgency, and deadline countdown
 - Personalized ranked actionable feed with deterministic explanations
+- React + Vite dashboard with Inbox review, deterministic Quick summary, profile editing, and action tracking
+- Isolated synthetic Phase 4 demo fixture for safe collaboration
+- Local-only Gmail sync bootstrap flow, disabled unless explicitly configured
+- Disabled-by-default local Ollama summarization service with deterministic fallback
 - JUnit/Spring Boot tests, JaCoCo coverage reports, SpotBugs, and PMD
 
 ## Project layout
@@ -76,6 +80,78 @@ JaCoCo generates coverage output under `target/site/jacoco/` during the test lif
 
 The default address is `http://127.0.0.1:8080`. The application uses file-backed H2 at `./data/campussignal` by default; tests use isolated in-memory H2 databases.
 
+## Frontend demo
+
+The optional React + Vite demo client lives in [`frontend/`](frontend/README.md). Start the Spring Boot API first, then run `npm install` and `npm run dev` from that directory. Its Vite development proxy sends `/api` requests to the local backend, so the browser client does not hardcode a backend URL.
+
+### Recommended collaborative demo
+
+Use the synthetic fixture rather than a Gmail-backed database when sharing the project
+with teammates. It creates fictional messages and a fictional profile in an isolated
+H2 database, and it never uses OAuth credentials or real mailbox content. Start it with
+the command in [Synthetic Phase 4 demo fixture](#synthetic-phase-4-demo-fixture), then
+point Vite at `http://127.0.0.1:8091`:
+
+```powershell
+$env:CAMPUSSIGNAL_API_TARGET = "http://127.0.0.1:8091"
+node .\node_modules\vite\bin\vite.js --host 127.0.0.1 --port 5174
+```
+
+The shared branch must not contain `data/`, `credentials.json`, `.gmail-tokens/`,
+`.env` files, generated logs, frontend `node_modules/`, or frontend `dist/` output.
+The Gmail sync flow and local Ollama integration are experimental local-development
+features; neither should be enabled for a shared demo.
+
+### Local dashboard Gmail sync
+
+This is an experimental, localhost-only development feature, not the recommended
+collaborative demo path. It must use a copied database and credentials stored outside
+the repository. Never point it at the original mailbox database or publish its
+configuration.
+
+The browser never receives the Gmail operator secret. Start the copied real-mail backend
+with a strong environment variable and loopback binding:
+
+```powershell
+$env:CAMPUSSIGNAL_OPERATOR_SECRET = "<strong-local-secret-at-least-32-characters>"
+$env:SERVER_ADDRESS = "127.0.0.1"
+$env:PORT = "8092"
+$env:DATABASE_URL = "jdbc:h2:file:./data/<COPIED_H2_DATABASE_NAME>"
+.\mvnw.cmd spring-boot:run
+```
+
+In another PowerShell window, issue a one-time browser session bootstrap:
+
+```powershell
+$env:CAMPUSSIGNAL_OPERATOR_SECRET = "<same-local-secret>"
+.\scripts\campussignal-gmail-bootstrap.ps1
+```
+
+The helper sends the secret only over loopback, opens a one-time fragment URL, and the
+dashboard exchanges it for an HttpOnly session cookie plus an in-memory CSRF token. The
+server enforces loopback binding, loopback clients, allowed origins, a 10-message maximum,
+and one sync at a time. Never expose this endpoint beyond localhost.
+
+## Synthetic Phase 4 demo fixture
+
+The synthetic fixture is disabled by default and never uses Gmail, OAuth, or real student data.
+It refuses to run unless the `demo` profile, an explicit confirmation, and an isolated
+`campussignal-demo` H2 database path are all provided. It uses the normal ingestion,
+classification, action extraction, action creation, and feed services.
+
+Run it in a separate PowerShell window:
+
+```powershell
+.\mvnw.cmd spring-boot:run `
+  "-Dspring-boot.run.profiles=demo" `
+  "-Dspring-boot.run.arguments=--campussignal.demo.fixture=phase4,--campussignal.demo.confirm=synthetic-only,--spring.datasource.url=jdbc:h2:file:./data/campussignal-demo"
+```
+
+The command is idempotent and creates six fictional emails, pending actions where the
+existing extractor finds one, and the synthetic profile
+`demo.student@demo.example.com`. Do not point this command at the normal
+`./data/campussignal` database.
+
 ## Gmail authorization and synchronization
 
 Enable the Gmail API, create a desktop OAuth client, and keep the downloaded credentials outside source control. For realtime synchronization, also enable Pub/Sub, configure a topic and pull subscription, and grant the Gmail push service account permission to publish to the topic.
@@ -112,12 +188,14 @@ Backfill is explicit, transactional, and idempotent. It does not run during norm
 | `GET /api/v1/profiles/{id}` | Read a profile by ID |
 | `GET /api/v1/profiles/by-email/{email}` | Read a profile by normalized email |
 | `GET /api/v1/profiles/{id}/category-score?category=...` | Explain a category preference score |
+| `GET /api/v1/profiles/{id}/email-feed` | Read-only personalized ranked email feed; no action creation required |
 | `POST /api/v1/emails/{emailId}/actions` | Create a tracked action |
 | `GET /api/v1/actions` | List tracked actions |
 | `GET /api/v1/actions/{actionId}` | Read one tracked action |
 | `GET /api/v1/emails/{emailId}/actions` | List actions for an email |
 | `PATCH /api/v1/actions/{actionId}/status` | Complete or dismiss a pending action |
 | `GET /api/v1/profiles/{profileId}/action-feed` | Return the personalized ranked actionable feed |
+| `POST /api/v1/gmail/sync` | Explicitly retrieve up to 10 recent Inbox messages after local operator bootstrap |
 
 Action responses derive effective status, urgency, and `daysRemaining` from the current UTC date without mutating stored state. The profile feed combines category preference, classification confidence, and urgency using stable tie-breaking and exposes a deterministic ranking explanation.
 

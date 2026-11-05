@@ -11,7 +11,9 @@ public class CampusSignalApplication {
         var context = SpringApplication.run(CampusSignalApplication.class, args);
         boolean classificationBackfill = context.getEnvironment()
                 .getProperty("classification.backfill", Boolean.class, false);
-        if (context.getEnvironment().containsProperty("gmail.command") || classificationBackfill) {
+        boolean demoFixture = context.getEnvironment().containsProperty("campussignal.demo.fixture");
+        if (context.getEnvironment().containsProperty("gmail.command")
+                || classificationBackfill || demoFixture) {
             System.exit(SpringApplication.exit(context));
         }
     }

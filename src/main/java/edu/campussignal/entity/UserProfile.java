@@ -64,4 +64,13 @@ public class UserProfile {
     public Integer getSemester() { return semester; }
     public List<String> getInterests() { return List.copyOf(interests); }
     public Instant getCreatedAt() { return createdAt; }
+
+    public void updateFrom(edu.campussignal.dto.ProfileCreateRequest request) {
+        email = request.email();
+        department = request.department();
+        programme = request.programme();
+        year = request.year();
+        semester = request.semester();
+        interests = new ArrayList<>(request.interests());
+    }
 }

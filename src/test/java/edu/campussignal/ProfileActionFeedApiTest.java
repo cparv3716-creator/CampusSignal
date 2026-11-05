@@ -202,6 +202,28 @@ class ProfileActionFeedApiTest {
     }
 
     @Test
+    void emailFeedRanksStoredEmailsWithoutTrackedActionsAndDiffersByProfile() throws Exception {
+        long careerProfile = profile("career");
+        long researchProfile = profile("academic research");
+        var careerEmail = emailWithBody(
+                "career-email", EmailCategory.CAREER, ClassificationConfidence.HIGH,
+                "Apply for the internship by 20 October 2026.");
+        var researchEmail = emailWithBody(
+                "research-email", EmailCategory.ACADEMIC_RESEARCH, ClassificationConfidence.HIGH,
+                "Attend the research workshop on 25 October 2026.");
+
+        JsonNode careerFeed = emailFeed(careerProfile);
+        JsonNode researchFeed = emailFeed(researchProfile);
+
+        assertThat(emailIds(careerFeed)).containsExactly(careerEmail.getId(), researchEmail.getId());
+        assertThat(emailIds(researchFeed)).containsExactly(researchEmail.getId(), careerEmail.getId());
+        assertThat(careerFeed.get(0).get("actionIndicated").asBoolean()).isTrue();
+        assertThat(careerFeed.get(0).get("trackedAction").asBoolean()).isFalse();
+        assertThat(careerFeed.get(0).get("deadline").asText()).isEqualTo("2026-10-20");
+        assertThat(actions.count()).isZero();
+    }
+
+    @Test
     void unknownProfileReturnsEstablishedSafe404() throws Exception {
         mvc.perform(get("/api/v1/profiles/{profileId}/action-feed", 999_999))
                 .andExpect(status().isNotFound())
@@ -255,6 +277,21 @@ class ProfileActionFeedApiTest {
                 new EmailClassificationResult(category, confidence)));
     }
 
+    private Email emailWithBody(
+            String messageId,
+            EmailCategory category,
+            ClassificationConfidence confidence,
+            String body) {
+        return emails.saveAndFlush(Email.classified(
+                new IncomingEmail(
+                        messageId,
+                        "Notice " + messageId,
+                        "notices@example.edu",
+                        Instant.parse("2026-10-08T08:00:00Z"),
+                        body),
+                new EmailClassificationResult(category, confidence)));
+    }
+
     private EmailAction action(Email email, LocalDate deadline) {
         return actions.saveAndFlush(EmailAction.pending(
                 email,
@@ -271,11 +308,22 @@ class ProfileActionFeedApiTest {
         return json.readTree(response.getResponse().getContentAsString());
     }
 
+    private JsonNode emailFeed(long profileId) throws Exception {
+        var response = mvc.perform(get("/api/v1/profiles/{profileId}/email-feed", profileId))
+                .andExpect(status().isOk())
+                .andReturn();
+        return json.readTree(response.getResponse().getContentAsString());
+    }
+
     private List<Long> ids(JsonNode feed) {
         return feed.valueStream().map(item -> item.get("id").asLong()).toList();
     }
 
     private List<Integer> rankingScores(JsonNode feed) {
         return feed.valueStream().map(item -> item.get("rankingScore").asInt()).toList();
+    }
+
+    private List<Long> emailIds(JsonNode feed) {
+        return feed.valueStream().map(item -> item.get("emailId").asLong()).toList();
     }
 }

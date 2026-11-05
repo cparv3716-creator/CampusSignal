@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import edu.campussignal.dto.EmailContentResponse;
 import edu.campussignal.dto.EmailResponse;
 import edu.campussignal.service.EmailReadService;
 
@@ -25,5 +26,10 @@ public class EmailController {
     @GetMapping("/{id}")
     public EmailResponse get(@PathVariable long id) {
         return emails.get(id);
+    }
+
+    @GetMapping("/{id}/content")
+    public EmailContentResponse content(@PathVariable long id) {
+        return emails.content(id);
     }
 }

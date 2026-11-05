@@ -25,6 +25,11 @@ public class ProfileController {
         return ResponseEntity.created(URI.create("/api/v1/profiles/" + profile.id())).body(profile);
     }
 
+    @PutMapping("/{id}")
+    public ProfileResponse update(@PathVariable long id, @Valid @RequestBody ProfileCreateRequest request) {
+        return profiles.update(id, request);
+    }
+
     @GetMapping("/{id}")
     public ProfileResponse get(@PathVariable long id) { return profiles.get(id); }
 

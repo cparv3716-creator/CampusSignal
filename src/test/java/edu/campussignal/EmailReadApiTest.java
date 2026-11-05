@@ -68,6 +68,49 @@ class EmailReadApiTest {
     }
 
     @Test
+    void contentEndpointReturnsBoundedPlainTextPreview() throws Exception {
+        String body = "x".repeat(12_050);
+        var stored = repository.saveAndFlush(Email.classified(
+                incoming("content-preview", "Readable subject", body),
+                new EmailClassificationResult(EmailCategory.GENERAL_OTHER, ClassificationConfidence.LOW)));
+
+        mvc.perform(get("/api/v1/emails/{id}/content", stored.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(stored.getId()))
+                .andExpect(jsonPath("$.subject").value("Readable subject"))
+                .andExpect(jsonPath("$.body").value(body.substring(0, 12_000)))
+                .andExpect(jsonPath("$.truncated").value(true))
+                .andExpect(jsonPath("$.category").doesNotExist())
+                .andExpect(jsonPath("$.classificationConfidence").doesNotExist());
+
+        verifyNoInteractions(classifier);
+    }
+
+    @Test
+    void contentEndpointReturnsFullShortBodyWithoutTruncation() throws Exception {
+        var stored = repository.saveAndFlush(Email.classified(
+                incoming("content-full", "Short subject", "Plain text body"),
+                new EmailClassificationResult(EmailCategory.GENERAL_OTHER, ClassificationConfidence.LOW)));
+
+        mvc.perform(get("/api/v1/emails/{id}/content", stored.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.body").value("Plain text body"))
+                .andExpect(jsonPath("$.truncated").value(false));
+
+        verifyNoInteractions(classifier);
+    }
+
+    @Test
+    void missingEmailContentReturnsSafeProblemDetail() throws Exception {
+        mvc.perform(get("/api/v1/emails/{id}/content", 999_999))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.detail").value("Email not found"));
+
+        verifyNoInteractions(classifier);
+    }
+
+    @Test
     void ingestedEmailIsVisibleWithoutClassificationRunningAgain() throws Exception {
         var incoming = incoming(
                 "ingested-read",

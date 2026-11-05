@@ -155,6 +155,28 @@ class EmailActionDeadlineAndExtractionTest {
     }
 
     @Test
+    void uploadByPhraseProducesSubmitCandidateWithIsoDeadline() throws Exception {
+        var stored = email(
+                "upload-candidate",
+                "Course project upload reminder",
+                "Upload the course project by 2026-10-25 at https://example.org/upload");
+
+        assertCandidate(stored, "SUBMIT", "2026-10-25",
+                "https://example.org/upload");
+    }
+
+    @Test
+    void registerBeforePhraseProducesRegisterCandidateWithIsoDeadline() throws Exception {
+        var stored = email(
+                "register-before-candidate",
+                "Workshop registration",
+                "Register before 2026-10-25 at https://events.example.org/register");
+
+        assertCandidate(stored, "REGISTER", "2026-10-25",
+                "https://events.example.org/register");
+    }
+
+    @Test
     void explicitAttendanceRequestProducesAttendCandidate() throws Exception {
         var stored = email(
                 "attend-candidate",
@@ -162,6 +184,18 @@ class EmailActionDeadlineAndExtractionTest {
                 "Please attend the orientation on campus. Join details will follow.");
 
         assertCandidate(stored, "ATTEND", null, null);
+    }
+
+    @Test
+    void explicitAttendanceDateProducesAttendCandidateWithDeadline() throws Exception {
+        var stored = email(
+                "attend-date-candidate",
+                "Required orientation",
+                "Please attend the orientation on 2026-10-25. "
+                        + "Join details: https://events.example.org/orientation");
+
+        assertCandidate(stored, "ATTEND", "2026-10-25",
+                "https://events.example.org/orientation");
     }
 
     @Test

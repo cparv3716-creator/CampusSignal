@@ -40,8 +40,10 @@ public class DeterministicEmailActionExtractor {
     private static final Pattern DEADLINE_CONTEXT = Pattern.compile(
             "(?:deadline(?:\\s+is)?|last date(?:\\s+is)?|close(?:s)?\\s+on|"
                     + "applications?.{0,80}close(?:s)?(?:\\s+on)?|"
-                    + "register(?:ation)?.{0,40}\\sby|apply.{0,40}\\sby|"
-                    + "submit.{0,40}\\sby)\\s*$",
+                    + "register(?:ation)?.{0,40}\\s(?:by|before)|"
+                    + "apply.{0,40}\\s(?:by|before)|"
+                    + "(?:submit|upload).{0,40}\\sby|"
+                    + "(?:attend|join|participate).{0,80}\\son)\\s*$",
             Pattern.DOTALL);
     private static final Pattern URL = Pattern.compile(
             "https?://[^\\s<>\"']+", Pattern.CASE_INSENSITIVE);
