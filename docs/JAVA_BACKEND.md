@@ -127,8 +127,12 @@ from the mailbox's current history ID. A failed notification is not acknowledged
 
 Local development uses file-backed H2 at `data/campussignal.mv.db`; test contexts use isolated
 in-memory H2. `DATABASE_URL`, `DATABASE_USERNAME`, and `DATABASE_PASSWORD` configure the datasource.
-Only the H2 driver is included at this stage. Hibernate's `ddl-auto=update` initializes the local
-schema; this is a local milestone setup, not a production migration strategy.
+H2 remains the default local and test driver. The runtime-scoped PostgreSQL driver and the
+`prod` profile support an external PostgreSQL database without changing local H2 behavior.
+The production profile requires `JDBC_DATABASE_URL`, `DB_USERNAME`, and `DB_PASSWORD`, binds
+the HTTP server to all container interfaces, and limits each Hikari pool to five connections
+by default. Hibernate's `ddl-auto=update` initializes this academic deployment; versioned
+production migrations remain future work and must precede switching `JPA_DDL_AUTO` to `validate`.
 
 - `emails`: generated ID, unique required `gmail_message_id`, subject, sender, UTC
   `received_at`, full text body, automatic UTC `created_at`, V1 `category`, and numeric

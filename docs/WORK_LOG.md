@@ -2360,11 +2360,6 @@ PR created by: Pending
 - No frontend files, databases, OAuth credentials, tokens, or other worktrees were touched.
 - The isolated startup process was stopped by its specific PID after verification.
 
-### Git
-Commit: Pending
-PR: Pending
-PR created by: Pending
-
 ---
 
 ## 2026-11-04 — Local real-mail frontend verification completed
@@ -2388,6 +2383,141 @@ PR created by: Pending
 
 ### Safety
 - No source files, POM, original H2 database, Gmail data, OAuth credentials, tokens, POST/PATCH/DELETE requests, or Gmail retrieval were changed or performed.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## Work Entry
+Date: 2026-11-05
+Contributor: Codex
+Milestone: Vercel container, PostgreSQL, synthetic demo, and Gmail sync hardening
+Branch: main
+
+### Starting state and safety review
+- Preserved the pre-existing uncommitted PostgreSQL dependency, production properties, `Dockerfile.vercel`, `.dockerignore`, and `GmailSyncController` work.
+- Audited configuration and source changes for embedded credentials, tokens, private email content, database files, and overly broad cross-origin access; no secrets or private data were added or printed.
+- Inspected local and remote branches without checkout or merge. The teammate frontend is on `origin/demo/phase4-safe-collaboration` together with substantial unrelated backend changes, so it was not copied, merged, or overwritten.
+
+### Work completed
+- Kept local and test H2 behavior unchanged while adding a production-only PostgreSQL datasource, bounded Hikari pool settings, Vercel `PORT` binding, and configurable initial schema handling.
+- Updated the Vercel multi-stage image to Maven 3.9.16/Java 25, a Java 25 JRE, and an unprivileged `campussignal` runtime user.
+- Made the optional Gmail synchronization controller absent by default, loopback-only, protected by a required constant-time-compared token, counts-only in its response, and forcibly disabled in the production profile.
+- Added controller tests covering remote rejection, missing or incorrect tokens, counts-only success, and sanitized provider failures.
+- Added an idempotent synthetic demo initializer and production-profile startup test. The demo uses fictional data through the provider-neutral ingestion and action services and requires no Gmail credentials or network access.
+- Documented production variables, PostgreSQL/H2 separation, synthetic startup, same-origin frontend integration, local-only synchronization, and the current authentication/authorization limitation.
+
+### Verification
+- `\.\mvnw.cmd -q "-Dtest=GmailSyncControllerTest,ProductionDemoStartupTest" test` - BUILD SUCCESS; 5 tests passed.
+- Initial restricted `\.\mvnw.cmd clean test` - 206 tests, 0 failures, 3 errors. All errors were Windows `AccessDeniedException` failures from Google's `FileDataStoreFactory` changing permissions on JUnit temporary directories outside the workspace sandbox.
+- Repeated `\.\mvnw.cmd clean test` with normal filesystem access - BUILD SUCCESS; 206 tests, 0 failures, 0 errors, 0 skipped; JaCoCo analyzed 81 classes.
+- Initial Docker build attempts exposed the Maven wrapper's archive/checksum mismatch when `unzip` was unavailable and then a transient Docker Desktop DNS failure. The builder was changed to the official Maven Java 25 image; the final retry completed successfully.
+- `docker build --pull=false --file Dockerfile.vercel --tag campussignal:vercel-test .` - BUILD SUCCESS; image configured with runtime user `campussignal`.
+- Ran the final image against a disposable local `postgres:17-alpine` container. The application started with the production profile, created exactly two synthetic emails and a demo profile, and returned HTTP 405 for the absent production sync route. Containers used no persistent volume and were removed after the check.
+- `git diff --check` completed without whitespace errors. A targeted secret-pattern scan found no credential, token, private-key, or credential-bearing PostgreSQL URL material.
+
+### Deployment readiness and limitations
+- Vercel currently documents `Dockerfile.vercel` container functions, `$PORT` listening, and stateless function storage. Configuration was adapted to those requirements, but no Vercel deployment was created or tested.
+- PostgreSQL behavior was verified only against disposable local PostgreSQL 17, not a managed remote database.
+- `JPA_DDL_AUTO=update` is an initial deployment convenience, not a versioned production migration strategy.
+- Real Gmail OAuth and synchronization were not exercised. Production intentionally disables the HTTP synchronization controller.
+- Existing read/action endpoints do not yet implement end-user authentication or per-user ownership; real Gmail data must not be exposed publicly until that is added or an external access-control layer is used.
+- The teammate frontend expects additional endpoints beyond main's current REST contract. Integration requires an explicit, reviewed reconciliation of that branch.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next action
+- Review the uncommitted diff and choose whether to integrate the teammate frontend contract. After application authentication is resolved, configure a managed PostgreSQL database and perform a protected Vercel preview deployment for end-to-end verification.
+
+---
+
+## Work Entry
+Date: 2026-11-05
+Contributor: Codex
+Milestone: Final pre-commit review for Vercel deployment preparation
+Branch: main
+
+### Review completed
+- Read `AGENTS.md`, reviewed the complete diff for all tracked modifications, and read all seven untracked files in full.
+- Confirmed the default datasource remains file-backed H2 and that the PostgreSQL URL, driver, credentials, and pool configuration are production-profile settings.
+- Confirmed synthetic records require the explicit `campussignal.demo-data.enabled=true` opt-in, contain only fictional values, use provider-neutral services, and do not initialize Gmail access.
+- Confirmed the HTTP Gmail synchronization controller is absent by default and in the production smoke test, requires loopback plus a nonblank token when locally enabled, returns only aggregate counts, and sanitizes provider failures.
+- Reviewed the container build, ignore rules, environment template, and production configuration for credentials, private data, unsafe permissions, and Vercel port binding.
+- Did not merge frontend work, commit, push, deploy, or create external resources.
+
+### Verification
+- `.\mvnw.cmd -B -ntp -Ddebug=false clean test` - BUILD SUCCESS; 206 tests, 0 failures, 0 errors, 0 skipped; JaCoCo analyzed 81 classes.
+- Re-ran the final image against disposable PostgreSQL 17 - passed with non-root image user, two synthetic emails, a fictional profile, and HTTP 405 for the production sync path.
+- Re-ran production with the documented local sync environment flag deliberately enabled; the production profile still returned HTTP 405, confirming that the local opt-in does not register the endpoint in the container configuration.
+- `git diff --check` completed without errors, and the final secret-pattern scan found no private-key, OAuth-token, API-key, credential-bearing PostgreSQL URL, or client-secret material.
+
+### Remaining limitations
+- No managed PostgreSQL or Vercel preview deployment has been verified.
+- `JPA_DDL_AUTO=update` is not a versioned migration strategy.
+- Existing read/action APIs do not enforce end-user authentication and ownership, so real Gmail data is not ready for a public deployment.
+- Synthetic initialization is idempotent for sequential startup but is not explicitly serialized across concurrent first-starting application instances.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## Work Entry
+Date: 2026-11-05
+Contributor: Claude Sonnet 5
+Milestone: Resolve five rebase merge conflicts (Vercel prep commit `817450d` onto Phase 4 collaboration merge `cf76e29`)
+Branch: main (interactive rebase)
+
+### Starting state
+- `git pull --rebase origin main` had stopped mid-rebase with conflicts in `README.md`, `docs/AGENT_PROMPTS.md`, `docs/WORK_LOG.md`, `src/main/java/edu/campussignal/controller/GmailSyncController.java`, and `src/test/java/edu/campussignal/controller/GmailSyncControllerTest.java`.
+- `GmailSyncController.java` was found at 0 bytes in the working tree (emptied outside this session); both conflicting versions were recovered intact from the Git index stages (`git show :2:...` / `:3:...`), so no code was lost.
+
+### Root-cause analysis
+- The two `GmailSyncController` implementations were not revisions of the same feature: the branch being rebased (`817450d`) was authored from a point in history before the Phase 4 merge (`cf76e29`) introduced the operator-session/CSRF/bootstrap Gmail controller at `/api/v1/gmail/*`. Its author independently wrote a second, simpler token-gated controller at `/api/v1/emails/sync`, unaware the session-based one already existed.
+- Confirmed via `frontend/src/App.jsx` and `frontend/src/gmailSync.js` that only the `/api/v1/gmail/*` session/CSRF flow is wired to the shipped UI; the token-gated `/api/v1/emails/sync` design is not used by any frontend code.
+- Confirmed via this file's own prior entries and `README.md`'s "Gmail authorization and synchronization" / "Configuration" sections (already auto-merged, non-conflicting) that both mechanisms were intentionally meant to coexist as two separate, independently gated endpoints, not alternate versions of one endpoint.
+
+### Resolution
+- `GmailSyncController.java`: kept the existing operator-session/bootstrap/CSRF implementation verbatim (the one actually used by the frontend) at `/api/v1/gmail/*`.
+- Added `EmailSyncController.java` (new file) containing the incoming branch's loopback + constant-time token design, renamed from `GmailSyncController` to `EmailSyncController` to avoid a duplicate-class/duplicate-route collision, kept at `/api/v1/emails/sync`.
+- Split `GmailSyncControllerTest.java` the same way: the original session/CSRF tests stayed with `GmailSyncController`; the incoming branch's `@WebMvcTest` token/loopback tests moved to a new `EmailSyncControllerTest.java` targeting `EmailSyncController`.
+- `README.md`: kept both the HEAD-only frontend/local-dashboard-sync/synthetic-fixture section and the incoming branch's Vercel/PostgreSQL section, concatenated in place; neither was a revision of the other.
+- `docs/AGENT_PROMPTS.md` and `docs/WORK_LOG.md`: concatenated both sides' entries in chronological order with no content dropped, except one exact duplicate closing-footer paragraph for a single pre-existing frontend entry (HEAD's own later edit to that entry's footer already superseded it; see "Discarded content" below).
+
+### Security finding and fix (not part of the original conflict, found during validation)
+- While verifying "production Gmail sync remains unavailable, even if an enable flag is set," confirmed empirically (temporary test, not committed) that `EmailSyncController`'s `@ConditionalOnProperty(campussignal.gmail-sync.enabled=true)` guard alone is insufficient: Spring Boot resolves Java system properties and OS environment variables at a **higher** precedence than profile-specific `application-prod.properties`, so a misconfigured `GMAIL_SYNC_ENABLED=true` environment variable in production would still register the controller (observed: HTTP 403 from the controller's own token check, meaning the bean existed) even though `application-prod.properties` hardcodes the flag to `false`.
+- Fixed by adding `@Profile("!prod")` to `EmailSyncController`, alongside the existing `@ConditionalOnProperty`. `@Profile` is driven by `spring.profiles.active`, which `Dockerfile.vercel` fixes to `prod` via `ENV SPRING_PROFILES_ACTIVE=prod` — a value not affected by the same property-precedence path as the sync-enable flag. Re-ran the same probe after the fix: the endpoint returned HTTP 405 (route absent), matching the behavior this file's prior entry already claimed was verified manually.
+
+### Discarded content (explained)
+- Dropped one duplicate "### Change scope" footer paragraph (`No Java production source or test code changed...`) for the 2026-11-04 "Phase 4 frontend ... React dashboard UI refinement" entry. The incoming branch's copy of that entry still ended with this original footer; HEAD's branch had already replaced it with a more complete "### Git / ### Next stage" footer consistent with every other entry's template. Kept HEAD's replacement; the dropped text added no information not already covered by that entry's "Files changed" list.
+
+### Files changed
+- README.md
+- docs/AGENT_PROMPTS.md
+- docs/WORK_LOG.md
+- src/main/java/edu/campussignal/controller/GmailSyncController.java (conflict resolved, content unchanged from HEAD)
+- src/main/java/edu/campussignal/controller/EmailSyncController.java (new)
+- src/test/java/edu/campussignal/controller/GmailSyncControllerTest.java (conflict resolved, content unchanged from HEAD)
+- src/test/java/edu/campussignal/controller/EmailSyncControllerTest.java (new)
+
+### Verification
+- `git diff --cached --check` — passed, no whitespace errors or residual conflict markers.
+- `.\mvnw.cmd -B -ntp -Ddebug=false clean test` — BUILD SUCCESS; 238 tests, 0 failures, 0 errors, 0 skipped.
+- Manual probe (temporary, uncommitted test class) confirmed the production env-var-override gap before the `@Profile("!prod")` fix (HTTP 403, bean present) and its closure after the fix (HTTP 405, bean absent).
+
+### Safety
+- No tests were weakened, skipped, or deleted.
+- No credentials, tokens, or private data were introduced or exposed.
+- No frontend files were modified.
+- `git rebase --skip`, `git reset --hard`, and force-push were not used.
 
 ### Git
 Commit: Pending

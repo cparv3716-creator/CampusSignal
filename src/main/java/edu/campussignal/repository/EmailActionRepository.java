@@ -9,6 +9,7 @@ import edu.campussignal.entity.EmailAction;
 public interface EmailActionRepository extends JpaRepository<EmailAction, Long> {
     List<EmailAction> findAllByOrderByCreatedAtDescIdDesc();
     List<EmailAction> findAllByEmailIdOrderByCreatedAtDescIdDesc(long emailId);
+    boolean existsByEmailId(long emailId);
 
     @EntityGraph(attributePaths = "email")
     List<EmailAction> findAllByStatus(EmailActionStatus status);

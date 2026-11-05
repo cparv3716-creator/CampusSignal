@@ -5552,3 +5552,136 @@ Feature branch: demo/phase4-safe-collaboration
 Target branch: main
 
 Inspect the feature worktree, fetch the latest target and feature refs, and review conflicts in `.gitignore`, `docs/AGENT_PROMPTS.md`, and `docs/WORK_LOG.md`. Preserve both branches' important security protections, documentation, and history without exposing private paths, credentials, or email data. Do not resolve blindly, merge into main, or modify other worktrees. After approval, resolve and validate only the feature branch, leaving final PR merge approval to the repository owner.
+
+---
+
+## 2026-11-05 - Vercel Deployment Readiness
+
+### Exact task prompt
+
+> You are the lead software engineer for my CampusSignal project.
+>
+> Repository: [https://github.com/cparv3716-creator/CampusSignal](https://github.com/cparv3716-creator/CampusSignal)
+>
+> Local project: C:\Users\hp\OneDrive\Desktop\CampusSignal
+>
+> **Objective:** Finish preparing CampusSignal for deployment on Vercel, including its existing Java Spring Boot backend, PostgreSQL support, Gmail synchronization and teammate's frontend integration.
+>
+> **Current state:**
+>
+> - Java 25, Spring Boot 3.5.16, Maven.
+> - All 201 existing tests pass.
+> - Existing local H2 database must remain functional.
+> - PostgreSQL JDBC dependency has been added to pom.xml.
+> - `src/main/resources/application-prod.properties` has been created.
+> - `Dockerfile.vercel` and `.dockerignore` have been created.
+> - `GmailSyncController.java` is new and has not been committed.
+> - Docker 29.8.0 is installed, but the last build failed because Docker Desktop's Linux engine was unavailable.
+> - The frontend is not yet present on the local main branch.
+> - There are uncommitted changes. Preserve them.
+>
+> **Tasks:**
+>
+> 1. Read `AGENTS.md`, `README.md`, the relevant technical documentation and the existing source code before making changes.
+> 2. Audit the current uncommitted files for correctness and security.
+> 3. Diagnose Docker availability, validate the Dockerfile and build the image when the engine is available.
+> 4. Verify the current Vercel container deployment requirements and adapt the configuration if necessary.
+> 5. Complete PostgreSQL production configuration without affecting local H2.
+> 6. Add automated tests for GmailSyncController. Ensure the synchronization endpoint cannot be abused or publicly expose private Gmail data.
+> 7. Ensure the production application works with synthetic demo data without requiring real Gmail credentials.
+> 8. Inspect the Git branches for my teammate's frontend. Do not overwrite or merge unrelated changes.
+> 9. Prepare the backend for frontend integration using the existing REST APIs.
+> 10. Run the full Maven test suite and report all failures, fixes and remaining limitations.
+> 11. Update the required project logs according to AGENTS.md.
+>
+> **Important constraints:**
+>
+> - Preserve the existing Java implementation and all tests.
+> - Do not delete existing work or rewrite the project.
+> - Do not expose, print, commit or upload credentials, tokens, private emails or databases.
+> - Do not deploy publicly, create paid resources, or push to GitHub without my explicit approval.
+> - Do not claim that PostgreSQL, Docker or Vercel deployment works unless actually verified.
+> - Keep the changes minimal, production-conscious and well tested.
+>
+> Work directly in the repository. Complete independently verifiable steps, and stop only when an external action or approval is necessary.
+>
+> At the end, provide a concise report of files changed, tests run, deployment readiness, unresolved blockers and the next required action.
+
+---
+
+## Prompt
+
+Review all 15 current uncommitted changes in CampusSignal, including all seven untracked files.
+
+This is the final pre-commit review for the Vercel deployment preparation.
+
+1. Read AGENTS.md and inspect the complete diffs and all new files.
+2. Verify that local H2 remains the default and PostgreSQL is used only with the production configuration.
+3. Verify that SyntheticDemoDataInitializer cannot accidentally create demonstration records outside its intended environment.
+4. Verify that GmailSyncController is disabled in production and cannot expose credentials, tokens or private Gmail data.
+5. Check Dockerfile.vercel, .dockerignore and the production environment configuration for security and deployability.
+6. Verify that the application can start without Gmail credentials when using synthetic demonstration data.
+7. Update docs/TEST_LOG.md with the verified 206-test result and Docker/PostgreSQL smoke-test results, preserving previous entries.
+8. Run git diff --check and any tests necessary after your changes.
+9. Report any unresolved issues and the exact files ready for commit.
+
+Do not delete existing functionality, weaken tests, include secrets, merge frontend branches, commit, push or deploy yet.
+
+If everything is safe, tell me the proposed commit message and the exact files to stage. Wait for my approval before committing.
+
+---
+
+## 2026-11-05 - Resolve five rebase merge conflicts (Vercel prep onto Phase 4 collaboration)
+
+### Exact task prompt
+
+> Act as a senior Java/Spring Boot engineer and Git specialist.
+>
+> My CampusSignal repository is currently in the middle of a failed `git pull --rebase origin main`.
+>
+> Local commit: `817450d` — `feat: prepare Vercel deployment with PostgreSQL and synthetic demo mode`.
+>
+> There are five merge conflicts:
+> 1. README.md
+> 2. docs/AGENT_PROMPTS.md
+> 3. docs/WORK_LOG.md
+> 4. src/main/java/edu/campussignal/controller/GmailSyncController.java
+> 5. src/test/java/edu/campussignal/controller/GmailSyncControllerTest.java
+>
+> **Your task is to resolve all five conflicts safely, preserving functionality from both branches.**
+>
+> Requirements:
+>
+> - First inspect `git status`, the rebase state, and both versions of every conflicting file.
+> - Do not blindly accept Current, Incoming or Both.
+> - Preserve documentation and development history from both branches without unnecessary duplication.
+> - For GmailSyncController, preserve existing Gmail functionality and all relevant security controls.
+> - Ensure production Gmail sync remains unavailable, even if an enable flag is set.
+> - Ensure locally enabled sync requires loopback access and a valid nonblank token.
+> - Preserve sanitised error responses and aggregate-only responses.
+> - Keep synthetic demo mode independent of real Gmail credentials.
+> - Preserve production PostgreSQL configuration and the non-root Docker setup.
+> - Reconcile the test files to reflect the final controller implementation.
+> - Do not introduce duplicate classes, methods or conflicting routes.
+> - Resolve all Git conflict markers and stage only the resolved files.
+>
+> After resolving the conflicts:
+>
+> 1. Run `git diff --cached --check`.
+> 2. Run `.\mvnw.cmd -B -ntp -Ddebug=false clean test`.
+> 3. Verify that all tests pass and that production security restrictions remain enforced.
+> 4. If necessary, correct any regressions and rerun the tests.
+> 5. Continue the rebase using `git rebase --continue` only after successful validation.
+> 6. Check the final Git status and commit history.
+>
+> **Important restrictions:**
+> - Do not use `git push --force`.
+> - Do not use `git rebase --skip`.
+> - Do not use `git reset --hard`.
+> - Do not discard changes from either branch without explaining why.
+> - Do not modify unrelated frontend code.
+> - Do not push, deploy, or merge any additional branches.
+>
+> If a security-sensitive conflict cannot be resolved confidently, stop and explain the choices instead of guessing.
+>
+> When finished, report the files changed, how each conflict was resolved, test results, and final Git status. Do not claim success unless the commands actually completed.

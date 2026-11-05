@@ -72,6 +72,11 @@
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <!-- Decode MIME headers/charsets and extract text from HTML email bodies. -->
         <dependency>
             <groupId>org.eclipse.angus</groupId>
