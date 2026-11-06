@@ -9,4 +9,7 @@ public interface EmailRepository extends JpaRepository<Email, Long> {
     Optional<Email> findByGmailMessageId(String gmailMessageId);
     List<Email> findAllByCategoryIsNullOrClassificationConfidenceIsNullOrderByIdAsc();
     List<Email> findAllByOrderByReceivedAtDescIdDesc();
+    Optional<Email> findByUserIdAndGmailMessageId(Long userId, String gmailMessageId);
+    List<Email> findAllByUserIdOrderByReceivedAtDescIdDesc(Long userId);
+    Optional<Email> findByIdAndUserId(Long id, Long userId);
 }

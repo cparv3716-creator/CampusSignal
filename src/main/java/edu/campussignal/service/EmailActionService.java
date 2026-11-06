@@ -15,6 +15,7 @@ import edu.campussignal.dto.EmailActionStatusRequest;
 import edu.campussignal.entity.EmailAction;
 import edu.campussignal.repository.EmailActionRepository;
 import edu.campussignal.repository.EmailRepository;
+import edu.campussignal.entity.UserAccount;
 
 @Service
 @Validated
@@ -47,6 +48,16 @@ public class EmailActionService {
                 .map(this::readResponse)
                 .toList();
     }
+    public List<EmailActionReadResponse> list(UserAccount user) {
+        return actions.findAllByOrderByCreatedAtDescIdDesc().stream()
+                .filter(action -> action.getEmail().getUser() != null && action.getEmail().getUser().getId().equals(user.getId()))
+                .map(this::readResponse).toList();
+    }
+    @Transactional
+    public EmailActionResponse create(UserAccount user, long emailId, @Valid EmailActionCreateRequest request) {
+        var email = emails.findByIdAndUserId(emailId, user.getId()).orElseThrow(EmailNotFoundException::new);
+        return response(actions.saveAndFlush(EmailAction.pending(email, request)));
+    }
 
     public List<EmailActionReadResponse> listForEmail(long emailId) {
         if (!emails.existsById(emailId)) {
@@ -68,6 +79,12 @@ public class EmailActionService {
         var action = findAction(actionId);
         transition(action, request.status());
         return response(action);
+    }
+    @Transactional
+    public EmailActionResponse updateStatus(UserAccount user, long actionId, @Valid EmailActionStatusRequest request) {
+        var action = findAction(actionId);
+        if (action.getEmail().getUser() == null || !action.getEmail().getUser().getId().equals(user.getId())) throw new EmailActionNotFoundException();
+        transition(action, request.status()); return response(action);
     }
 
     private EmailAction findAction(long actionId) {

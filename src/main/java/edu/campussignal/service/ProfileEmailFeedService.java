@@ -16,6 +16,7 @@ import edu.campussignal.dto.RankedEmailFeedItemResponse;
 import edu.campussignal.entity.EmailAction;
 import edu.campussignal.repository.EmailActionRepository;
 import edu.campussignal.repository.EmailRepository;
+import edu.campussignal.entity.UserAccount;
 
 @Service
 @Transactional(readOnly = true)
@@ -49,9 +50,19 @@ public class ProfileEmailFeedService {
 
     public List<RankedEmailFeedItemResponse> feed(long profileId) {
         ProfileResponse profile = profiles.get(profileId);
+        return feed(profile, emails.findAllByOrderByReceivedAtDescIdDesc());
+    }
+    public List<RankedEmailFeedItemResponse> feedForUser(UserAccount user) {
+        ProfileResponse profile = ProfileResponse.from(profilesEntity(user));
+        return feed(profile, emails.findAllByUserIdOrderByReceivedAtDescIdDesc(user.getId()));
+    }
+    private edu.campussignal.entity.UserProfile profilesEntity(UserAccount user) {
+        return profiles.repositoryForOwner(user);
+    }
+    private List<RankedEmailFeedItemResponse> feed(ProfileResponse profile, List<edu.campussignal.entity.Email> ownedEmails) {
         Map<Long, EmailAction> latestActions = latestActionsByEmail();
         List<RankedEmailFeedItemResponse> ranked = new ArrayList<>();
-        for (var email : emails.findAllByOrderByReceivedAtDescIdDesc()) {
+        for (var email : ownedEmails) {
             if (email.getCategory() == null || email.getClassificationConfidence() == null) {
                 continue;
             }
@@ -72,7 +83,7 @@ public class ProfileEmailFeedService {
                     email.getClassificationConfidence(),
                     relevanceScore,
                     rankingScore,
-                    explanation(relevanceScore, presentation.urgency(), candidate != null, tracked),
+                    explanation(email.getCategory(), relevanceScore, presentation.urgency(), candidate != null, tracked),
                     candidate == null ? null : candidate.deadline(),
                     candidate == null ? null : candidate.actionType(),
                     candidate == null ? null : candidate.actionUrl(),
@@ -104,15 +115,46 @@ public class ProfileEmailFeedService {
     }
 
     private static String explanation(
+            EmailCategory category,
             int relevanceScore,
             ActionUrgency urgency,
             boolean actionIndicated,
             EmailAction tracked) {
-        StringBuilder explanation = new StringBuilder(relevance(relevanceScore))
-                .append(" relevance + ").append(urgency);
-        if (actionIndicated) explanation.append(" + action indicated");
-        if (tracked != null) explanation.append(" + action tracked");
+        StringBuilder explanation = new StringBuilder(categoryDescription(category));
+        if (relevanceScore >= 30) {
+            explanation.append(" It matches your saved academic profile or interests.");
+        } else {
+            explanation.append(" It is shown from your inbox but is a lower profile match.");
+        }
+        explanation.append(' ').append(deadlineDescription(urgency));
+        if (actionIndicated) explanation.append(" A potential action was detected in the message.");
+        if (tracked != null) explanation.append(" You are already tracking an action for it.");
         return explanation.toString();
+    }
+
+    private static String categoryDescription(EmailCategory category) {
+        return switch (category) {
+            case ACADEMIC_RESEARCH -> "Academic or research announcement.";
+            case CAREER -> "Career or placement announcement.";
+            case EVENT_ACTIVITY -> "Campus event or activity announcement.";
+            case CALL_FOR_PARTICIPATION -> "Call for participation announcement.";
+            case ADMINISTRATIVE_NOTICE -> "Administrative campus notice.";
+            case WELLBEING_SUPPORT -> "Student wellbeing or support notice.";
+            case RECOGNITION_ACHIEVEMENT -> "Recognition or achievement announcement.";
+            case GENERAL_OTHER -> "General campus announcement.";
+        };
+    }
+
+    private static String deadlineDescription(ActionUrgency urgency) {
+        return switch (urgency) {
+            case DUE_TODAY -> "The supported deadline is today.";
+            case DUE_SOON -> "A supported deadline is due soon.";
+            case UPCOMING -> "A supported deadline is upcoming.";
+            case MISSED -> "The supported deadline has passed.";
+            case COMPLETED -> "The related action is complete.";
+            case NOT_INTERESTED -> "You marked the related action as not interested.";
+            case NO_DEADLINE -> "No deadline was identified.";
+        };
     }
 
     private static String categoryKey(EmailCategory category) {

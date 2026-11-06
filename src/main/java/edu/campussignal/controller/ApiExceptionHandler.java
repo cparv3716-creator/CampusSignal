@@ -13,9 +13,17 @@ import edu.campussignal.service.EmailNotFoundException;
 import edu.campussignal.service.IncompleteEmailClassificationException;
 import edu.campussignal.service.InvalidEmailActionTransitionException;
 import edu.campussignal.service.ProfileNotFoundException;
+import edu.campussignal.security.AuthenticationRequiredException;
+import edu.campussignal.security.CsrfRejectedException;
+import edu.campussignal.service.GoogleWebOAuthService;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(AuthenticationRequiredException.class)
+    public ProblemDetail unauthenticated() { return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Authentication required"); }
+
+    @ExceptionHandler({CsrfRejectedException.class, GoogleWebOAuthService.OAuthException.class})
+    public ProblemDetail authorizationRejected(RuntimeException exception) { return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Authorization could not be completed safely"); }
     @ExceptionHandler(ProfileNotFoundException.class)
     public ProblemDetail notFound() {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Profile not found");

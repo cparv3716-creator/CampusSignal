@@ -15,6 +15,10 @@ public class Email {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private UserAccount user;
+
     @Column(name = "gmail_message_id", nullable = false, length = 255)
     private String gmailMessageId;
 
@@ -43,7 +47,8 @@ public class Email {
 
     protected Email() {}
 
-    private Email(IncomingEmail incoming, EmailClassificationResult classification) {
+    private Email(UserAccount user, IncomingEmail incoming, EmailClassificationResult classification) {
+        this.user = user;
         gmailMessageId = incoming.messageId();
         subject = incoming.subject();
         sender = incoming.sender();
@@ -55,7 +60,10 @@ public class Email {
 
     public static Email classified(IncomingEmail incoming, EmailClassificationResult classification) {
         Objects.requireNonNull(incoming);
-        return new Email(incoming, requireCompleteClassification(classification));
+        return new Email(null, incoming, requireCompleteClassification(classification));
+    }
+    public static Email classified(UserAccount user, IncomingEmail incoming, EmailClassificationResult classification) {
+        return new Email(Objects.requireNonNull(user), incoming, requireCompleteClassification(classification));
     }
 
     public void applyClassification(EmailClassificationResult classification) {
@@ -84,4 +92,5 @@ public class Email {
     public EmailCategory getCategory() { return category; }
     public ClassificationConfidence getClassificationConfidence() { return classificationConfidence; }
     public Instant getCreatedAt() { return createdAt; }
+    public UserAccount getUser() { return user; }
 }
