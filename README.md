@@ -152,6 +152,39 @@ existing extractor finds one, and the synthetic profile
 `demo.student@demo.example.com`. Do not point this command at the normal
 `./data/campussignal` database.
 
+## Vercel container and PostgreSQL
+
+Vercel's container runtime detects the root `Dockerfile.vercel`. The image builds with
+Maven 3.9.16 and Java 25, runs as an unprivileged user, activates the `prod` profile,
+binds to `0.0.0.0`, and listens on Vercel's `PORT` value (port 80 by default).
+
+Configure these runtime variables in the Vercel project; do not commit their values:
+
+- `JDBC_DATABASE_URL`: a full JDBC URL such as `jdbc:postgresql://host:5432/database`
+- `DB_USERNAME` and `DB_PASSWORD`
+- optional pool limits: `DB_MAX_POOL_SIZE`, `DB_MIN_IDLE`, and `DB_CONNECTION_TIMEOUT_MS`
+- optional `JPA_DDL_AUTO` (defaults to `update` for the initial academic deployment)
+
+The container is stateless. Production data must live in PostgreSQL; the local default
+continues to use H2. Schema migrations are not yet versioned, so change `JPA_DDL_AUTO`
+to `validate` only after an external migration process has created the schema.
+
+For a synthetic-only deployment, set `DEMO_DATA_ENABLED=true`. Startup idempotently
+creates a fictional profile (`student@demo.example.com`), two fictional messages, and
+two actions through the normal ingestion and action services. It does not load Gmail
+credentials or contact Google. Leave the setting false for an empty or real-data database.
+
+Frontend clients should use relative `/api/v1/...` URLs and be routed through the same
+origin as the backend. CampusSignal intentionally does not enable permissive cross-origin
+access. The teammate frontend currently lives only on its collaboration branch and is not
+merged here; reconcile its additional endpoint contract separately rather than copying or
+overwriting that branch.
+
+The existing read and action APIs do not yet enforce end-user authentication or per-user
+data ownership. A public deployment is therefore suitable only for fictional demo data or
+behind an external access-control layer. Do not connect real Gmail data to a publicly
+reachable instance until application-level authentication and authorization are implemented.
+
 ## Gmail authorization and synchronization
 
 Enable the Gmail API, create a desktop OAuth client, and keep the downloaded credentials outside source control. For realtime synchronization, also enable Pub/Sub, configure a topic and pull subscription, and grant the Gmail push service account permission to publish to the topic.
@@ -166,6 +199,13 @@ java -jar target/campussignal-0.1.0-SNAPSHOT.jar --spring.main.web-application-t
 ```
 
 `authorize` performs the browser-based consent flow. `retrieve` fetches current inbox messages. `watch` registers Gmail push notifications and stores the returned history state. `listen` consumes the configured pull subscription, synchronizes new messages through Gmail history, ignores already-processed notifications, and performs bounded recovery when Gmail reports a stale history cursor.
+
+The optional HTTP sync endpoint is strictly for an explicitly enabled local workflow. Set
+`GMAIL_SYNC_ENABLED=true` and a strong `GMAIL_SYNC_TOKEN`, then call
+`POST /api/v1/emails/sync` from loopback with the token in
+`X-CampusSignal-Sync-Token`. It returns counts only. The endpoint is absent by default and
+is forcibly disabled by the production profile; do not use it to expose Gmail through a
+public deployment.
 
 ## Classification and backfill
 
@@ -207,6 +247,8 @@ Action responses derive effective status, urgency, and `daysRemaining` from the 
 - H2 datasource: `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`
 - Gmail OAuth and retrieval: `GMAIL_CREDENTIALS_FILE`, `GMAIL_TOKEN_DIRECTORY`, `GMAIL_CALLBACK_PORT`, `GMAIL_MAX_RESULTS`, `GMAIL_USER_ID`
 - realtime synchronization: `GOOGLE_CLOUD_PROJECT`, `GMAIL_PUBSUB_TOPIC`, `GMAIL_PUBSUB_SUBSCRIPTION`, `GMAIL_RECOVERY_MAX_RESULTS`
+- local-only HTTP sync: `GMAIL_SYNC_ENABLED`, `GMAIL_SYNC_TOKEN`
+- synthetic fixtures: `DEMO_DATA_ENABLED`
 - category scoring: the six `CATEGORY_SCORE_*` values shown in `.env.example`
 
 ## Evaluation evidence

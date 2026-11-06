@@ -711,3 +711,29 @@ New JUnit tests: **10**. Baseline: 152 Java tests. Final: **162 Java tests**.
 - Live Pub/Sub synchronization.
 - Formal classification accuracy evaluation.
 - Detailed review of selected PMD findings.
+
+---
+
+## 2026-11-05 - Vercel Deployment Preparation Verification
+
+### Automated tests
+- Command: `.\mvnw.cmd -B -ntp -Ddebug=false clean test`
+- Result: BUILD SUCCESS.
+- Tests: 206 total, 0 failures, 0 errors, 0 skipped.
+- JaCoCo analyzed 81 classes.
+- The production-profile startup test verified two fictional emails, two actions, one fictional profile, idempotent repeated initialization, and startup without real Gmail credential or token files.
+- The Gmail synchronization controller tests verified remote-address rejection, missing/incorrect-token rejection, counts-only success output, and suppression of private provider failure details.
+
+### Docker and PostgreSQL smoke test
+- Final image: `campussignal:vercel-test`, built from `Dockerfile.vercel`.
+- Runtime identity: unprivileged `campussignal` user; container port 80 exposed.
+- Database: disposable local `postgres:17-alpine`, with no persistent volume.
+- Result: application started with the `prod` profile, connected through the PostgreSQL JDBC driver, and returned exactly two synthetic emails plus the fictional demo profile.
+- Gmail verification: no real credentials were supplied or accessed; `POST /api/v1/emails/sync` returned HTTP 405 because the controller is disabled by production configuration.
+- Production guard check: even with documented local overrides `GMAIL_SYNC_ENABLED=true` and a synthetic token, the `prod` profile still returned HTTP 405 and never registered the sync endpoint.
+- Cleanup: both disposable containers were stopped and removed.
+
+### Scope and limitations
+- Local and test defaults remain H2; PostgreSQL selection is confined to the production profile.
+- No managed PostgreSQL service or Vercel deployment was tested.
+- Versioned schema migrations and end-user authorization remain outstanding production work.

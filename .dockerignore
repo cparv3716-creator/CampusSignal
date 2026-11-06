@@ -1,0 +1,16 @@
+.git
+.github
+.env
+.env.*
+.gmail-tokens*
+.m2
+.postman
+data
+target
+postman
+app
+tests
+docs
+*.db
+*.zip
+credentials*.json
