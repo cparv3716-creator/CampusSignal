@@ -8,6 +8,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import edu.campussignal.dto.IncomingEmail;
 import edu.campussignal.entity.Email;
 import edu.campussignal.repository.EmailRepository;
+import edu.campussignal.entity.UserAccount;
 
 @Service
 public class EmailIngestionService {
@@ -42,5 +43,26 @@ public class EmailIngestionService {
                     .map(email -> new Result(email.getId(), false))
                     .orElseThrow(() -> exception);
         }
+    }
+
+    public Result ingest(UserAccount user, IncomingEmail incoming) {
+        IncomingEmail owned = owned(user, incoming);
+        var existing = repository.findByUserIdAndGmailMessageId(user.getId(), owned.messageId());
+        if (existing.isPresent()) return new Result(existing.get().getId(), false);
+        try {
+            return transaction.execute(status -> {
+                var saved = repository.saveAndFlush(Email.classified(user, owned, classifier.classify(owned.subject(), owned.body())));
+                return new Result(saved.getId(), true);
+            });
+        } catch (DataIntegrityViolationException exception) {
+            return repository.findByUserIdAndGmailMessageId(user.getId(), owned.messageId())
+                    .map(email -> new Result(email.getId(), false)).orElseThrow(() -> exception);
+        }
+    }
+    private static IncomingEmail owned(UserAccount user, IncomingEmail incoming) {
+        // The historical table has a global unique provider-id constraint. Namespace new rows so
+        // identical opaque Gmail IDs from separate accounts remain isolated without changing data.
+        return new IncomingEmail("user-" + user.getId() + ":" + incoming.messageId(), incoming.subject(),
+                incoming.sender(), incoming.receivedAt(), incoming.body());
     }
 }

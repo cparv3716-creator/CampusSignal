@@ -7,6 +7,7 @@ import edu.campussignal.dto.EmailContentResponse;
 import edu.campussignal.dto.EmailResponse;
 import edu.campussignal.entity.Email;
 import edu.campussignal.repository.EmailRepository;
+import edu.campussignal.entity.UserAccount;
 
 @Service
 @Transactional(readOnly = true)
@@ -40,6 +41,12 @@ public class EmailReadService {
                 email.getReceivedAt(),
                 preview,
                 truncated);
+    }
+    public List<EmailResponse> list(UserAccount user) { return repository.findAllByUserIdOrderByReceivedAtDescIdDesc(user.getId()).stream().map(this::response).toList(); }
+    public EmailContentResponse content(UserAccount user, long id) {
+        Email email = repository.findByIdAndUserId(id, user.getId()).orElseThrow(EmailNotFoundException::new);
+        String body = email.getBody(); boolean truncated = body.length() > MAX_CONTENT_PREVIEW_LENGTH;
+        return new EmailContentResponse(email.getId(), email.getSubject(), email.getSender(), email.getReceivedAt(), truncated ? body.substring(0, MAX_CONTENT_PREVIEW_LENGTH) : body, truncated);
     }
 
     private EmailResponse response(Email email) {

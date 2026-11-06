@@ -6,4 +6,5 @@ import edu.campussignal.entity.UserProfile;
 
 public interface UserProfileRepository extends JpaRepository<UserProfile, Long> {
     Optional<UserProfile> findByEmail(String email);
+    Optional<UserProfile> findByUserId(Long userId);
 }

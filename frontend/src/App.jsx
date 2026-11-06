@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import StudentApp from './StudentApp.jsx'
 import { request } from './api.js'
 import { summarizeEmail } from './emailSummary.js'
 import { syncHeaders, syncResultMessage } from './gmailSync.js'
@@ -33,6 +34,7 @@ function urgencyLabel(item) {
 }
 
 function App() {
+  return <StudentApp />
   const [view, setView] = useState('overview')
   const [profileForm, setProfileForm] = useState(initialProfile)
   const [lookupMode, setLookupMode] = useState('id')

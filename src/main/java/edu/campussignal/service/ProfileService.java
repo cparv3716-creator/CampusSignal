@@ -9,6 +9,9 @@ import edu.campussignal.dto.ProfileCreateRequest;
 import edu.campussignal.dto.ProfileResponse;
 import edu.campussignal.entity.UserProfile;
 import edu.campussignal.repository.UserProfileRepository;
+import edu.campussignal.entity.UserAccount;
+import edu.campussignal.dto.StudentProfileRequest;
+import edu.campussignal.dto.StudentProfileResponse;
 
 @Service
 @Validated
@@ -38,4 +41,16 @@ public class ProfileService {
         return ProfileResponse.from(repository.findByEmail(email.strip().toLowerCase(Locale.ROOT))
                 .orElseThrow(ProfileNotFoundException::new));
     }
+
+    @Transactional
+    public StudentProfileResponse saveForUser(UserAccount user, @Valid StudentProfileRequest request) {
+        var profile = repository.findByUserId(user.getId()).orElseGet(() -> new UserProfile(user, request));
+        if (profile.getId() != null) profile.updateFrom(request);
+        return StudentProfileResponse.from(repository.saveAndFlush(profile));
+    }
+
+    public StudentProfileResponse getForUser(UserAccount user) {
+        return StudentProfileResponse.from(repository.findByUserId(user.getId()).orElseThrow(ProfileNotFoundException::new));
+    }
+    public UserProfile repositoryForOwner(UserAccount user) { return repository.findByUserId(user.getId()).orElseThrow(ProfileNotFoundException::new); }
 }

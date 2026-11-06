@@ -5552,3 +5552,122 @@ Feature branch: demo/phase4-safe-collaboration
 Target branch: main
 
 Inspect the feature worktree, fetch the latest target and feature refs, and review conflicts in `.gitignore`, `docs/AGENT_PROMPTS.md`, and `docs/WORK_LOG.md`. Preserve both branches' important security protections, documentation, and history without exposing private paths, credentials, or email data. Do not resolve blindly, merge into main, or modify other worktrees. After approval, resolve and validate only the feature branch, leaving final PR merge approval to the repository owner.
+
+---
+
+## 2026-11-05 — Google Login, Gmail authorization and personalized student onboarding
+
+### Prompt
+
+CampusSignal — Implement Google Login, Gmail Authorization and Personalized Student Onboarding. Worktree: `C:\Users\Aniket raj\CampusSignal-phase4-frontend`; frontend React + Vite; backend Java Spring Boot; database H2; existing integration Gmail API read-only OAuth. Replace developer-operated Gmail Sync with secure user-owned Google authentication, separate Gmail consent, per-user encrypted credentials and ownership-scoped profiles/emails/ranking/actions. Implement onboarding, private ranked feed, logout/disconnect and a clean login/dashboard experience. Preserve existing data and developer bootstrap safely; do not run real Gmail imports, restart services, commit, push, merge, or change unrelated worktrees. Test with synthetic data and report required Google Cloud settings and security limitations.
+
+---
+
+## 2026-11-05 — Activate and verify multi-user Google Login
+
+### Prompt
+
+CampusSignal — Activate and verify the new multi-user Google Login system. Inspect the running Vite and Spring Boot ports, verify the Google callback port, confirm auth mode and StudentApp, provide beginner-friendly Google Cloud OAuth instructions, secure environment-variable guidance, and a no-restart/no-real-sync browser-test procedure. Add automated synthetic tests proving Student A cannot access Student B’s profile, emails, rankings, or actions; verify multi-interest onboarding, ranking without actions, and returning user restoration. Preserve all data, credentials, tokens, branches, and worktrees; do not commit, push, merge, restart, or initiate real Gmail Sync without approval.
+
+---
+
+## 2026-11-05 — Activate the existing browser demo
+
+### Prompt
+
+STOP DEVELOPING NEW FEATURES. I need my existing CampusSignal website to actually WORK.
+
+Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Frontend: http://127.0.0.1:5174
+Backend: http://127.0.0.1:8092
+
+CURRENT ISSUE:
+The frontend runs new StudentApp code, but the backend runs an old locked JAR. /api/v1/auth/session times out. Google Login, profile onboarding and Gmail Sync are not working in the browser.
+
+YOUR PRIORITY IS END-TO-END ACTIVATION, NOT MORE CODE OR DOCUMENTATION.
+
+1. Diagnose the exact current state: running processes, Java JAR, application config, Vite proxy, API connectivity and OAuth environment variables.
+2. Fix backend/frontend version mismatch. Preserve the old services until I explicitly approve replacing them. Ask for approval before stopping PID 27428 or restarting existing services.
+3. Use an isolated demo database. NEVER overwrite or migrate the existing real-email H2 database.
+4. Build and run the current source safely. Confirm the new backend serves /api/v1/auth/session and the frontend can reach it.
+5. Open/check the actual browser flow. Confirm the login page loads without backend/proxy errors.
+6. Determine which Google OAuth settings are missing. Give me only the exact manual Google Cloud steps I must perform. Never ask me to paste secrets into chat or commit them.
+7. If Google OAuth cannot be tested because credentials or test-user setup is missing, say BLOCKED BY GOOGLE CONFIGURATION clearly. Do not claim Google Login works.
+8. Once configuration exists, verify the actual browser sequence: Continue with Google -> Google consent -> Create profile -> Personalized dashboard -> Gmail Sync. Ask permission before accessing a real Gmail mailbox.
+9. Confirm stored emails rank automatically based on selected interests, even with zero manual actions.
+10. Test returning login and two-account isolation.
+11. Show the first failing step and its specific error. Fix it and retest. Do not hide failure behind passing unit tests.
+
+DO NOT:
+
+- Add unrelated features
+- Rewrite the UI unnecessarily
+- Reset, delete or modify existing data
+- Commit, push or merge
+- Claim success just because Maven/Vite tests pass
+
+I want a working browser demo, not another architecture report.
+
+Final response must say:
+A. Does http://127.0.0.1:5174 actually load and connect to the NEW backend?
+B. Can I successfully log in with Google?
+C. Can I create/edit a profile?
+D. Can I sync Gmail?
+E. Can I see automatically ranked emails?
+F. What exact blocker remains, if any?
+
+Complete all steps that can safely be performed now, and ask me only for permissions or Google configuration that genuinely require my action.
+
+---
+
+## 2026-11-05 — Approved isolated multi-user backend activation
+
+### Prompt
+
+I approve stopping PID 27428, provided you verify it is still the old CampusSignal backend process.
+
+Please rebuild the latest backend and start it on port 8092 using a **new isolated demo database**.
+
+Important:
+
+- Do not delete or modify my existing Gmail emails, profiles, databases, or credentials.
+- Do not stop unrelated processes.
+- Do not run a real Gmail Sync yet.
+- Verify that `/api/v1/auth/session` responds promptly.
+- Verify that the frontend at `http://127.0.0.1:5174` connects successfully.
+- If Google OAuth configuration is missing, tell me exactly what I need to configure rather than claiming login works.
+- Do not commit or push anything.
+
+Once the new backend is running, tell me whether I can open CampusSignal and what the next required step is.
+
+---
+
+## 2026-11-05 — Fix live browser 502
+
+### Prompt
+
+CampusSignal — Fix the actual browser 502 error immediately.
+
+Worktree: C:\Users\Aniket raj\CampusSignal-phase4-frontend
+Frontend: http://127.0.0.1:5174
+Backend: http://127.0.0.1:8092
+
+Identify the process on port 8092, inspect backend and Vite connectivity, and correct the live browser 502 without touching existing Gmail data or databases. Do not stop anything unless it is the previously approved stale CampusSignal process; do not run Gmail Sync, change other worktrees, commit, push, or merge. Verify the session endpoint and Vite proxy, report missing OAuth configuration without exposing secrets, and give actual browser/backend results.
+
+---
+
+## 2026-11-05 - Restore original dashboard features inside Google Login
+
+### Prompt
+
+CampusSignal - Restore All Original Features Inside the New Google Login Platform.
+
+Audit the original frontend and authenticated `StudentApp.jsx`, create feature parity, and restore the original overview, complete inbox, ranked feed, action tracking, profile editing, and other accessible features using only authenticated `/api/v1/me/*` APIs. Preserve Google Login, Gmail read-only consent, the isolated multi-user H2 database, existing synced messages, and owner isolation. Do not expose legacy global endpoints, touch other worktrees, restart services, sync Gmail, delete data, or commit/push/merge. Verify Vite where possible, add relevant isolation coverage, run backend/frontend tests and production build, and report limitations.
+
+---
+
+## 2026-11-06 - Safely publish the complete CampusSignal implementation to main
+
+### Prompt
+
+CampusSignal - Safely Push the Latest Complete Project to GitHub MAIN. Audit the active `CampusSignal-phase4-frontend` worktree, fetch and compare `origin/main`, review merged PR #3, validate backend and frontend tests/build, and perform a no-disclosure security audit for OAuth credentials, tokens, encryption keys, local environment files, H2 data, logs, and generated files. Stage only safe source, tests, and documentation; commit the verified multi-user Google login, per-user Gmail, personalized dashboard, ranking, inbox, profile, and action-tracking implementation; integrate with the latest `main` normally, without force pushes or history rewriting; push and merge through the normal GitHub workflow only after checks pass. Preserve all local data, credentials, running services, collaborators' work, and other worktrees.

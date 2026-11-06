@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.security.GeneralSecurityException;
 import java.util.List;
 import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.auth.oauth2.BearerToken;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
@@ -71,5 +72,15 @@ public class GmailAuthorizationService {
             request.setReadTimeout(30_000);
         }).setApplicationName("CampusSignal").build();
         return new GmailApiClient(gmail, settings.userId());
+    }
+
+    /** Used only by the web OAuth service after it has refreshed this user's encrypted token. */
+    public GmailApiClient clientForAccessToken(String accessToken) throws IOException, GeneralSecurityException {
+        var transport = GoogleNetHttpTransport.newTrustedTransport();
+        var credential = new Credential(BearerToken.authorizationHeaderAccessMethod()).setAccessToken(accessToken);
+        var gmail = new Gmail.Builder(transport, GsonFactory.getDefaultInstance(), request -> {
+            credential.initialize(request); request.setConnectTimeout(10_000); request.setReadTimeout(30_000);
+        }).setApplicationName("CampusSignal").build();
+        return new GmailApiClient(gmail, "me");
     }
 }
