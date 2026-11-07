@@ -20,7 +20,10 @@ button:disabled { cursor: wait; opacity: .58; }
  .side-nav button span { font-size: 1.1rem; text-align: center; width: 16px; }
  .side-nav button b { background: #4a3b78; border-radius: 99px; color: #ddd5fa; font-size: .64rem; margin-left: auto; padding: 3px 6px; }
  .side-nav button.active, .side-nav button:hover { background: #382d61; color: #fff; }
- .inbox-panel, .profile-view, .create-view { max-width: 980px; }
+.inbox-panel, .profile-view, .create-view { max-width: 980px; }
+.inbox-controls select, .custom-interest input { background: #fbfaff; border: 1px solid #dedbe8; border-radius: 7px; color: #302b45; min-width: 0; padding: 9px 10px; }
+.custom-interest { align-items: end; display: flex; gap: 8px; }
+.custom-interest label { flex: 1; }
  .heuristic-note { color: #9a95a8; font-size: .7rem; margin: 6px 0 0; max-width: 620px; }
  .email-content { background: #fbfaff; border: 1px solid #e6e1f3; border-radius: 8px; flex-basis: 100%; margin-top: 5px; padding: 14px; }
  .email-content-heading { align-items: center; display: flex; gap: 10px; justify-content: space-between; }
@@ -36,7 +39,15 @@ button:disabled { cursor: wait; opacity: .58; }
  .email-content-meta dt { color: #9a95a8; font-size: .64rem; font-weight: 800; min-width: 58px; text-transform: uppercase; }
  .email-content-meta dd { color: #5e596e; font-size: .72rem; margin: 0; overflow-wrap: anywhere; }
  .email-content pre { color: #4d485d; font-family: inherit; font-size: .76rem; line-height: 1.6; margin: 0; max-height: 420px; overflow: auto; white-space: pre-wrap; }
- .truncation-note { color: #9a6d25; display: block; font-size: .68rem; margin-top: 8px; }
+.truncation-note { color: #9a6d25; display: block; font-size: .68rem; margin-top: 8px; }
+
+.login-page, .onboarding { align-items: center; background: linear-gradient(135deg, #f5f2ff, #fbfaff); display: flex; justify-content: center; min-height: 100vh; padding: 24px; }
+.login-card, .onboarding-card { background: #fff; border: 1px solid #e6e0f3; border-radius: 18px; box-shadow: 0 16px 45px #2b204a18; max-width: 560px; padding: 38px; width: 100%; }
+.login-card h1, .onboarding-card h1 { color: #30284a; letter-spacing: -.05em; margin: 14px 0 10px; }
+.privacy-copy { color: #756f83; font-size: .85rem; line-height: 1.6; margin: 22px 0; }
+.google-button { background: #fff; border: 1px solid #d8d2e5; border-radius: 8px; color: #30284a; display: block; font-size: .88rem; font-weight: 800; padding: 12px; text-align: center; text-decoration: none; }
+.google-button:hover { background: #f7f4fe; }
+.onboarding { align-items: flex-start; display: block; padding: 0; }.onboarding-card { margin: 54px auto; }.profile-form { display: grid; gap: 13px; margin-top: 20px; }.profile-form fieldset { border: 1px solid #e2ddee; border-radius: 8px; color: #635d73; font-size: .75rem; }.interest-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }.interest-picker label { background: #f5f1fe; border-radius: 99px; color: #6248aa; display: inline-flex; font-size: .7rem; gap: 4px; padding: 5px 8px; }.sidebar-link { color: #ddd5fa; margin-top: 12px; }.sidebar .secondary { margin-top: auto; }
  .email-card { background: #fff; border: 1px solid #eae8f1; border-radius: 13px; box-shadow: 0 7px 25px #2b204a08; margin-bottom: 12px; padding: 18px 20px; }
  .email-heading { align-items: flex-start; display: flex; gap: 14px; justify-content: space-between; }
  .email-heading h3 { font-size: .96rem; letter-spacing: -.02em; margin: 0 0 5px; }

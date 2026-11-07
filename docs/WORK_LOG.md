@@ -160,6 +160,167 @@ Commit: Pending
 PR: Pending
 PR created by: Pending
 
+## 2026-11-05 — Multi-user Google OAuth and onboarding (in progress)
+
+### Implementation
+
+- Added a backend-managed Google Authorization Code OAuth path with PKCE, state, nonce, server-side ID-token verification, encrypted OAuth token persistence, opaque server sessions, CSRF validation, logout and Gmail disconnect.
+- Added account ownership to new profile/email/action/feed endpoints under `/api/v1/me`; multi-user mode intentionally rejects historical ID-addressable API routes so they cannot be used for cross-user access.
+- Added per-account bounded Gmail sync using the account's stored read-only Gmail credentials, namespaced persisted provider IDs to retain the legacy global duplicate constraint, and kept the existing operator bootstrap code isolated.
+- Added login, profile onboarding, connection controls, private inbox/feed/actions, and profile editing to the active frontend entry flow.
+
+### Verification
+
+- `mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -DskipTests compile` — BUILD SUCCESS.
+- `npm.cmd run build` — BUILD SUCCESS.
+- `node --test src/profileForm.test.js src/gmailSync.test.js src/emailSummary.test.js` — 17 passing.
+- Full Maven test run was started before the compatibility adjustment; it reported the known historical duplicate-constraint regression and a synthetic fixture context failure caused by requiring a token key during non-OAuth startup. Both causes were corrected; the full re-run is pending.
+
+### Safety
+
+- No Gmail import, service restart, database deletion, credential/token output, commit, push, merge, or worktree switch was performed.
+- Commit: Pending. PR: Pending.
+
+---
+
+## 2026-11-06 - Main integration and publication verification
+
+### Integration
+
+- Merged the newer `origin/main` Vercel/PostgreSQL/synthetic-demo contribution normally after committing the verified multi-user implementation.
+- Resolved only append-only conflicts in `docs/AGENT_PROMPTS.md` and `docs/WORK_LOG.md` by retaining both sets of records; no application source file conflicted.
+- The merged MVC-slice test required the authenticated API filter dependency. Added a mocked `AuthenticatedUserService` and set only that legacy local-sync slice to `campussignal.auth.required=false`; owner-scoped multi-user routes remain fail-closed when authentication is required.
+
+### Verification
+
+- `.\\mvnw.cmd "-Dtest=EmailSyncControllerTest" test` - 4 tests passed after the integration adjustment.
+- `.\\mvnw.cmd test` - 240 tests, 0 failures, 0 errors, 0 skipped.
+- `node --test src/emailSummary.test.js src/gmailSync.test.js src/profileForm.test.js` - 17 passing.
+- `npm.cmd run build` - BUILD SUCCESS.
+- Staged-file secret-pattern and sensitive-path checks found no credentials, token values, encryption keys, local H2 data, logs, or generated artifacts. `git diff --check` passed.
+
+### Safety
+
+- No Gmail sync, OAuth change, database change, service restart, force push, reset, or modification of another worktree occurred.
+- The normal GitHub merge/push remains pending at this entry.
+
+---
+
+## 2026-11-06 - Verified safe publication of multi-user implementation (in progress)
+
+### Verification before staging
+
+- Fetched `origin`; PR #3 is already merged, and `origin/main` contains the later collaborator commit `85a6401`.
+- `.\\mvnw.cmd test` completed with 235 tests, 0 failures, 0 errors, and 0 skipped; authenticated `StudentIsolationApiTest` passed.
+- `node --test src/emailSummary.test.js src/gmailSync.test.js src/profileForm.test.js` completed with 17 passing tests.
+- `npm.cmd run build` completed successfully.
+- `git diff --check` found no whitespace errors; Git reported only CRLF normalization warnings.
+
+### Security audit before staging
+
+- Checked all modified and untracked publish candidates by name and secret-pattern match without outputting credential values. No credential JSON, token/key value, local database, runtime log, build artifact, `node_modules`, or frontend distribution file is a publish candidate.
+- Confirmed `.env`, `data/`, `target/`, `frontend/node_modules/`, and `frontend/dist/` are ignored. No files are staged yet.
+- Confirmed auth-required mode rejects non-`/api/v1/me/*` private APIs and synthetic Student A/B isolation coverage remains present.
+
+### Safety
+
+- No Gmail Sync, OAuth change, database change, service restart, commit, push, merge, reset, or worktree switch has occurred at this point.
+- Commit: Pending. PR: Pending.
+
+---
+
+## 2026-11-05 - Restored feature-rich authenticated student dashboard
+
+### Delivered
+
+- Audited retained original dashboard code in `frontend/src/App.jsx`; it was present but unreachable because `App` renders `StudentApp` immediately. Its legacy global data calls remain intentionally disabled.
+- Restored a feature-rich `StudentApp.jsx` using authenticated `/api/v1/me/*` endpoints: overview metrics/category breakdown, ranked-feed details, complete searchable/filterable/sortable inbox, message summaries/full details, action candidates/completion controls, profile editing, multi-select interests, and custom interests.
+- Improved ranking explanations from raw score flags to plain language describing category, profile relevance, deadline state, and action status.
+- Extended synthetic cross-user coverage for the user-specific feed explanation.
+
+### Verification
+
+- `npm.cmd run build` - BUILD SUCCESS.
+- `node --test src/emailSummary.test.js src/gmailSync.test.js src/profileForm.test.js` - 17 passing.
+- `.\\mvnw.cmd test` - 235 tests, 0 failures, 0 errors, 0 skipped; `StudentIsolationApiTest` passed 2/2.
+- The live Vite server serves the restored StudentApp source. Direct and proxied session requests return expected HTTP 401 promptly, not 502.
+
+### Safety
+
+- No Gmail sync, credential/token modification, data deletion, service restart, commit, push, or merge occurred.
+- The running backend remains on the isolated multi-user demo H2 database. Backend ranking wording will require an approved rebuild/restart before appearing in the active API response.
+- Commit: Pending. PR: Pending.
+
+---
+
+## 2026-11-05 — Live browser 502 recheck
+
+### Results
+
+- Port `8092` is owned by PID `33500`, the new CampusSignal JAR process launched with the isolated `campussignal-multiuser-demo-20261105` H2 database; PID `27428` is not running.
+- Five consecutive direct and Vite-proxied calls to `/api/v1/auth/session` returned HTTP `401` in 18–61 ms. Vite root returned HTTP `200`; no live `502` remains.
+- The OAuth-start endpoint returns HTTP `403` because Google client configuration is absent. No OAuth redirect, consent, or Gmail sync occurred.
+
+### Safety
+
+- No process was stopped in this recheck. No existing data, credentials, tokens, or Git state was modified; no commit, push, or merge occurred.
+- Commit: Pending. PR: Pending.
+
+---
+
+## 2026-11-05 — Existing browser demo activation
+
+### Results
+
+- Confirmed the active Vite process (PID 20776) listens on `127.0.0.1:5174` and serves the StudentApp entry point. Its `/api` proxy reaches the Java service at `127.0.0.1:8092`; no service is listening on `8080`.
+- Confirmed the active Java process (PID 27428) was launched on 2026-11-04 from the old running JAR against `jdbc:h2:file:./data/campussignal-iitm-real-ui-test` with `ddl-auto=none`. It remains running and was not stopped.
+- First end-to-end failure: `GET /api/v1/auth/session` times out with no HTTP response after 20 seconds both directly and through Vite, while `/api/v1/emails` returns 200. The browser cannot restore its StudentApp session against this process.
+- Updated only the source fallback OAuth callback URI to `http://127.0.0.1:8092/api/v1/auth/google/callback`. The running process is unchanged until an approved restart.
+
+### Verification
+
+- `mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" test` — BUILD SUCCESS; 235 tests, 0 failures, 0 errors, 0 skipped.
+- `npm.cmd run build` — BUILD SUCCESS.
+
+### Safety
+
+- No database write, data migration, Gmail OAuth request, real Gmail sync, credential/key disclosure, service restart, commit, push, or merge occurred.
+- Commit: Pending. PR: Pending.
+
+### Follow-up verification
+
+- `mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" test` — BUILD SUCCESS; 235 tests, 0 failures, 0 errors, 0 skipped.
+- `npm.cmd run build` — BUILD SUCCESS; `node --test src/profileForm.test.js src/gmailSync.test.js src/emailSummary.test.js` — 17 passing.
+- `mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" -DskipTests package` compiled and produced the plain JAR but Spring Boot repackaging could not rename the JAR because the pre-existing backend process holds it open. No process was stopped or restarted.
+
+### Follow-up verification
+
+- `mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" test` — BUILD SUCCESS; 233 tests, 0 failures, 0 errors, 0 skipped.
+- `git diff --check` completed without whitespace errors. Git reported only CRLF normalization warnings.
+
+---
+
+## 2026-11-05 — Multi-user browser activation assessment
+
+### Findings
+
+- The active Vite process listens on `127.0.0.1:5174`; the active Spring Boot JAR listens on `127.0.0.1:8092`.
+- The running JAR predates the new Google-login code and did not return from `/api/v1/auth/session` during a bounded local probe. No process was restarted or terminated.
+- The configured default OAuth redirect URI used port `8080`, which does not match the active backend port. The safe local-example redirect now documents `http://127.0.0.1:8092/api/v1/auth/google/callback`.
+- `App.jsx` loads `StudentApp`, and the source configuration defaults student authentication to enabled. The currently running JAR has not loaded those source changes.
+
+### Automated isolation coverage
+
+- Added `StudentIsolationApiTest` with separate synthetic Google identities, server sessions, profiles, emails and actions.
+- It proves Student B receives only B-owned profile/email/feed/action data; legacy ID-addressable routes are unavailable in authentication mode; and B cannot create an action for A's email.
+- It also verifies multi-interest profile saving, private returning-session profile restoration, and ranking from stored email without manual action creation.
+- `mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" "-Dtest=StudentIsolationApiTest" test` — BUILD SUCCESS; 2 tests, 0 failures, 0 errors.
+
+### Safety
+
+- No OAuth credentials, encryption key, Gmail token, real Gmail import, running-service restart, commit, push or merge was performed.
+- Commit: Pending. PR: Pending.
+
 ---
 
 ## 2026-11-05 - GitHub PR #3 merge conflicts resolved
@@ -2391,6 +2552,46 @@ PR created by: Pending
 
 ---
 
+## 2026-11-05 — Multi-user browser activation assessment
+
+### Results
+
+- Active Vite is `127.0.0.1:5174`; active Java is `127.0.0.1:8092`, but its locked JAR predates the new auth implementation and a bounded auth-session probe did not respond. No process was stopped or restarted.
+- Updated only the safe local-example redirect to `http://127.0.0.1:8092/api/v1/auth/google/callback`; the Google Console and local environment must use the exact same value.
+- Added `StudentIsolationApiTest`: synthetic Student B cannot read Student A's profile, emails, rankings or actions, cannot use legacy ID routes, and cannot create actions for A's email. The test also covers multiple interests, returning profile/feed restoration, and automatic rankings without manually creating an action.
+
+### Verification
+
+- `mvnw.cmd -B -ntp "-Dmaven.repo.local=.m2" test` — BUILD SUCCESS; 235 tests, 0 failures, 0 errors, 0 skipped.
+- `npm.cmd run build` — BUILD SUCCESS; frontend Node tests — 17 passing.
+- `git diff --check` — no whitespace errors (only CRLF normalization warnings).
+- Packaging could not complete Spring Boot repackage because the existing Java process holds the old JAR open. It was left running.
+
+### Safety
+
+- No real Gmail sync, OAuth credential/key disclosure, database deletion, restart, commit, push or merge occurred.
+- Commit: Pending. PR: Pending.
+
+---
+
+## 2026-11-05 — Approved isolated multi-user backend activation
+
+### Results
+
+- Verified PID `27428` was the approved old CampusSignal JAR process on `127.0.0.1:8092`, using only `jdbc:h2:file:./data/campussignal-iitm-real-ui-test` with `ddl-auto=none`; stopped that PID only after approval.
+- Rebuilt the latest Spring Boot executable JAR and started PID `33500` on `127.0.0.1:8092` with new `jdbc:h2:file:./data/campussignal-multiuser-demo-20261105` and schema creation limited to that fresh file.
+- No Gmail sync, consent flow, or external mailbox access occurred.
+
+### Verification
+
+- `GET /api/v1/auth/session` now returns HTTP `401` in under one second without a session, directly and through Vite. This is the expected unauthenticated response.
+- `GET http://127.0.0.1:5174/` returns HTTP `200`; the Vite proxy forwards the session request to the new backend.
+- A non-following OAuth-start probe returns HTTP `403`, confirming that a usable Google client ID and/or client secret is not present in the new process. The required token-encryption key was not tested because OAuth cannot begin without that client configuration.
+
+### Safety
+
+- Existing H2 databases, profiles, stored emails, credentials, tokens, Git branches, and unrelated processes were not modified. No commit, push, or merge occurred.
+- Commit: Pending. PR: Pending.
 ## Work Entry
 Date: 2026-11-05
 Contributor: Codex
@@ -2573,6 +2774,94 @@ Invoke-RestMethod http://localhost:8080/api/v1/emails
 ```
 
 Cleanup after evaluation: `docker stop campussignal-final`.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## Work Entry
+Date: 2026-11-07
+Contributor: Codex
+Milestone: Integrate authenticated multi-user platform with the final Docker demo
+Branch: integration/final-submission (merge pending)
+
+### Root cause
+- The merged `ApiAuthenticationFilter` intentionally returns HTTP 404 for historical `/api/v1/...` routes other than `/api/v1/auth/*` and owner-scoped `/api/v1/me/*` routes when authentication is required.
+- `FinalDemoProfileTest` still called the historical unauthenticated `GET /api/v1/emails` route, so the filter hid it before Spring MVC handler mapping. The controller still exists for legacy/test modes; the 404 was a deliberate multi-user security boundary, not a missing bean.
+- The original synthetic initializer creates legacy unowned records, which cannot be returned from the new owner-scoped student API.
+
+### Integration changes
+- Added `AuthenticatedDemoDataInitializer`, enabled only by the `demo` profile and the existing demo-data opt-in. It idempotently creates one fictional user, an owner-linked profile, two owner-linked fictional emails, and their actions through the normal services.
+- Added `DemoAuthenticationController` at `POST /api/v1/auth/demo`. It exists only in the `demo` profile, creates a normal persisted session for the fictional demo user, and issues the same HttpOnly session cookie shape used by Google login without contacting Google.
+- Kept `campussignal.auth.required=true` explicitly in `application-demo.properties`; production and real-account authentication were not disabled or bypassed.
+- Updated `FinalDemoProfileTest` to verify unauthenticated owner-scoped access is HTTP 401, the historical public route remains HTTP 404, demo login returns a fictional disconnected account, and the authenticated `/api/v1/me/emails` response contains exactly two `@demo.example.com` senders.
+- Updated the README evaluator flow to use the demo login and owner-scoped endpoint in four commands.
+- Preserved teammate frontend, Google authentication, Gmail, CSRF, and user-isolation code without modification.
+
+### Verification
+- `.\mvnw.cmd -B -ntp -Ddebug=false "-Dtest=FinalDemoProfileTest" test` — BUILD SUCCESS; 1 test, 0 failures, 0 errors, 0 skipped.
+- `.\mvnw.cmd -B -ntp -Ddebug=false clean test` — BUILD SUCCESS; 241 tests, 0 failures, 0 errors, 0 skipped; JaCoCo analyzed 122 classes.
+- `docker build --tag campussignal:integration-check .` — succeeded using the existing root `Dockerfile`; the verified `campussignal:final` tag was not overwritten.
+- A fresh `campussignal:integration-check` container ran as UID/GID 999 (`campussignal`), activated only the `demo` profile, and published host port 8080 to container port 80.
+- Live checks returned HTTP 401 for unauthenticated `/api/v1/me/emails`, HTTP 404 for historical `/api/v1/emails`, and two fictional owner-scoped emails after `POST /api/v1/auth/demo` established a session.
+- The integration-check container was stopped and removed after verification.
+- `campussignal-final.tar` was not modified. Its SHA-256 remained `651119726183FE58590E8664759CF4E204DA22B9DFB5B2C4EEDDA0DCB75ACF36`, preserving the prior 239-test standalone submission as a recoverable fallback.
+
+### Archive status
+- The existing archive remains valid only for the pre-merge standalone fallback.
+- The archive must be rebuilt later, after approval, to include this 241-test authenticated integration and the new four-command evaluator flow. It was intentionally not rebuilt during this task.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## Work Entry
+Date: 2026-11-07
+Contributor: Codex
+Milestone: Export and verify the final integrated CS5013 Docker archive
+Branch: integration/final-submission (merge pending)
+
+### Summary
+- Preserved the pending merge and all staged integration changes.
+- Built the current 241-test integration from the existing root self-contained `Dockerfile` and tagged it `campussignal:final`.
+- Exported the image to the new `campussignal-final-integrated.tar` without overwriting or deleting `campussignal-final.tar`.
+- Updated the README archive filename so its four evaluator commands refer to the integrated submission archive.
+
+### Archive evidence
+- `campussignal-final-integrated.tar`: 203,296,768 bytes.
+- SHA-256: `60412C45F4718A0082989171B565920618890FCC7EBA2C12D1A1AFEC298290C1`.
+- Previous `campussignal-final.tar`: still 203,253,248 bytes with unchanged SHA-256 `651119726183FE58590E8664759CF4E204DA22B9DFB5B2C4EEDDA0DCB75ACF36`.
+
+### Archive verification
+- Removed the locally built `campussignal:final` tag and successfully restored it using `docker load --input .\campussignal-final-integrated.tar`.
+- Started a fresh disposable container from the reloaded image.
+- The image ran as UID/GID 999 (`campussignal`), activated only the `demo` profile, exposed container port 80, and published it on host port 8080.
+- The container had no mounts, contained only `/app/campussignal.jar` under `/app`, and had no `/app/credentials.json` or `/app/.gmail-tokens`.
+- Runtime logs confirmed `jdbc:h2:mem:campussignal-demo`; no PostgreSQL or other external database was used.
+- `POST /api/v1/auth/demo` returned HTTP 200 and established an HttpOnly session without Gmail OAuth.
+- Authenticated `GET /api/v1/me/emails` returned exactly two fictional emails, both from `@demo.example.com` senders.
+- Unauthenticated `GET /api/v1/me/emails` returned HTTP 401, and historical unauthenticated `GET /api/v1/emails` returned HTTP 404.
+- The disposable verification container was stopped and removed after the successful checks.
+
+### Exact tested TA commands
+```powershell
+docker load --input .\campussignal-final-integrated.tar
+docker run --detach --rm --name campussignal-final --publish 8080:80 campussignal:final
+Invoke-WebRequest -Method Post http://localhost:8080/api/v1/auth/demo -SessionVariable demoSession
+Invoke-RestMethod http://localhost:8080/api/v1/me/emails -WebSession $demoSession
+```
+
+Optional cleanup: `docker stop campussignal-final`.
+
+### Result
+- No unresolved verification issues.
+- No commit, push, Git tag, public deployment, or merge completion was performed.
 
 ### Git
 Commit: Pending

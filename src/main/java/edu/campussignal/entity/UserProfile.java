@@ -16,6 +16,19 @@ public class UserProfile {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true)
+    private UserAccount user;
+
+    @Column(name = "full_name", length = 255)
+    private String fullName;
+
+    @Column(name = "college", length = 255)
+    private String college;
+
+    @Column(name = "graduation_year")
+    private Integer graduationYear;
+
     @NotBlank @jakarta.validation.constraints.Email
     @Column(nullable = false, length = 320)
     private String email;
@@ -53,6 +66,12 @@ public class UserProfile {
         interests = new ArrayList<>(request.interests());
     }
 
+    public UserProfile(UserAccount user, edu.campussignal.dto.StudentProfileRequest request) {
+        this.user = user; fullName = request.name(); college = request.college(); email = user.getGoogleEmail();
+        department = request.department(); programme = request.programme(); year = request.year();
+        graduationYear = request.graduationYear(); semester = request.semester(); interests = new ArrayList<>(request.interests());
+    }
+
     @PrePersist
     void initializeTimestamp() { createdAt = Instant.now(); }
 
@@ -64,6 +83,10 @@ public class UserProfile {
     public Integer getSemester() { return semester; }
     public List<String> getInterests() { return List.copyOf(interests); }
     public Instant getCreatedAt() { return createdAt; }
+    public UserAccount getUser() { return user; }
+    public String getFullName() { return fullName; }
+    public String getCollege() { return college; }
+    public Integer getGraduationYear() { return graduationYear; }
 
     public void updateFrom(edu.campussignal.dto.ProfileCreateRequest request) {
         email = request.email();
@@ -72,5 +95,10 @@ public class UserProfile {
         year = request.year();
         semester = request.semester();
         interests = new ArrayList<>(request.interests());
+    }
+    public void updateFrom(edu.campussignal.dto.StudentProfileRequest request) {
+        fullName = request.name(); college = request.college(); department = request.department();
+        programme = request.programme(); year = request.year(); graduationYear = request.graduationYear();
+        semester = request.semester(); interests = new ArrayList<>(request.interests());
     }
 }

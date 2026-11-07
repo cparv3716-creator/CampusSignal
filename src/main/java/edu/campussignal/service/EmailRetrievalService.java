@@ -3,6 +3,7 @@ package edu.campussignal.service;
 import java.io.IOException;
 import org.springframework.stereotype.Service;
 import edu.campussignal.dto.RetrievalSummary;
+import edu.campussignal.entity.UserAccount;
 
 @Service
 public class EmailRetrievalService {
@@ -11,6 +12,9 @@ public class EmailRetrievalService {
     public EmailRetrievalService(EmailIngestionService ingestion) { this.ingestion = ingestion; }
 
     public RetrievalSummary retrieve(EmailSource source, int maxResults) throws IOException {
+        return retrieve(source, maxResults, null);
+    }
+    public RetrievalSummary retrieve(EmailSource source, int maxResults, UserAccount user) throws IOException {
         if (maxResults < 1 || maxResults > 500) {
             throw new IllegalArgumentException("maxResults must be between 1 and 500");
         }
@@ -20,7 +24,9 @@ public class EmailRetrievalService {
         int failed = 0;
         for (String id : ids) {
             try {
-                if (ingestion.ingest(source.fetch(id)).created()) {
+                boolean wasCreated = user == null ? ingestion.ingest(source.fetch(id)).created()
+                        : ingestion.ingest(user, source.fetch(id)).created();
+                if (wasCreated) {
                     created++;
                 } else {
                     duplicates++;

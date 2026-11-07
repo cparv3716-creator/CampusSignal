@@ -193,17 +193,19 @@ two fictional `demo.example.com` emails. Gmail sync and local AI are disabled, a
 image needs no database, OAuth configuration, external service, secret, or volume.
 `Dockerfile.vercel` and the existing local and `prod` profiles are unchanged.
 
-The submitted `campussignal-final.tar` can be evaluated from PowerShell in three commands:
+The submission image keeps multi-user authentication and owner isolation enabled. Its
+demo-only login creates a session for the fictional demo student without contacting
+Google. The image can be evaluated from PowerShell in four commands:
 
 ```powershell
-docker load --input .\campussignal-final.tar
+docker load --input .\campussignal-final-integrated.tar
 docker run --detach --rm --name campussignal-final --publish 8080:80 campussignal:final
-Invoke-RestMethod http://localhost:8080/api/v1/emails
+Invoke-WebRequest -Method Post http://localhost:8080/api/v1/auth/demo -SessionVariable demoSession
+Invoke-RestMethod http://localhost:8080/api/v1/me/emails -WebSession $demoSession
 ```
 
 After evaluation, remove the disposable container with
-`docker stop campussignal-final`. On macOS or Linux, the equivalent API check is
-`curl --fail http://localhost:8080/api/v1/emails`.
+`docker stop campussignal-final`.
 
 ## Gmail authorization and synchronization
 

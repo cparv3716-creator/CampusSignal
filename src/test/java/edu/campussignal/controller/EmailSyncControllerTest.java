@@ -13,6 +13,7 @@ import edu.campussignal.config.GmailProperties;
 import edu.campussignal.dto.RetrievalSummary;
 import edu.campussignal.gmail.GmailApiClient;
 import edu.campussignal.gmail.GmailAuthorizationService;
+import edu.campussignal.security.AuthenticatedUserService;
 import edu.campussignal.service.EmailRetrievalService;
 
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -26,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         controllers = EmailSyncController.class,
         properties = {
             "campussignal.gmail-sync.enabled=true",
+            "campussignal.auth.required=false",
             "campussignal.gmail-sync.token=synthetic-test-token"
         })
 class EmailSyncControllerTest {
@@ -34,12 +36,14 @@ class EmailSyncControllerTest {
     @MockitoBean GmailAuthorizationService authorization;
     @MockitoBean EmailRetrievalService retrieval;
     @MockitoBean GmailProperties settings;
+    @MockitoBean AuthenticatedUserService authenticatedUsers;
 
     private final GmailApiClient client = org.mockito.Mockito.mock(GmailApiClient.class);
 
     @BeforeEach
     void configureMaximum() {
         when(settings.maxResults()).thenReturn(10);
+        when(authenticatedUsers.required()).thenReturn(false);
     }
 
     @Test
