@@ -2523,3 +2523,58 @@ Branch: main (interactive rebase)
 Commit: Pending
 PR: Pending
 PR created by: Pending
+
+---
+
+## Work Entry
+Date: 2026-11-07
+Contributor: Codex
+Milestone: CS5013 final self-contained Docker demonstration image
+Branch: main
+
+### Summary
+- Added a dedicated `demo` Spring profile backed by an isolated in-memory H2 database.
+- Enabled the existing idempotent fictional fixture only in that profile and disabled Gmail sync and local AI.
+- Added a root multi-stage `Dockerfile` that runs as the unprivileged `campussignal` user, activates the `demo` profile, and exposes port 80.
+- Preserved the default local H2 configuration, the PostgreSQL `prod` profile, and `Dockerfile.vercel` without modification.
+- Added an integration test for the demo profile and documented the three-command TA evaluation flow.
+- Built `campussignal:final` and exported `campussignal-final.tar`.
+
+### Files changed
+- `Dockerfile`
+- `README.md`
+- `src/main/resources/application-demo.properties`
+- `src/test/java/edu/campussignal/FinalDemoProfileTest.java`
+- `docs/AGENT_PROMPTS.md`
+- `docs/WORK_LOG.md`
+- Generated submission artifact: `campussignal-final.tar`
+
+### Verification
+- `.\mvnw.cmd -B -ntp -Ddebug=false "-Dtest=FinalDemoProfileTest,ProductionDemoStartupTest" test` — BUILD SUCCESS; 2 tests, 0 failures, 0 errors, 0 skipped.
+- `.\mvnw.cmd -B -ntp -Ddebug=false clean test` — BUILD SUCCESS; 239 tests, 0 failures, 0 errors, 0 skipped.
+- `docker build --tag campussignal:final .` — succeeded.
+- `docker save --output .\campussignal-final.tar campussignal:final` — succeeded; archive size 203,253,248 bytes; SHA-256 `651119726183FE58590E8664759CF4E204DA22B9DFB5B2C4EEDDA0DCB75ACF36`.
+- Removed the original local image tag, then ran `docker load --input .\campussignal-final.tar` — succeeded and restored `campussignal:final` as image `sha256:0af2533c273a854acb18d632347a1055d9168e2e71720b7ea25103576e8681fc`.
+- `docker run --detach --rm --name campussignal-final --publish 8080:80 campussignal:final` — fresh container started as UID/GID 999 (`campussignal`) with port `8080 -> 80`.
+- `Invoke-RestMethod http://localhost:8080/api/v1/emails` — returned HTTP 200 with exactly two fictional messages from `events.team@demo.example.com` and `career.office@demo.example.com`.
+- Verification container was stopped after the check and removed by Docker's `--rm` behavior.
+
+### Safety
+- No PostgreSQL server, Gmail OAuth credential, token, external service, secret, or volume is needed.
+- The final image contains only the application JAR under `/app`; no credential or token directory was copied.
+- No tests or existing functionality were removed, weakened, disabled, or skipped to obtain the passing full-suite result.
+- No commit, push, PR, deployment, or merge was performed.
+
+### TA commands
+```powershell
+docker load --input .\campussignal-final.tar
+docker run --detach --rm --name campussignal-final --publish 8080:80 campussignal:final
+Invoke-RestMethod http://localhost:8080/api/v1/emails
+```
+
+Cleanup after evaluation: `docker stop campussignal-final`.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending

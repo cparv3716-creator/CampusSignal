@@ -5685,3 +5685,27 @@ If everything is safe, tell me the proposed commit message and the exact files t
 > If a security-sensitive conflict cannot be resolved confidently, stop and explain the choices instead of guessing.
 >
 > When finished, report the files changed, how each conflict was resolved, test results, and final Git status. Do not claim success unless the commands actually completed.
+---
+
+## Prompt
+
+Prepare the final CampusSignal Docker image for CS5013 submission.
+
+The evaluator must be able to run the application with a maximum of 3–4 commands and without configuring PostgreSQL, Gmail OAuth, external services or secrets.
+
+Create a safe, self-contained demonstration mode using H2 and fictional sample data, preserving the existing production and local configurations.
+
+Requirements:
+
+- Preserve all existing tests and functionality.
+- Do not include real Gmail credentials, tokens or private emails.
+- Ensure the container listens on port 80.
+- Build a final Docker image tagged `campussignal:final`.
+- Export it as `campussignal-final.tar`.
+- Verify the image by loading it and starting a fresh container.
+- Confirm `http://localhost:8080/api/v1/emails` returns fictional demonstration emails.
+- Run the full Maven test suite.
+- Provide the exact verified commands for the TA.
+- Update the required project logs.
+
+Do not commit, push or deploy without approval.
