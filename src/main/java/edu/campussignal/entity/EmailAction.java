@@ -74,6 +74,12 @@ public class EmailAction {
         completedAt = null;
     }
 
+    /** Restores a completed student action to their pending queue. */
+    public void reopen() {
+        status = EmailActionStatus.PENDING;
+        completedAt = null;
+    }
+
     @PrePersist
     void initializeTimestamp() {
         createdAt = Instant.now();

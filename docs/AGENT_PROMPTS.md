@@ -1,4 +1,101 @@
 ## Prompt Entry
+Date: 2026-11-17
+Contributor: Pending
+Branch: demo/phase4-safe-collaboration
+Milestone: Phase 4 stakeholder presentation
+Task: Restore services and build an interactive stakeholder-ready product
+
+### Prompt
+# CampusSignal — Build a Fully Interactive, Stakeholder-Ready Product
+I have a stakeholder presentation TODAY.
+
+**Project:** `C:\Users\Aniket raj\CampusSignal-phase4-frontend`
+
+**Frontend:** `http://127.0.0.1:5174`
+
+**Backend:** `http://127.0.0.1:8092`
+
+I want CampusSignal to become a **beautiful, modern, highly interactive student email intelligence platform**, not just a static dashboard with attractive colors.
+
+Think of a premium productivity application with the polished usability of Notion, Linear and modern SaaS dashboards, while maintaining CampusSignal's own purple/navy identity.
+
+## PRIORITY 1 — GET CAMPUSSIGNAL RUNNING
+Before doing anything else:
+
+1. Diagnose why localhost is currently unavailable.
+2. Inspect frontend/backend processes and startup errors.
+3. Restart missing services safely using the existing configuration.
+4. Preserve Google OAuth credentials, persistent encryption key, student profiles and database.
+5. Confirm the website actually opens.
+6. Confirm Google Login, Inbox and personalized ranking work.
+7. Create a reliable one-command local startup script.
+8. Do not redesign or introduce new features until core functionality works.
+Do not delete data, regenerate encryption keys, or run Gmail Sync without authorization.
+
+## PRIORITY 2 — BUILD A PREMIUM INTERACTIVE UI
+Use the existing React frontend and existing backend.
+
+You may use suitable lightweight component libraries and animation/chart packages if compatible.
+
+Create an elegant, responsive design with:
+
+- Interactive collapsible sidebar
+- Modern top navigation and user profile menu
+- Smooth transitions between sections
+- Refined purple/navy visual identity
+- Attractive gradient accents where appropriate
+- Professional typography and spacing
+- Subtle hover animations
+- Responsive cards and layouts
+- Skeleton loaders
+- Toast notifications
+- Accessible dialogs and keyboard controls
+- Meaningful empty and error states
+- Light/dark theme toggle if safely achievable
+Avoid unnecessary animations, clutter, large dependencies and fake controls.
+
+Every visible button should actually work.
+
+## PRIORITY 3 — BUILD THESE INTERACTIVE FEATURES
+
+### 1. Interactive Overview
+Create an impressive personalized dashboard with:
+
+- Welcome message with student profile
+- Total emails
+- High-priority emails
+- Important opportunities
+- Upcoming deadlines
+- Pending actions
+- Emails by category chart
+- Priority distribution chart
+**Make the dashboard interactive:**
+
+Clicking a KPI card should open the corresponding filtered emails.
+
+Clicking a chart category should filter or navigate to that category.
+
+Use live current-user data, not hardcoded numbers.
+
+### 2. Interactive Smart Inbox
+Create a polished email exploration experience.
+
+Include:
+
+- Search by subject and sender
+- Category filters
+- Urgency filters
+- Priority filters
+- Sort by newest and relevance
+
+### 3. Other stakeholder-ready product requirements
+Continue implementing the remaining requirements from this task using the
+existing React frontend and backend, while preserving live data, authentication,
+OAuth credentials, encryption keys, profiles, and the database.
+
+---
+
+## Prompt Entry
 Date: 2026-09-08
 Contributor: Priyanshi Garg
 Branch: feature/user-profile
@@ -5801,6 +5898,114 @@ If everything is safe, tell me the proposed commit message and the exact files t
 > If a security-sensitive conflict cannot be resolved confidently, stop and explain the choices instead of guessing.
 >
 > When finished, report the files changed, how each conflict was resolved, test results, and final Git status. Do not claim success unless the commands actually completed.
+## Prompt Entry
+Date: 2026-11-17
+Contributor: Codex
+Milestone: Stakeholder-ready interactive student product
+Task: CampusSignal — Build a Fully Interactive, Stakeholder-Ready Product
+
+### Exact task prompt
+Build a fully interactive stakeholder-ready CampusSignal product in `C:\Users\Aniket raj\CampusSignal-phase4-frontend`, with the frontend at `http://127.0.0.1:5174` and backend at `http://127.0.0.1:8092`. First diagnose and safely restore localhost while preserving OAuth credentials, persistent encryption keys, student profiles, databases, existing email records, Google Login, personalized ranking, and owner-scoped APIs; never run Gmail Sync without authorization. Create a reliable one-command startup script. Then use the existing React frontend and backend to deliver an elegant, responsive purple/navy student email intelligence platform with a collapsible sidebar, navigation/profile menu, keyboard-accessible dialogs, loaders, toasts, empty/error states, interactive Overview KPI cards and real-data charts, Smart Inbox filtering/search/sorting/details, Personalized Priority Center filters and ranking explanations, persisted Action Center creation/completion/reopening, Deadline Spotlight, editable profile interests that refresh rankings, analytics, and a real-data Personalization Spotlight. Every visible control must work. Do not delete data, regenerate keys, restore unsafe global legacy APIs, commit, push, or merge. Test builds and the browser journey, then report localhost, authentication, data preservation, functioning features, limitations, URL, and a 3–5 minute demo script.
+
+---
+## Prompt Entry
+Date: 2026-11-17
+Contributor: Codex
+Milestone: Stakeholder demo authentication and ranking quality
+Task: CampusSignal — Stakeholder Demo: Fix Authentication, Ranking and Dashboard Quality
+
+### Exact task prompt
+Fix the authenticated stakeholder demo in `C:\Users\Aniket raj\CampusSignal-phase4-frontend` at frontend `http://127.0.0.1:5174/` and backend `http://127.0.0.1:8092/`. Resolve unexpected 401 errors in Overview and email details by inspecting exact frontend requests, session/cookie handling, and owner-scoped `/api/v1/me/*` endpoints; do not weaken security or ownership. If the session expires, display a login-recovery experience. Inspect ranking interests, aliases, weights, eligibility, urgency, action signals, the 60+ high-priority threshold, and current profile matching; calibrate with representative synthetic tests, keep explanations friendly and evidence-based, and recalculate after profile changes. Inspect deadline parsing for placement-registration deadline wording; only display an unambiguous parsed date, otherwise show Deadline not identified. Preserve the existing premium UI, display the student name without unnecessarily appending the identifier, retain profile identifier access, clear resolved errors, keep KPI/chart interactions and accurate empty states. Verify real browser paths, focused backend tests, frontend tests, and production build. Preserve 10 imported emails, OAuth tokens, encryption keys, profile, actions, authorization, and unrelated worktrees; do not run sync, reset databases, commit, push, or merge.
+
+---
+## Prompt Entry
+Date: 2026-11-17
+Contributor: Codex
+Milestone: Stakeholder OAuth stability and authenticated dashboard recovery
+Task: URGENT — CampusSignal Keeps Failing During Google Login
+
+### Exact task prompt
+Inspect the actual listeners on ports 5174 and 8092 for CampusSignal, verify backend connectivity without Vite, determine the exact cause of the Vite 502 and investigate the recurring secure OAuth callback 403 (including state/session, cookies, PKCE, nonce, restarts, database locks, configuration, and logs). Use and improve the existing one-command startup script so it safely starts only missing services, proves `/api/v1/auth/session` is promptly 401 before login (or 200 when authenticated), captures useful startup/crash logs, and detects service failure. Preserve the multi-user database, existing student profiles, ten imported emails, actions, OAuth tokens, and encryption key; do not run Gmail Sync, reset data, weaken auth, commit, push, or merge. Confirm `/api/v1/auth/google/login` is a valid Google 302 rather than 502/403, perform a new login in one external Chrome profile, and verify authenticated Inbox, email details, and ranking. Report the concrete failure and changed endpoints rather than a generic status report.
+
+---
+## Prompt Entry
+Date: 2026-11-17
+Contributor: Codex
+Milestone: Stakeholder onboarding and dashboard restoration
+Task: CampusSignal — URGENT: Fix the broken profile onboarding and dashboard restoration before today's stakeholder demo
+
+### Exact task prompt
+In `C:\Users\Aniket raj\CampusSignal-phase4-frontend`, determine whether the newly signed-in IIT Madras Google identity is a legitimate different-user onboarding case or whether a profile for the same verified owner fails to restore; do not copy profiles or emails between owners. Safely verify the active database path, authenticated owner mapping, profile presence, and preserve the existing ten emails and action. Fix the React onboarding form so inputs, borders, backgrounds, placeholders, focus states, spacing, and selectable interest chips are visible and functional; use a clean preferred display name without an appended student identifier. Ensure saving every field persists the profile, refreshes ranking, and navigates to the dashboard, while existing users restore their own scoped Inbox, Priority Center, and Actions. Inspect browser/console errors and verify new-user onboarding and existing-user restoration in the full-size UI. Do not reset/delete data, expose private Gmail content or credentials, weaken owner isolation, sync Gmail, commit, push, or redesign unrelated screens.
+
+---
+## Prompt Entry
+Date: 2026-11-17
+Contributor: Codex
+Milestone: Stakeholder Gmail synchronization restoration
+Task: CampusSignal — URGENT: Restore Gmail Sync and Populate the Interactive Dashboard
+
+### Exact task prompt
+Diagnose the empty authenticated Inbox in `C:\Users\Aniket raj\CampusSignal-phase4-frontend` at `http://127.0.0.1:5174/` and restore a real, owner-scoped Gmail Sync control to Overview, Smart Inbox, and Gmail connection settings. Verify safe account/owner/database/connection state without exposing credentials or private email content; preserve the original ten emails under their rightful prior owner and never transfer records across users. Use only `POST /api/v1/me/gmail/sync`, never the operator-only legacy sync path. The UI must show connection/reconnect state, prevent parallel syncs, display retrieval counts, refresh Inbox/ranking/analytics afterward, and present useful errors. Do not run a real Gmail sync unless explicitly approved by the user. Verify builds, owner isolation, and live endpoint authentication; report what remains for user-authorized real sync. Do not reset data, keys, tokens, or databases; do not sync automatically, commit, push, or merge.
+
+---
+## Prompt Entry
+Date: 2026-11-17
+Contributor: Codex
+Milestone: Final stakeholder enhancement and preservation
+Task: CampusSignal — Final Product Enhancement, Feature Preservation & Stakeholder Demo Stabilization
+
+### Exact task prompt
+Enhance, rather than rebuild, the existing secure CampusSignal application in `C:\Users\Aniket raj\CampusSignal-phase4-frontend`. First preserve and audit the dirty worktree, live frontend/backend, Google OAuth, secure sessions, state/PKCE/nonce/CSRF protections, encrypted tokens, owner-scoped `/api/v1/me/*` data, onboarding, Gmail status and bounded student Gmail sync, profile/ranking, inbox, actions, deadlines, dialogs, theme, responsive UI, and current tests. Stabilize any recurring 401/403/502/session/startup issue without weakening security or touching data. Do not run a real Gmail sync without explicit approval. Then prioritize useful, fully interactive stakeholder features: Your Day at a Glance, a real-rule Personalization Simulator, an Opportunities Hub, clearer email briefs, and improved deadline tracking; defer optional feedback/save/snooze/weekly digest unless core functionality remains stable. Use only actual authenticated user records and supported classification/deadline evidence, retain strict multi-user isolation, and do not reset databases, keys, tokens, services, or unrelated worktrees. Do not commit, push, merge, or stop a healthy service without approval. Test and report exactly what works and what remains incomplete, including a safe one-command startup and stakeholder demo sequence.
+
+---
+## Prompt Entry
+Date: 2026-11-17
+Contributor: Codex
+Branch: demo/phase4-safe-collaboration
+Milestone: Phase 4 stakeholder presentation
+Task: Gmail-like email reader preserving CampusSignal intelligence
+
+### Prompt
+Build a Gmail-like, readable email-details experience in the existing CampusSignal React frontend while preserving secure owner-scoped email access, existing personalized intelligence, actions, OAuth, sync, profiles, and dashboard navigation. Inspect stored Gmail/MIME capabilities; sanitize any HTML if available, otherwise render stored plain text faithfully with safe links, wrapped text, clear metadata, and no fabricated formatting. Do not sync Gmail, reset data, change OAuth, regenerate keys, commit, push, or merge. Verify representative plain text, long links, quoted replies, promotional footers, unsafe HTML, and missing HTML behavior, then run relevant tests, production build, and browser checks.
+
+---
+
+## Prompt Entry
+Date: 2026-11-17
+Contributor: Codex
+Branch: demo/phase4-safe-collaboration
+Milestone: Phase 4 stakeholder presentation
+Task: Isolated realistic synthetic Demo Mode
+
+### Prompt
+Add three clearly fictional DEMO DATA emails for Summer Internship 2027 — Economics & Data Analytics (eligible MA Economics students graduating 2027; deadline November 22, 2026, 5 PM IST), Research Assistant Opening — Development Economics Project (deadline December 1, 2026, 11:59 PM IST), and Campus Art & Photography Evening — December 3, 2026 (no application required and no deadline). Use realistic fictional sender/recipient addresses, bodies, and dates; never send or sync them. Keep them in a completely isolated demo fixture or test account, not the authenticated Gmail inbox. Process the messages through actual classification, relevance ranking, deadline, and action-detection logic, without hardcoded scores; allow changing demo interests, creating/completing/reopening/resetting demo actions, and safely switching to/from live workspace. Preserve OAuth, Gmail Sync, real emails/profiles/actions/keys, authentication, and isolation; never reset databases, commit, push, or merge. Test all three in browser and report working features.
+
+---
+
+## Prompt Entry
+Date: 2026-11-17
+Contributor: Codex
+Branch: demo/phase4-safe-collaboration
+Milestone: Phase 4 stakeholder presentation
+Task: Fix Opportunities sidebar count with one shared selector
+
+### Prompt
+Fix the persistent Demo Mode mismatch in `C:\Users\Aniket raj\CampusSignal-phase4-frontend`: Smart Inbox badge is 3, Opportunities sidebar badge is 1, and Opportunities Hub says 3 shown. Identify the live Vite source/process and exact root cause, then create/reuse one shared eligibility selector for the Opportunities navigation badge, opportunity KPI, and Hub’s unfiltered total. The sidebar must reflect all qualifying messages before temporary filters; “N shown” must reflect search/type filters. Do not hardcode counts or alter classifications. Verify updates after Demo/live transitions, resets, refreshes, imports, and profile changes. Add frontend tests for three/two/nonqualifying messages, filtering, workspace switching, and no Inbox/Action count regression. Run tests/build and verify the actual authenticated browser if possible; otherwise state the exact required user-side check. Preserve OAuth, sessions, Sync, real data, demo fixtures, ranking, deadlines, actions, databases, keys, and worktrees; do not commit, push, merge, sync Gmail, or reset data.
+
+---
+
+## Prompt Entry
+Date: 2026-11-17
+Contributor: Codex
+Branch: demo/phase4-safe-collaboration
+Milestone: Phase 4 stakeholder presentation
+Task: Publish all latest verified changes to GitHub main
+
+### Prompt
+Publish the latest complete verified CampusSignal implementation from `C:\Users\Aniket raj\CampusSignal-phase4-frontend` to `https://github.com/cparv3716-creator/CampusSignal` branch `main`. Before Git operations, read AGENTS.md; inspect branches, worktrees, staged/uncommitted files, live Vite and backend source; compare with origin/main; check the earlier PR; fetch without overwriting work. Include only actually implemented authentication, secure sessions, Gmail read-only integration and Sync, per-user isolation, profile creation/editing, premium responsive UI, inbox, email reader, summaries/explanations, Priority Center, analytics, Daily Briefing, interest ranking, Opportunities Hub, deadline tracking, actions, and isolated three-email Demo Mode. Verify the opportunities-sidebar count fix, Demo counts, startup reliability, OAuth/error fixes, and ranking explanations only where present. Perform a mandatory staged and history security audit: never publish OAuth credentials, secrets, tokens, encryption keys, private env files, databases, real Gmail records/bodies, dependencies, build output, runtime logs, or unsafe private-machine data. Keep fixtures fictional and marked DEMO DATA. Run backend/frontend tests, production build, diff check, authenticated API ownership/isolation checks, Demo isolation checks, and startup-script audit without Syncing Gmail or modifying real data. Stage only reviewed safe source, tests, docs, and startup assets; re-audit; commit safely; preserve collaborator history; push a feature branch; create/update a PR to main; merge only if checks and protections pass, never force-push or bypass protections; then fetch and confirm remote main contains the final commit and no private data. Report the final hash, direct main URL, included features, verification, security-audit outcome, and any omissions or uncommitted changes.
+
+---
+---
 ---
 
 ## Prompt

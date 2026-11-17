@@ -2724,6 +2724,86 @@ Branch: main (interactive rebase)
 Commit: Pending
 PR: Pending
 PR created by: Pending
+## Work Entry
+Date: 2026-11-17
+Contributor: Pending
+Milestone: Phase 4 stakeholder presentation
+Stage: Service recovery and local startup
+Branch: demo/phase4-safe-collaboration
+
+### Status
+Completed
+
+### Work completed
+- Diagnosed both configured localhost services as unavailable.
+- Found the Phase 4 backend was blocked because an older CampusSignal Java process held the shared file-backed H2 database.
+- Stopped only that specific Java process; did not delete, copy, regenerate, or migrate any data, credentials, OAuth tokens, or encryption keys.
+- Started the existing Phase 4 backend JAR on `127.0.0.1:8092`.
+- Started the existing Vite frontend on `127.0.0.1:5174` with the backend proxy targeting `127.0.0.1:8092`.
+- Added a duplicate-safe one-command launcher at `scripts/start-campussignal.ps1`; it never runs Gmail sync.
+
+### Files changed
+- `scripts/start-campussignal.ps1`
+- `README.md`
+- `docs/AGENT_PROMPTS.md`
+- `docs/WORK_LOG.md`
+
+### Tests
+- Frontend `GET http://127.0.0.1:5174/` returned HTTP 200.
+- Backend `GET http://127.0.0.1:8092/` returned HTTP 404, confirming the server is responding.
+- Backend `GET /api/v1/auth/session` returned HTTP 401 while unauthenticated, confirming auth enforcement is active.
+- Ports 5174 and 8092 were confirmed listening.
+- `.\scripts\start-campussignal.ps1` completed successfully when both services were already running and did not start duplicates.
+- `npm run build` completed successfully for the frontend.
+- Google Login, authenticated Inbox, and personalized ranking require an authorized browser session and were not invoked automatically.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next stage
+Continue with the premium interactive UI only after stakeholder-safe authenticated verification.
+
+---
+## Work Entry
+Date: 2026-11-17
+Contributor: Codex
+Milestone: Stakeholder-ready interactive product
+Stage: Local recovery, secure interaction polish, and verification
+
+### Status
+Completed
+
+### Work completed
+- Verified the existing Vite frontend and Spring Boot backend, then safely rebuilt and restarted only the backend process bound to port 8092 to activate the tested changes.
+- Preserved the existing file-backed database, profiles, stored Gmail records, OAuth material, and encryption configuration; Gmail Sync was never invoked.
+- Added an idempotent one-command local launcher browser-open option while retaining its no-duplicate, loopback-only, no-sync behavior.
+- Rebuilt the React workspace around authenticated `/api/v1/me` endpoints: collapsible navigation, profile menu, theme toggle, keyboard-dismissable email dialog, notices, loading states, responsive layouts, usable empty/error states, clickable metrics, and data-driven interactive category/priority charts.
+- Added Smart Inbox search, category/urgency/priority filters, newest/relevance sorting, an inline result count, and a rich email detail panel.
+- Added Priority Center filtering driven by actual feed categories, explainable ranking cards, tracked-action controls, and a Personalization Spotlight that reports only actual rank movement after profile interests are saved.
+- Added deadline and action views backed by existing data, including linked-email opening, pending/completed filters, completion, and reopening completed actions.
+- Added the guarded completed-to-pending action transition and updated its API test. Owner-isolation behavior remains covered by the existing authenticated API test.
+
+### Files changed
+- `frontend/src/StudentApp.jsx`
+- `frontend/src/styles.css`
+- `src/main/java/edu/campussignal/entity/EmailAction.java`
+- `src/main/java/edu/campussignal/service/EmailActionService.java`
+- `src/test/java/edu/campussignal/EmailActionApiTest.java`
+- `scripts/start-campussignal.ps1`
+- `docs/AGENT_PROMPTS.md`
+- `docs/WORK_LOG.md`
+
+### Verification
+- `npm run build` in `frontend/` completed successfully.
+- `./mvnw.cmd -B -ntp '-Dtest=EmailActionApiTest,StudentIsolationApiTest' test` completed successfully: action API 10 tests and student-isolation API 2 tests, zero failures or errors.
+- `./mvnw.cmd -B -ntp -DskipTests package` completed successfully after releasing the running JAR file lock.
+- `curl.exe http://127.0.0.1:5174/` returned HTTP 200.
+- `curl.exe http://127.0.0.1:8092/api/v1/auth/session` returned HTTP 401 while unauthenticated, confirming protected session enforcement.
+- `curl.exe http://127.0.0.1:8092/api/v1/auth/google/login` returned HTTP 302, confirming the OAuth entry route responds.
+- `./scripts/start-campussignal.ps1 -NoBrowser` completed with both existing services and did not create duplicates.
+---
 
 ---
 
@@ -2780,6 +2860,37 @@ Commit: Pending
 PR: Pending
 PR created by: Pending
 
+---
+### Additional verification
+- `./mvnw.cmd -B -ntp "-Dtest=CategoryScoreServiceTest,ProfileActionFeedApiTest,StudentIsolationApiTest,EmailActionDeadlineAndExtractionTest,EmailActionApiTest" test` passed: 59 tests, zero failures or errors.
+- `npm run build` passed in `frontend/`.
+
+---
+## Work Entry
+Date: 2026-11-17
+Contributor: Codex
+Task: URGENT — CampusSignal Keeps Failing During Google Login
+
+### Result
+- Diagnosed the reported Vite 502 as a missing backend listener: Vite was listening on `127.0.0.1:5174`, while no process was listening on `127.0.0.1:8092`. Direct calls to the backend therefore failed before the request could reach OAuth code.
+- Ran the existing launcher without terminating the healthy Vite process. It started only the missing Spring Boot JAR; no database, OAuth token, encryption-key, profile, action, or Gmail-sync operation was performed.
+- Confirmed after recovery that `/api/v1/auth/session` returns the expected unauthenticated `401` promptly, and `/api/v1/auth/google/login` returns `302` both directly on the backend and through Vite.
+- Inspected the OAuth flow. State, PKCE verifier, and nonce are persisted in `GoogleAuthorizationAttempt` (state hashed and PKCE/nonce encrypted); a browser session cookie is created only after successful Google identity verification. The callback 403 is therefore not caused by an ordinary missing browser session cookie. The process startup and old logs contained no attributable current Java crash record, so the historical 403 cannot be assigned a specific rejected verification stage without reproducing a completed Google-account sign-in.
+- Improved `scripts/start-campussignal.ps1`: it now verifies the real backend auth response rather than only port listeners, waits for Vite's HTTP response, writes stdout/stderr for newly launched services to timestamped `target/logs` files, detects a backend that exits while booting, and provides an optional `-Watch` health monitor that exits with a clear recovery command if either service later fails. It never kills an occupied process.
+- The launcher retries a backend that exits during startup up to three times with a short delay. This handles a transient H2 file lock while a previous backend is releasing the database, without killing the process that currently owns the lock.
+- Opened the authenticated app through the standard launcher. A fully new Google sign-in cannot be completed by the agent because it requires the account holder to authenticate in Google; the app is ready at the local URL for that single-browser handoff.
+
+### Verification
+- `./scripts/start-campussignal.ps1 -NoBrowser` completed successfully with both existing services, including the expected auth-endpoint health check.
+- Direct unauthenticated `GET /api/v1/auth/session`: HTTP `401` in approximately 7 ms.
+- Direct and Vite-proxied `GET /api/v1/auth/google/login`: HTTP `302`.
+- Verified processes: `java.exe` owns port `8092`; `node.exe`/Vite owns port `5174`.
+- Recent Windows Error Reporting records contained no Java/CampusSignal crash event. Existing pre-change launcher output did not capture child-process logs, which is why it could not explain the earlier backend disappearance.
+
+### Files changed
+- `scripts/start-campussignal.ps1`
+- `docs/AGENT_PROMPTS.md`
+- `docs/WORK_LOG.md`
 ---
 
 ## Work Entry
@@ -2867,3 +2978,309 @@ Optional cleanup: `docker stop campussignal-final`.
 Commit: Pending
 PR: Pending
 PR created by: Pending
+
+---
+## Work Entry
+Date: 2026-11-17
+Contributor: Codex
+Milestone: Stakeholder demo authentication and ranking quality
+Stage: Session recovery, evidence-based ranking, and verification
+
+### Status
+Completed
+
+### Work completed
+- Confirmed the active student UI uses owner-scoped `/api/v1/me/*` routes for profile, email list, ranked feed, email content, actions, and mutations; no public fallback was added.
+- Added one central frontend 401 handler for post-login protected API calls. It removes stale dashboard state and displays a clear secure-session re-login screen instead of leaving a generic error in an email dialog.
+- Normalized interactive student interests to lowercase at the HTTP boundary and normalized existing stored interests during scoring. This restores the documented `Internships`/`Placements` to `CAREER` alias matching without changing user ownership or stored email data.
+- Calibrated career profile relevance against academic progression. A third-year, high-confidence explicit career match now scores 62 before urgency and action adjustments, crossing the documented 60 high-priority threshold with scoring evidence.
+- Replaced technical ranking text in the current email feed with concise explanations based on saved-interest match, classification confidence, parsed deadline, detected action, and tracked status.
+- Verified deadline extraction remains conservative: deadline wording without an unambiguous parseable date produces no deadline; the UI labels it as not identified rather than inventing a date.
+- Added regressions for title-cased interactive interests, career progression, and owner-scoped email content: owners can load content and other students receive the safe 404 response.
+- Rebuilt and safely restarted only the backend listening on port 8092. OAuth material, persistent database records, sessions, profile data, actions, and Gmail data were not reset or synchronized.
+
+### Files changed
+- `frontend/src/api.js`
+- `frontend/src/StudentApp.jsx`
+- `src/main/java/edu/campussignal/dto/StudentProfileRequest.java`
+- `src/main/java/edu/campussignal/service/CategoryScoreService.java`
+- `src/main/java/edu/campussignal/service/ProfileEmailFeedService.java`
+- `src/test/java/edu/campussignal/CategoryScoreServiceTest.java`
+- `src/test/java/edu/campussignal/ProfileActionFeedApiTest.java`
+- `src/test/java/edu/campussignal/StudentIsolationApiTest.java`
+- `docs/AGENT_PROMPTS.md`
+- `docs/WORK_LOG.md`
+
+### Verification
+- `./mvnw.cmd -B -ntp '-Dtest=CategoryScoreServiceTest,ProfileActionFeedApiTest,StudentIsolationApiTest,EmailActionDeadlineAndExtractionTest,EmailActionApiTest' test` passed: 59 tests, zero failures or errors.
+- `npm run build` passed in `frontend/`.
+- `node --test src/emailSummary.test.js src/gmailSync.test.js src/profileForm.test.js` passed: 17 tests, zero failures.
+- `./mvnw.cmd -B -ntp -DskipTests package` completed with BUILD SUCCESS after safely releasing the running JAR file lock.
+- Live checks: frontend HTTP 200; unauthenticated session HTTP 401; Google OAuth entry HTTP 302; idempotent launcher completed with both services already running.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+## Work Entry
+Date: 2026-11-17
+Contributor: Codex
+Task: CampusSignal — URGENT: Fix the broken profile onboarding and dashboard restoration before today's stakeholder demo
+
+### Result
+- Traced the broken onboarding presentation to CSS scope rather than missing form elements: the visual tokens (`--card`, `--soft`, `--line`, and text colors) were declared only under `.app-shell`, while first-time onboarding renders outside it. Inputs and chips therefore inherited invalid/unset visual values.
+- Promoted the shared light/dark visual tokens to `:root`, restoring visible onboarding cards, input backgrounds and borders, labels, placeholders, and theme colors without changing the dashboard design.
+- Strengthened interests as visibly interactive controls with borders, minimum targets, hover/selected emphasis, and keyboard focus states. Their existing `aria-pressed` and selection behavior remain intact.
+- Added preferred-name presentation cleanup for common trailing student-ID/roll/registration-ID forms. The existing profile fields and authenticated owner mapping are untouched.
+- Kept normal first-time onboarding when the authenticated owner has no profile. If the authenticated session asserts a saved profile but the owner-scoped profile request is unexpectedly missing, the client now shows a secure restoration error instead of silently presenting onboarding.
+- Confirmed the owner model: Google identity is stored by immutable Google subject in `user_accounts`; campus profile, imported emails, ranking, and actions are each owner-scoped by that internal user ID. A different IIT Madras Google account must therefore be onboarded separately and cannot see or inherit the personal-account records.
+- Verified the active backend uses the persistent H2 default path `C:\Users\Aniket raj\CampusSignal-phase4-frontend\data\campussignal.mv.db` from its project working directory; no database reset, profile/email/action transfer, Gmail sync, or credential operation was performed.
+
+### Verification
+- `npm run build` passed in `frontend/`.
+- `./mvnw.cmd -B -ntp "-Dtest=ProfileApiTest,ProfileActionFeedApiTest,StudentIsolationApiTest" test` passed. Reports: 40 tests, zero failures or errors.
+- The owner-isolation regression covers saving a private profile, restoring it through `/api/v1/me/profile`, owner-scoped email details/feed/actions, and denial of another student's records.
+- Launcher health check completed with Vite on `5174`, Spring Boot on `8092`, and the expected unauthenticated session response.
+
+### Files changed
+- `frontend/src/StudentApp.jsx`
+- `frontend/src/styles.css`
+- `docs/AGENT_PROMPTS.md`
+- `docs/WORK_LOG.md`
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+## Work Entry
+Date: 2026-11-17
+Contributor: Codex
+Task: CampusSignal — URGENT: Restore Gmail Sync and Populate the Interactive Dashboard
+
+### Result
+- Confirmed that the active interactive student UI had removed the visible sync control when it replaced the legacy UI. The legacy control targeted the protected operator-only endpoint; the correct student-owned endpoint already existed as `POST /api/v1/me/gmail/sync` in `StudentController`.
+- Restored functional Gmail controls to the Overview header, Smart Inbox header, and My Profile Gmail connection section. They use only the authenticated owner-scoped endpoint with the session CSRF token.
+- Added connection-aware behavior: connected accounts see Sync Gmail; disconnected/revoked accounts see Reconnect Gmail. Sync requires an in-browser confirmation, blocks duplicate requests while active, reports fetched/new/already-stored/failed counts, and reloads profile-scoped inbox, feed, actions, KPIs, and analytics after success.
+- Added a clear `409 Conflict` response when a concurrent sync is already running for the same account. No operator API was opened or reused.
+- Rebuilt the backend and safely restarted only the verified CampusSignal Java process on port 8092 through the launcher. The persistent H2 database, encryption key, OAuth credentials, profiles, actions, and stored emails were not modified. No real Gmail synchronization was performed.
+
+### Verification
+- `npm run build` passed in `frontend/`.
+- `./mvnw.cmd -B -ntp "-Dtest=StudentIsolationApiTest,ProfileActionFeedApiTest" test` passed: 12 tests, zero failures or errors.
+- `./mvnw.cmd -B -ntp -DskipTests package` completed with BUILD SUCCESS.
+- Live checks: frontend HTTP `200`; unauthenticated `/api/v1/auth/session` HTTP `401`; unauthenticated `POST /api/v1/me/gmail/sync` HTTP `401`. This confirms the new sync endpoint remains private and did not trigger a Gmail request.
+
+### Files changed
+- `frontend/src/StudentApp.jsx`
+- `frontend/src/styles.css`
+- `src/main/java/edu/campussignal/controller/ApiExceptionHandler.java`
+- `docs/AGENT_PROMPTS.md`
+- `docs/WORK_LOG.md`
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+## Work Entry
+Date: 2026-11-17
+Contributor: Codex
+Task: CampusSignal — Final Product Enhancement, Feature Preservation & Stakeholder Demo Stabilization
+
+### Baseline and preservation audit
+- Read the CampusSignal contributor instructions, recorded the active branch (`demo/phase4-safe-collaboration`), and preserved the pre-existing dirty worktree without reset, stash, clean, commit, or changes to unrelated worktrees.
+- Confirmed the live frontend is Vite on `127.0.0.1:5174` and the live backend is the expected CampusSignal Spring Boot JAR on `127.0.0.1:8092`.
+- Live baseline: frontend HTTP `200`; unauthenticated session HTTP `401` as designed; Google OAuth entry HTTP `302`. Existing startup health checks, session recovery UI, owner-scoped APIs, OAuth protections, profile/onboarding, ranking, actions, deadlines, theme, responsive UI, email details, and student Gmail Sync controls were retained.
+- The source checkpoint is the recorded dirty branch/worktree state and existing built JAR. No database, OAuth material, encryption key, imported email, profile, action, or Gmail record was changed during the audit.
+
+### Enhancements implemented
+- Added **Your Day at a Glance** as an interactive Daily Briefing. It derives high-priority emails, classified opportunities, verified deadlines, and pending actions solely from the signed-in student's loaded records. Every populated item navigates to its underlying email or action view; empty states explicitly avoid fabricating insights.
+- Added an **Opportunities Hub** with actual classified opportunity emails only, search, category filtering, relevance/recent sort, friendly evidence-based relevance wording, deadline presentation only when detected, email details, and supported action creation. No unsupported eligibility claims, links, or deadlines are invented.
+- Added a secure non-persisting `POST /api/v1/me/email-feed/preview` backend endpoint. It computes a proposed-interest feed through the existing ranking service using only the signed-in owner’s emails and requires the authenticated session CSRF token. It does not modify the profile, stored feed, or any email. The full in-screen simulator comparison UI is deferred until a user-approved backend restart can activate the endpoint.
+
+### Verification
+- `npm run build` passed in `frontend/`.
+- `node --test src/emailSummary.test.js src/gmailSync.test.js src/profileForm.test.js` passed: 17 tests, zero failures.
+- `./mvnw.cmd -B -ntp "-Dtest=StudentIsolationApiTest,ProfileActionFeedApiTest,CategoryScoreServiceTest" test` passed: 28 tests, zero failures or errors.
+- Added an owner-isolation regression proving ranking preview returns only the signed-in owner's email and leaves their saved profile interests unchanged.
+
+### Files changed
+- `frontend/src/StudentApp.jsx`
+- `frontend/src/styles.css`
+- `src/main/java/edu/campussignal/controller/StudentController.java`
+- `src/main/java/edu/campussignal/service/ProfileEmailFeedService.java`
+- `src/test/java/edu/campussignal/StudentIsolationApiTest.java`
+- `docs/AGENT_PROMPTS.md`
+- `docs/WORK_LOG.md`
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+## Work Entry
+Date: 2026-11-17
+Contributor: Codex
+Milestone: Phase 4 stakeholder presentation
+Stage: Gmail-like owner-scoped email reader
+Branch: demo/phase4-safe-collaboration
+
+### Status
+Completed
+
+### Work completed
+- Inspected the Gmail mapper and owner-scoped content API. The database intentionally stores sanitized plain text only: multipart emails prefer `text/plain`; HTML-only messages are reduced to safe text before persistence. Recipient, raw HTML/MIME, thread, and browser-safe Gmail-link metadata are not stored.
+- Reworked the existing email-details surface into a roomy, responsive reader with a wide desktop dialog, full-screen narrow-screen behavior, a single primary scroll area, clear subject/sender/date metadata, readable line-wrapped text, an expandable intelligence panel, and retained action controls.
+- Added safe plain-text URL linkification limited to `http` and `https` with `noopener noreferrer`; no email HTML is injected, remote images are never loaded, and no direct Gmail link is fabricated.
+- Added conservative, non-destructive collapse sections for reliably identified quoted replies and promotional footers. All original stored text remains available.
+- Improved the summary fallback to state when no supporting message content was stored instead of repeating only the subject.
+
+### Files changed
+- `frontend/src/StudentApp.jsx`
+- `frontend/src/styles.css`
+- `frontend/src/emailReader.js`
+- `frontend/src/emailReader.test.js`
+- `frontend/src/emailSummary.js`
+- `frontend/src/emailSummary.test.js`
+- `docs/AGENT_PROMPTS.md`
+- `docs/WORK_LOG.md`
+
+### Tests
+- `node --test src/emailReader.test.js src/emailSummary.test.js src/gmailSync.test.js src/profileForm.test.js` passed: 22 tests, zero failures.
+- `npm run build` passed in `frontend/`.
+- `./mvnw.cmd -B -ntp "-Dtest=GmailMessageMapperTest" test` passed: 6 tests, zero failures or errors.
+- Live non-authenticated checks: frontend `/` returned HTTP 200; backend `/api/v1/auth/session` returned expected HTTP 401. No Gmail Sync or authenticated data mutation was performed.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next stage
+Open an authenticated stored email in the stakeholder browser profile for final visual confirmation. Raw HTML rendering would require a separately approved, schema-preserving ingestion/storage enhancement and must not be substituted with generated content.
+
+---
+
+## Work Entry
+Date: 2026-11-17
+Contributor: Codex
+Milestone: Phase 4 stakeholder presentation
+Stage: Isolated synthetic Demo Mode
+Branch: demo/phase4-safe-collaboration
+
+### Status
+Completed
+
+### Work completed
+- Added a per-authenticated-owner, in-memory Demo Mode workspace with three visibly `[DEMO DATA]` fixture messages. It has no repository writes, no Gmail adapter calls, and no access to live email/profile/action records.
+- Evaluated fixture messages on every workspace response using the production classifier, category scoring, deterministic deadline parser, action extractor, and urgency presentation. Scores are calculated rather than stored.
+- Added owner-authenticated and CSRF-protected demo endpoints for workspace load, demo profile save, content, action candidates, create/complete/reopen demo actions, and reset. Reset only replaces that user’s in-memory fixture state.
+- Added a safe live/Demo Mode switch, persistent Demo Mode warning, reset control, hidden Gmail Sync controls in demo, and routing of profile/action/email details to the isolated API.
+- Corrected the deterministic action extractor so explicit “No application or registration is required” event invitations are not falsely offered as actions.
+- Repackaged and safely restarted only the verified CampusSignal backend listener to activate the new endpoints. The frontend listener was retained.
+
+### Files changed
+- `frontend/src/StudentApp.jsx`
+- `frontend/src/styles.css`
+- `src/main/java/edu/campussignal/controller/DemoWorkspaceController.java`
+- `src/main/java/edu/campussignal/dto/DemoWorkspaceResponse.java`
+- `src/main/java/edu/campussignal/service/DemoWorkspaceService.java`
+- `src/main/java/edu/campussignal/service/DeterministicEmailActionExtractor.java`
+- `src/test/java/edu/campussignal/StudentIsolationApiTest.java`
+- `docs/AGENT_PROMPTS.md`
+- `docs/WORK_LOG.md`
+
+### Tests
+- `./mvnw.cmd -B -ntp "-Dtest=StudentIsolationApiTest,EmailActionDeadlineAndExtractionTest" test` passed: 26 tests, zero failures or errors.
+- `npm run build` passed in `frontend/`.
+- `node --test src/emailReader.test.js src/emailSummary.test.js src/gmailSync.test.js src/profileForm.test.js` passed: 22 tests, zero failures.
+- `./mvnw.cmd -B -ntp -DskipTests package` passed after the verified backend listener was safely stopped; backend restarted through `scripts/start-campussignal.ps1 -NoBrowser`.
+- Live checks after restart: frontend HTTP 200; protected backend session HTTP 401; ports 5174 and 8092 listening. No real Gmail Sync ran.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next stage
+Use the signed-in stakeholder browser profile to press Try Demo Mode and exercise the fixture flow; authenticated browser credentials are not available to this coding environment.
+
+---
+
+## Work Entry
+Date: 2026-11-17
+Contributor: Codex
+Milestone: Phase 4 stakeholder presentation
+Stage: Shared Opportunities selector
+Branch: demo/phase4-safe-collaboration
+
+### Status
+Completed
+
+### Work completed
+- Traced Vite listener PID 20500 to `C:\Users\Aniket raj\CampusSignal-phase4-frontend\frontend`. It serves the active `StudentApp.jsx` source through Vite.
+- Corrected the mismatch caused by two incompatible selectors: the Hub used supported category membership while the navigation badge/KPI used a category-name regex. The regex matched only `ACADEMIC_RESEARCH` in the demo feed, yielding 1 instead of the Hub’s 3.
+- Added `frontend/src/opportunities.js` as the single source of truth. The sidebar badge, opportunity KPI, Opportunities Hub, Daily Briefing, and Inbox opportunity filter use its category selector. Hub search/type filters run only after baseline qualification.
+- Added focused tests for three and two qualifying entries, nonqualifying entries, temporary filters, and active-feed changes representing Demo/live switching.
+
+### Files changed
+- `frontend/src/StudentApp.jsx`
+- `frontend/src/opportunities.js`
+- `frontend/src/opportunities.test.js`
+- `docs/AGENT_PROMPTS.md`
+- `docs/WORK_LOG.md`
+
+### Tests
+- `node --test src/opportunities.test.js src/emailReader.test.js src/emailSummary.test.js src/gmailSync.test.js src/profileForm.test.js` passed: 27 tests, zero failures.
+- `npm run build` passed in `frontend/`.
+- Live Vite verification: `GET /src/StudentApp.jsx` returned HTTP 200 and contained `selectOpportunities` and `filterOpportunities`; listener remains port 5174, PID 20500.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+### Next stage
+In the authenticated browser, enable Demo Mode and verify navigation badge 3 / Hub 3 shown with no filters; searching “research” should show 1 while the sidebar remains 3, then clear search to restore 3 shown.
+
+---
+
+## Work Entry
+Date: 2026-11-17
+Contributor: Codex
+Milestone: Phase 4 stakeholder presentation
+Stage: Release verification and GitHub main publication
+Branch: demo/phase4-safe-collaboration
+
+### Status
+Verification completed; safe publication and main-branch integration in progress.
+
+### Work completed
+- Confirmed the active local Vite source is this worktree and reviewed the current branch, other CampusSignal worktrees, and remote history.
+- Fetched `origin` without overwriting local work and found newer collaborator commits on `origin/main`; they will be preserved through normal Git integration.
+- Audited the reviewed change set for credential, token, encryption-key, database, real-email, dependency, build-output, and runtime-log publication risks before staging.
+- Corrected `SyntheticDemoFixtureServiceTest` to use the existing isolated in-memory `test` profile. The prior full-suite failure was a test-configuration issue: it attempted to lock the live file-backed H2 database used by the running backend. No application data or runtime service was changed.
+- Verified the complete Maven suite, frontend unit suite, frontend production build, and whitespace check before release staging.
+
+### Verification
+- `./mvnw.cmd -B -ntp test`: 244 tests, zero failures, zero errors.
+- `node --test src/opportunities.test.js src/emailReader.test.js src/emailSummary.test.js src/gmailSync.test.js src/profileForm.test.js`: 27 tests, zero failures.
+- `npm run build`: passed in `frontend/`.
+- `git diff --check`: passed (line-ending notices only).
+
+### Git
+Commit: Pending safe staging and final audit
+PR: Pending
+PR created by: Pending
+
+### Next stage
+Stage reviewed files only, re-run the staged security audit, commit, integrate current `origin/main` without overwriting collaborator work, then create and merge a protected PR if GitHub checks permit it.
+
+---
+---

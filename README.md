@@ -80,6 +80,19 @@ JaCoCo generates coverage output under `target/site/jacoco/` during the test lif
 
 The default address is `http://127.0.0.1:8080`. The application uses file-backed H2 at `./data/campussignal` by default; tests use isolated in-memory H2 databases.
 
+### One-command local startup
+
+For the Phase 4 presentation configuration, start both services without changing
+credentials, the encryption key, profiles, or the file-backed database:
+
+```powershell
+.\scripts\start-campussignal.ps1
+```
+
+The script starts only missing services, binds them to loopback, points Vite at
+the backend on port `8092`, and never starts Gmail synchronization. It opens
+the frontend at `http://127.0.0.1:5174/`.
+
 ## Frontend demo
 
 The optional React + Vite demo client lives in [`frontend/`](frontend/README.md). Start the Spring Boot API first, then run `npm install` and `npm run dev` from that directory. Its Vite development proxy sends `/api` requests to the local backend, so the browser client does not hardcode a backend URL.

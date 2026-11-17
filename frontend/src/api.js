@@ -18,6 +18,9 @@ export async function request(path, options = {}) {
   if (!response.ok) {
     const error = new Error(body?.detail || `Request failed with status ${response.status}.`)
     error.status = response.status
+    if (response.status === 401 && path !== '/api/v1/auth/session') {
+      window.dispatchEvent(new CustomEvent('campussignal:session-expired'))
+    }
     throw error
   }
 

@@ -48,8 +48,14 @@ public class CategoryScoreService {
     private boolean matchesInterest(ProfileResponse profile, String category) {
         Set<String> acceptedInterests = CATEGORY_INTEREST_ALIASES.get(category);
         return acceptedInterests == null
-                ? profile.interests().contains(category)
-                : profile.interests().stream().anyMatch(acceptedInterests::contains);
+                ? profile.interests().stream().map(this::normalizedInterest).anyMatch(category::equals)
+                : profile.interests().stream().map(this::normalizedInterest)
+                        .anyMatch(acceptedInterests::contains);
+    }
+
+    /* Existing profiles predate StudentProfileRequest canonicalization. */
+    private String normalizedInterest(String value) {
+        return value == null ? "" : value.strip().toLowerCase(Locale.ROOT);
     }
 
     private double profileRelevance(ProfileResponse profile, String category) {
@@ -57,6 +63,7 @@ public class CategoryScoreService {
         String programme = profile.programme().toLowerCase(Locale.ROOT);
         String department = profile.department().toLowerCase(Locale.ROOT);
         return switch (category) {
+            case "career" -> progression;
             case "internships" -> progression;
             case "research" -> programme.contains("phd") || programme.contains("master")
                     || programme.contains("mtech") || programme.contains("msc") ? 1.0 : 0.6 * progression;

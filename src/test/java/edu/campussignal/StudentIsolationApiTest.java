@@ -30,6 +30,7 @@ import edu.campussignal.service.ProfileService;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.hamcrest.Matchers.containsString;
@@ -76,6 +77,8 @@ class StudentIsolationApiTest {
         mvc.perform(get("/api/v1/me/emails").cookie(cookie(sessionB)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].subject").value("Research workshop for chess club"));
+        mvc.perform(get("/api/v1/me/emails/{id}/content", emailA.getId()).cookie(cookie(sessionB)))
+                .andExpect(status().isNotFound());
         mvc.perform(get("/api/v1/me/email-feed").cookie(cookie(sessionB)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].emailSubject").value("Research workshop for chess club"));
@@ -104,13 +107,71 @@ class StudentIsolationApiTest {
         mvc.perform(get("/api/v1/me/profile").cookie(cookie(sessionA)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.email").value("a@example.test"))
                 .andExpect(jsonPath("$.interests[1]").value("hackathons"));
+        mvc.perform(get("/api/v1/me/emails/{id}/content", emailA.getId()).cookie(cookie(sessionA)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(emailA.getId()))
+                .andExpect(jsonPath("$.body").value("Synthetic private email body"));
         mvc.perform(get("/api/v1/me/email-feed").cookie(cookie(sessionA)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].emailSubject").value("Internship application deadline"))
                 .andExpect(jsonPath("$[0].rankingExplanation")
-                        .value(containsString("Career or placement announcement.")))
+                        .value(containsString("Matches your saved career interests")))
                 .andExpect(jsonPath("$[0].rankingExplanation")
                         .value(not(containsString(" relevance +"))));
+    }
+
+    @Test
+    void studentCanPreviewAPrivateRankingWithoutChangingTheirSavedProfile() throws Exception {
+        String proposed = """
+                {"name":"Student B","college":"Campus University","department":"Computing",
+                "programme":"BTech","year":3,"graduationYear":2028,"semester":5,
+                "interests":["research opportunities"]}
+                """;
+        mvc.perform(post("/api/v1/me/email-feed/preview").cookie(cookie(sessionB))
+                        .header("X-CampusSignal-CSRF", sessionB.csrfToken())
+                        .contentType(MediaType.APPLICATION_JSON).content(proposed))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].emailSubject").value("Research workshop for chess club"));
+        mvc.perform(get("/api/v1/me/profile").cookie(cookie(sessionB)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.interests[1]").value("chess"));
+        mvc.perform(post("/api/v1/me/email-feed/preview").cookie(cookie(sessionA))
+                        .header("X-CampusSignal-CSRF", sessionA.csrfToken())
+                        .contentType(MediaType.APPLICATION_JSON).content(proposed))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].emailSubject").value("Internship application deadline"));
+    }
+
+    @Test
+    void demoWorkspaceIsAuthenticatedNonPersistentAndDoesNotAlterLiveRecords() throws Exception {
+        mvc.perform(get("/api/v1/me/demo").cookie(cookie(sessionA)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.demoMode").value(true))
+                .andExpect(jsonPath("$.emails.length()").value(3))
+                .andExpect(jsonPath("$.emails[0].subject").value(containsString("DEMO DATA")));
+        mvc.perform(get("/api/v1/me/demo/emails/900003/action-candidate").cookie(cookie(sessionA)))
+                .andExpect(status().isNoContent());
+        mvc.perform(post("/api/v1/me/demo/emails/900001/actions").cookie(cookie(sessionA))
+                        .header("X-CampusSignal-CSRF", sessionA.csrfToken()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.actions.length()").value(1));
+        mvc.perform(patch("/api/v1/me/demo/actions/900001/status").cookie(cookie(sessionA))
+                        .header("X-CampusSignal-CSRF", sessionA.csrfToken())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"COMPLETED\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.actions[0].effectiveStatus").value("COMPLETED"));
+        mvc.perform(put("/api/v1/me/demo/profile").cookie(cookie(sessionA))
+                        .header("X-CampusSignal-CSRF", sessionA.csrfToken())
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"name":"Demo Student","college":"Fictional University","department":"Economics",
+                                "programme":"MA Economics","year":2,"graduationYear":2027,"semester":3,
+                                "interests":["research"]}
+                                """))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.profile.interests[0]").value("research"));
+        mvc.perform(get("/api/v1/me/profile").cookie(cookie(sessionA)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.interests[0]").value("internships"));
+        mvc.perform(get("/api/v1/me/emails").cookie(cookie(sessionA)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+        mvc.perform(post("/api/v1/me/demo/reset").cookie(cookie(sessionA))
+                        .header("X-CampusSignal-CSRF", sessionA.csrfToken()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.actions.length()").value(0));
     }
 
     private StudentProfileRequest profile(String name, String... interests) {
