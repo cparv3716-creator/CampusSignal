@@ -13,6 +13,7 @@ import edu.campussignal.dto.EmailActionStatus;
 import edu.campussignal.dto.EmailCategory;
 import edu.campussignal.dto.ProfileResponse;
 import edu.campussignal.dto.RankedEmailFeedItemResponse;
+import edu.campussignal.dto.StudentProfileRequest;
 import edu.campussignal.entity.EmailAction;
 import edu.campussignal.repository.EmailActionRepository;
 import edu.campussignal.repository.EmailRepository;
@@ -56,6 +57,12 @@ public class ProfileEmailFeedService {
         ProfileResponse profile = ProfileResponse.from(profilesEntity(user));
         return feed(profile, emails.findAllByUserIdOrderByReceivedAtDescIdDesc(user.getId()));
     }
+    /** Calculates a signed-in student's proposed ranking without changing their profile or stored feed. */
+    public List<RankedEmailFeedItemResponse> previewForUser(UserAccount user, StudentProfileRequest proposed) {
+        ProfileResponse profile = new ProfileResponse(null, user.getGoogleEmail(), proposed.department(),
+                proposed.programme(), proposed.year(), proposed.semester(), proposed.interests(), null);
+        return feed(profile, emails.findAllByUserIdOrderByReceivedAtDescIdDesc(user.getId()));
+    }
     private edu.campussignal.entity.UserProfile profilesEntity(UserAccount user) {
         return profiles.repositoryForOwner(user);
     }
@@ -69,8 +76,8 @@ public class ProfileEmailFeedService {
             var candidate = actionExtractor.extract(email.getSubject(), email.getBody()).orElse(null);
             var presentation = deadlinePresentation.present(
                     EmailActionStatus.PENDING, candidate == null ? null : candidate.deadline());
-            int relevanceScore = (int) Math.round(categoryScores
-                    .score(profile, categoryKey(email.getCategory())).score()
+            var categoryScore = categoryScores.score(profile, categoryKey(email.getCategory()));
+            int relevanceScore = (int) Math.round(categoryScore.score()
                     * email.getClassificationConfidence().persistedValue() * 100);
             int rankingScore = relevanceScore
                     + urgencyWeight(presentation.urgency())
@@ -83,7 +90,8 @@ public class ProfileEmailFeedService {
                     email.getClassificationConfidence(),
                     relevanceScore,
                     rankingScore,
-                    explanation(email.getCategory(), relevanceScore, presentation.urgency(), candidate != null, tracked),
+                    explanation(email.getCategory(), categoryScore.components().explicitPreference(),
+                            email.getClassificationConfidence(), presentation.urgency(), candidate != null, tracked),
                     candidate == null ? null : candidate.deadline(),
                     candidate == null ? null : candidate.actionType(),
                     candidate == null ? null : candidate.actionUrl(),
@@ -116,20 +124,34 @@ public class ProfileEmailFeedService {
 
     private static String explanation(
             EmailCategory category,
-            int relevanceScore,
+            double explicitInterestMatch,
+            edu.campussignal.dto.ClassificationConfidence confidence,
             ActionUrgency urgency,
             boolean actionIndicated,
             EmailAction tracked) {
-        StringBuilder explanation = new StringBuilder(categoryDescription(category));
-        if (relevanceScore >= 30) {
-            explanation.append(" It matches your saved academic profile or interests.");
+        StringBuilder explanation = new StringBuilder();
+        if (explicitInterestMatch == 1.0) {
+            explanation.append("Matches your saved ").append(interestDescription(category)).append(".");
         } else {
-            explanation.append(" It is shown from your inbox but is a lower profile match.");
+            explanation.append(categoryDescription(category)).append(" It does not currently match a saved interest.");
+        }
+        if (confidence == edu.campussignal.dto.ClassificationConfidence.LOW) {
+            explanation.append(" Category evidence is limited, so it is ranked conservatively.");
         }
         explanation.append(' ').append(deadlineDescription(urgency));
-        if (actionIndicated) explanation.append(" A potential action was detected in the message.");
+        if (actionIndicated) explanation.append(" An available action was detected.");
         if (tracked != null) explanation.append(" You are already tracking an action for it.");
         return explanation.toString();
+    }
+
+    private static String interestDescription(EmailCategory category) {
+        return switch (category) {
+            case CAREER -> "career interests, including internships or placements";
+            case ACADEMIC_RESEARCH -> "academic or research interests";
+            case EVENT_ACTIVITY, CALL_FOR_PARTICIPATION -> "campus activities interests";
+            case RECOGNITION_ACHIEVEMENT -> "achievement or scholarship interests";
+            case ADMINISTRATIVE_NOTICE, WELLBEING_SUPPORT, GENERAL_OTHER -> "student interests";
+        };
     }
 
     private static String categoryDescription(EmailCategory category) {

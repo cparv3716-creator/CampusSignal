@@ -23,6 +23,9 @@ public class DeterministicEmailActionExtractor {
                     + "(?:submitted|completed|received)\\b"
                     + "|\\bsuccessfully\\s+(?:submitted|registered|applied)\\b"
                     + "|\\bno further action is required\\b");
+    private static final Pattern NO_ACTION_REQUIRED = Pattern.compile(
+            "\\bno\\s+(?:application|registration)(?:\\s+or\\s+(?:application|registration))?"
+                    + "\\s+(?:is\\s+)?required\\b|\\bno\\s+action\\s+(?:is\\s+)?required\\b");
     private static final Pattern SUBMIT = Pattern.compile(
             "\\b(?:submit|submission|upload)\\b");
     private static final Pattern REGISTER = Pattern.compile(
@@ -74,7 +77,8 @@ public class DeterministicEmailActionExtractor {
                 Objects.requireNonNullElse(subject, ""),
                 Objects.requireNonNullElse(body, ""));
         String normalized = text.toLowerCase(Locale.ROOT);
-        if (COMPLETED_ANNOUNCEMENT.matcher(normalized).find()) {
+        if (COMPLETED_ANNOUNCEMENT.matcher(normalized).find()
+                || NO_ACTION_REQUIRED.matcher(normalized).find()) {
             return Optional.empty();
         }
         EmailActionType actionType = actionType(normalized);

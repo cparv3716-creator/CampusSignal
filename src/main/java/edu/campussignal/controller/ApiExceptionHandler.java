@@ -16,6 +16,7 @@ import edu.campussignal.service.ProfileNotFoundException;
 import edu.campussignal.security.AuthenticationRequiredException;
 import edu.campussignal.security.CsrfRejectedException;
 import edu.campussignal.service.GoogleWebOAuthService;
+import edu.campussignal.service.StudentGmailSyncService;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -43,6 +44,12 @@ public class ApiExceptionHandler {
     public ProblemDetail invalidActionTransition() {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
                 "Action status transition is not allowed");
+    }
+
+    @ExceptionHandler(StudentGmailSyncService.SyncAlreadyRunningException.class)
+    public ProblemDetail syncAlreadyRunning() {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
+                "A Gmail sync is already running for this account. Please wait for it to finish.");
     }
 
     @ExceptionHandler(IncompleteEmailClassificationException.class)

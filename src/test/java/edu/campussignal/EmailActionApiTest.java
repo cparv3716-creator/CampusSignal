@@ -173,7 +173,7 @@ class EmailActionApiTest {
     }
 
     @Test
-    void completedActionCannotReturnToPending() throws Exception {
+    void completedActionCanReturnToPending() throws Exception {
         long actionId = createAction(email("action-no-reopen", "Submit form").getId(), "SUBMIT");
         when(actionClock.instant()).thenReturn(COMPLETED_AT);
         updateStatus(actionId, "COMPLETED");
@@ -181,11 +181,12 @@ class EmailActionApiTest {
         mvc.perform(patch("/api/v1/actions/{actionId}/status", actionId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"PENDING\"}"))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("Action status transition is not allowed"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.completedAt").isEmpty());
 
         assertThat(actions.findById(actionId).orElseThrow().getStatus())
-                .isEqualTo(EmailActionStatus.COMPLETED);
+                .isEqualTo(EmailActionStatus.PENDING);
     }
 
     @Test

@@ -93,7 +93,11 @@ public class EmailActionService {
 
     private void transition(EmailAction action, EmailActionStatus requested) {
         EmailActionStatus current = action.getStatus();
-        if (current == requested && current != EmailActionStatus.PENDING) {
+        if (current == requested) {
+            return;
+        }
+        if (current == EmailActionStatus.COMPLETED && requested == EmailActionStatus.PENDING) {
+            action.reopen();
             return;
         }
         if (current != EmailActionStatus.PENDING) {

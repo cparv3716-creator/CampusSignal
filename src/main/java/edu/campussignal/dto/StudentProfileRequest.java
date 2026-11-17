@@ -1,5 +1,6 @@
 package edu.campussignal.dto;
 import java.util.List;
+import java.util.Locale;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -11,5 +12,12 @@ public record StudentProfileRequest(
         @NotBlank @Size(max = 255) String department, @NotBlank @Size(max = 255) String programme,
         @NotNull @Min(1) Integer year, @NotNull @Min(2000) @Max(2200) Integer graduationYear,
         @Min(1) Integer semester, @NotEmpty List<@NotBlank @Size(max = 255) String> interests) {
-    public StudentProfileRequest { interests = interests == null ? null : interests.stream().map(String::strip).filter(value -> !value.isBlank()).distinct().toList(); }
+    public StudentProfileRequest {
+        interests = interests == null ? null : interests.stream()
+                .map(String::strip)
+                .filter(value -> !value.isBlank())
+                .map(value -> value.toLowerCase(Locale.ROOT))
+                .distinct()
+                .toList();
+    }
 }

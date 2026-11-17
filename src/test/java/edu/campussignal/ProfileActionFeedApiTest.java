@@ -85,7 +85,7 @@ class ProfileActionFeedApiTest {
 
         assertThat(ids(feed)).containsExactly(strong.getId(), weak.getId());
         assertThat(feed.get(0).get("relevance").asText()).isEqualTo("HIGH");
-        assertThat(feed.get(0).get("relevanceScore").asInt()).isEqualTo(59);
+        assertThat(feed.get(0).get("relevanceScore").asInt()).isEqualTo(62);
         assertThat(feed.get(0).get("rankingExplanation").asText())
                 .isEqualTo("HIGH relevance + NO_DEADLINE");
         assertThat(feed.get(1).get("relevance").asText()).isEqualTo("LOW");
@@ -105,9 +105,9 @@ class ProfileActionFeedApiTest {
 
         assertThat(ids(feed)).containsExactly(high.getId(), low.getId());
         assertThat(feed.get(0).get("classificationConfidence").asText()).isEqualTo("HIGH");
-        assertThat(feed.get(0).get("relevanceScore").asInt()).isEqualTo(59);
+        assertThat(feed.get(0).get("relevanceScore").asInt()).isEqualTo(62);
         assertThat(feed.get(1).get("classificationConfidence").asText()).isEqualTo("LOW");
-        assertThat(feed.get(1).get("relevanceScore").asInt()).isEqualTo(33);
+        assertThat(feed.get(1).get("relevanceScore").asInt()).isEqualTo(34);
     }
 
     @Test
@@ -124,7 +124,7 @@ class ProfileActionFeedApiTest {
 
         assertThat(ids(feed)).containsExactly(
                 dueToday.getId(), dueSoon.getId(), upcoming.getId(), noDeadline.getId());
-        assertThat(rankingScores(feed)).containsExactly(89, 79, 69, 59);
+        assertThat(rankingScores(feed)).containsExactly(92, 82, 72, 62);
         assertThat(feed.get(0).get("daysRemaining").asInt()).isZero();
         assertThat(feed.get(1).get("daysRemaining").asInt()).isEqualTo(2);
         assertThat(feed.get(2).get("daysRemaining").asInt()).isEqualTo(4);
@@ -142,7 +142,7 @@ class ProfileActionFeedApiTest {
         JsonNode feed = feed(profileId);
 
         assertThat(ids(feed)).containsExactly(strongNoDeadline.getId(), weakDueToday.getId());
-        assertThat(rankingScores(feed)).containsExactly(59, 53);
+        assertThat(rankingScores(feed)).containsExactly(62, 53);
     }
 
     @Test

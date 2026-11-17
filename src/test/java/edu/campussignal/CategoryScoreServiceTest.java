@@ -106,6 +106,25 @@ class CategoryScoreServiceTest {
     }
 
     @Test
+    void titleCasedInteractiveProfileInterestMatchesCareerAlias() {
+        var student = profile(3, "BTech", "Computer Science", List.of("Internships"));
+
+        var result = scores.score(student, "career");
+
+        assertThat(result.components().explicitPreference()).isOne();
+        assertThat(result.score()).isCloseTo(0.6875, within(1e-10));
+    }
+
+    @Test
+    void careerProfileRelevanceUsesAcademicProgression() {
+        var junior = profile(1, "BTech", "Computer Science", List.of("music"));
+        var senior = profile(4, "BTech", "Computer Science", List.of("music"));
+
+        assertThat(scores.score(senior, "career").score())
+                .isGreaterThan(scores.score(junior, "career").score());
+    }
+
+    @Test
     void unsupportedCategoryDoesNotMatchUnrelatedInterestAlias() {
         var user = profile(2, "BTech", "Computer Science", List.of("scholarships"));
 

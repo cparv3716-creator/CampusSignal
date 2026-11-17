@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import edu.campussignal.repository.EmailActionRepository;
 import edu.campussignal.repository.EmailRepository;
 import edu.campussignal.repository.UserProfileRepository;
@@ -14,6 +15,7 @@ import edu.campussignal.service.ProfileActionFeedService;
 import edu.campussignal.demo.SyntheticDemoFixtureService;
 
 @SpringBootTest
+@ActiveProfiles("test")
 class SyntheticDemoFixtureServiceTest {
     @Autowired SyntheticDemoFixtureService fixture;
     @Autowired EmailRepository emails;
