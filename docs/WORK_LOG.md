@@ -3259,7 +3259,7 @@ Stage: Release verification and GitHub main publication
 Branch: demo/phase4-safe-collaboration
 
 ### Status
-Verification completed; safe publication and main-branch integration in progress.
+Completed. Safe publication and main-branch integration finished through GitHub PR #5.
 
 ### Work completed
 - Confirmed the active local Vite source is this worktree and reviewed the current branch, other CampusSignal worktrees, and remote history.
@@ -3275,12 +3275,13 @@ Verification completed; safe publication and main-branch integration in progress
 - `git diff --check`: passed (line-ending notices only).
 
 ### Git
-Commit: Pending safe staging and final audit
-PR: Pending
-PR created by: Pending
+Release commit: `40e7d7c4b880742ae57cdeea91f72540fcc1b41b`
+Integration commit: `96e9198`
+PR: #5, merged
+Main merge commit: `9f1fd72467bcdc4f786d991df0f297e86277922e`
 
 ### Next stage
-Stage reviewed files only, re-run the staged security audit, commit, integrate current `origin/main` without overwriting collaborator work, then create and merge a protected PR if GitHub checks permit it.
+Publication is complete. The release commit is reachable from `origin/main`; no local source, test, database, OAuth, or runtime-data changes remain uncommitted.
 
 ---
 ---
