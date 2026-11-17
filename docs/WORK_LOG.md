@@ -160,8 +160,6 @@ Commit: Pending
 PR: Pending
 PR created by: Pending
 
----
-
 ## 2026-11-05 — Multi-user Google OAuth and onboarding (in progress)
 
 ### Implementation
@@ -2805,6 +2803,57 @@ Completed
 - `curl.exe http://127.0.0.1:8092/api/v1/auth/session` returned HTTP 401 while unauthenticated, confirming protected session enforcement.
 - `curl.exe http://127.0.0.1:8092/api/v1/auth/google/login` returned HTTP 302, confirming the OAuth entry route responds.
 - `./scripts/start-campussignal.ps1 -NoBrowser` completed with both existing services and did not create duplicates.
+---
+
+---
+
+## Work Entry
+Date: 2026-11-07
+Contributor: Codex
+Milestone: CS5013 final self-contained Docker demonstration image
+Branch: main
+
+### Summary
+- Added a dedicated `demo` Spring profile backed by an isolated in-memory H2 database.
+- Enabled the existing idempotent fictional fixture only in that profile and disabled Gmail sync and local AI.
+- Added a root multi-stage `Dockerfile` that runs as the unprivileged `campussignal` user, activates the `demo` profile, and exposes port 80.
+- Preserved the default local H2 configuration, the PostgreSQL `prod` profile, and `Dockerfile.vercel` without modification.
+- Added an integration test for the demo profile and documented the three-command TA evaluation flow.
+- Built `campussignal:final` and exported `campussignal-final.tar`.
+
+### Files changed
+- `Dockerfile`
+- `README.md`
+- `src/main/resources/application-demo.properties`
+- `src/test/java/edu/campussignal/FinalDemoProfileTest.java`
+- `docs/AGENT_PROMPTS.md`
+- `docs/WORK_LOG.md`
+- Generated submission artifact: `campussignal-final.tar`
+
+### Verification
+- `.\mvnw.cmd -B -ntp -Ddebug=false "-Dtest=FinalDemoProfileTest,ProductionDemoStartupTest" test` — BUILD SUCCESS; 2 tests, 0 failures, 0 errors, 0 skipped.
+- `.\mvnw.cmd -B -ntp -Ddebug=false clean test` — BUILD SUCCESS; 239 tests, 0 failures, 0 errors, 0 skipped.
+- `docker build --tag campussignal:final .` — succeeded.
+- `docker save --output .\campussignal-final.tar campussignal:final` — succeeded; archive size 203,253,248 bytes; SHA-256 `651119726183FE58590E8664759CF4E204DA22B9DFB5B2C4EEDDA0DCB75ACF36`.
+- Removed the original local image tag, then ran `docker load --input .\campussignal-final.tar` — succeeded and restored `campussignal:final` as image `sha256:0af2533c273a854acb18d632347a1055d9168e2e71720b7ea25103576e8681fc`.
+- `docker run --detach --rm --name campussignal-final --publish 8080:80 campussignal:final` — fresh container started as UID/GID 999 (`campussignal`) with port `8080 -> 80`.
+- `Invoke-RestMethod http://localhost:8080/api/v1/emails` — returned HTTP 200 with exactly two fictional messages from `events.team@demo.example.com` and `career.office@demo.example.com`.
+- Verification container was stopped after the check and removed by Docker's `--rm` behavior.
+
+### Safety
+- No PostgreSQL server, Gmail OAuth credential, token, external service, secret, or volume is needed.
+- The final image contains only the application JAR under `/app`; no credential or token directory was copied.
+- No tests or existing functionality were removed, weakened, disabled, or skipped to obtain the passing full-suite result.
+- No commit, push, PR, deployment, or merge was performed.
+
+### TA commands
+```powershell
+docker load --input .\campussignal-final.tar
+docker run --detach --rm --name campussignal-final --publish 8080:80 campussignal:final
+Invoke-RestMethod http://localhost:8080/api/v1/emails
+```
+
+Cleanup after evaluation: `docker stop campussignal-final`.
 
 ### Git
 Commit: Pending
@@ -2842,6 +2891,88 @@ Task: URGENT — CampusSignal Keeps Failing During Google Login
 - `scripts/start-campussignal.ps1`
 - `docs/AGENT_PROMPTS.md`
 - `docs/WORK_LOG.md`
+---
+
+## Work Entry
+Date: 2026-11-07
+Contributor: Codex
+Milestone: Integrate authenticated multi-user platform with the final Docker demo
+Branch: integration/final-submission (merge pending)
+
+### Root cause
+- The merged `ApiAuthenticationFilter` intentionally returns HTTP 404 for historical `/api/v1/...` routes other than `/api/v1/auth/*` and owner-scoped `/api/v1/me/*` routes when authentication is required.
+- `FinalDemoProfileTest` still called the historical unauthenticated `GET /api/v1/emails` route, so the filter hid it before Spring MVC handler mapping. The controller still exists for legacy/test modes; the 404 was a deliberate multi-user security boundary, not a missing bean.
+- The original synthetic initializer creates legacy unowned records, which cannot be returned from the new owner-scoped student API.
+
+### Integration changes
+- Added `AuthenticatedDemoDataInitializer`, enabled only by the `demo` profile and the existing demo-data opt-in. It idempotently creates one fictional user, an owner-linked profile, two owner-linked fictional emails, and their actions through the normal services.
+- Added `DemoAuthenticationController` at `POST /api/v1/auth/demo`. It exists only in the `demo` profile, creates a normal persisted session for the fictional demo user, and issues the same HttpOnly session cookie shape used by Google login without contacting Google.
+- Kept `campussignal.auth.required=true` explicitly in `application-demo.properties`; production and real-account authentication were not disabled or bypassed.
+- Updated `FinalDemoProfileTest` to verify unauthenticated owner-scoped access is HTTP 401, the historical public route remains HTTP 404, demo login returns a fictional disconnected account, and the authenticated `/api/v1/me/emails` response contains exactly two `@demo.example.com` senders.
+- Updated the README evaluator flow to use the demo login and owner-scoped endpoint in four commands.
+- Preserved teammate frontend, Google authentication, Gmail, CSRF, and user-isolation code without modification.
+
+### Verification
+- `.\mvnw.cmd -B -ntp -Ddebug=false "-Dtest=FinalDemoProfileTest" test` — BUILD SUCCESS; 1 test, 0 failures, 0 errors, 0 skipped.
+- `.\mvnw.cmd -B -ntp -Ddebug=false clean test` — BUILD SUCCESS; 241 tests, 0 failures, 0 errors, 0 skipped; JaCoCo analyzed 122 classes.
+- `docker build --tag campussignal:integration-check .` — succeeded using the existing root `Dockerfile`; the verified `campussignal:final` tag was not overwritten.
+- A fresh `campussignal:integration-check` container ran as UID/GID 999 (`campussignal`), activated only the `demo` profile, and published host port 8080 to container port 80.
+- Live checks returned HTTP 401 for unauthenticated `/api/v1/me/emails`, HTTP 404 for historical `/api/v1/emails`, and two fictional owner-scoped emails after `POST /api/v1/auth/demo` established a session.
+- The integration-check container was stopped and removed after verification.
+- `campussignal-final.tar` was not modified. Its SHA-256 remained `651119726183FE58590E8664759CF4E204DA22B9DFB5B2C4EEDDA0DCB75ACF36`, preserving the prior 239-test standalone submission as a recoverable fallback.
+
+### Archive status
+- The existing archive remains valid only for the pre-merge standalone fallback.
+- The archive must be rebuilt later, after approval, to include this 241-test authenticated integration and the new four-command evaluator flow. It was intentionally not rebuilt during this task.
+
+### Git
+Commit: Pending
+PR: Pending
+PR created by: Pending
+
+---
+
+## Work Entry
+Date: 2026-11-07
+Contributor: Codex
+Milestone: Export and verify the final integrated CS5013 Docker archive
+Branch: integration/final-submission (merge pending)
+
+### Summary
+- Preserved the pending merge and all staged integration changes.
+- Built the current 241-test integration from the existing root self-contained `Dockerfile` and tagged it `campussignal:final`.
+- Exported the image to the new `campussignal-final-integrated.tar` without overwriting or deleting `campussignal-final.tar`.
+- Updated the README archive filename so its four evaluator commands refer to the integrated submission archive.
+
+### Archive evidence
+- `campussignal-final-integrated.tar`: 203,296,768 bytes.
+- SHA-256: `60412C45F4718A0082989171B565920618890FCC7EBA2C12D1A1AFEC298290C1`.
+- Previous `campussignal-final.tar`: still 203,253,248 bytes with unchanged SHA-256 `651119726183FE58590E8664759CF4E204DA22B9DFB5B2C4EEDDA0DCB75ACF36`.
+
+### Archive verification
+- Removed the locally built `campussignal:final` tag and successfully restored it using `docker load --input .\campussignal-final-integrated.tar`.
+- Started a fresh disposable container from the reloaded image.
+- The image ran as UID/GID 999 (`campussignal`), activated only the `demo` profile, exposed container port 80, and published it on host port 8080.
+- The container had no mounts, contained only `/app/campussignal.jar` under `/app`, and had no `/app/credentials.json` or `/app/.gmail-tokens`.
+- Runtime logs confirmed `jdbc:h2:mem:campussignal-demo`; no PostgreSQL or other external database was used.
+- `POST /api/v1/auth/demo` returned HTTP 200 and established an HttpOnly session without Gmail OAuth.
+- Authenticated `GET /api/v1/me/emails` returned exactly two fictional emails, both from `@demo.example.com` senders.
+- Unauthenticated `GET /api/v1/me/emails` returned HTTP 401, and historical unauthenticated `GET /api/v1/emails` returned HTTP 404.
+- The disposable verification container was stopped and removed after the successful checks.
+
+### Exact tested TA commands
+```powershell
+docker load --input .\campussignal-final-integrated.tar
+docker run --detach --rm --name campussignal-final --publish 8080:80 campussignal:final
+Invoke-WebRequest -Method Post http://localhost:8080/api/v1/auth/demo -SessionVariable demoSession
+Invoke-RestMethod http://localhost:8080/api/v1/me/emails -WebSession $demoSession
+```
+
+Optional cleanup: `docker stop campussignal-final`.
+
+### Result
+- No unresolved verification issues.
+- No commit, push, Git tag, public deployment, or merge completion was performed.
 
 ### Git
 Commit: Pending
@@ -3151,4 +3282,5 @@ PR created by: Pending
 ### Next stage
 Stage reviewed files only, re-run the staged security audit, commit, integrate current `origin/main` without overwriting collaborator work, then create and merge a protected PR if GitHub checks permit it.
 
+---
 ---

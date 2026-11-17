@@ -6005,3 +6005,90 @@ Task: Publish all latest verified changes to GitHub main
 Publish the latest complete verified CampusSignal implementation from `C:\Users\Aniket raj\CampusSignal-phase4-frontend` to `https://github.com/cparv3716-creator/CampusSignal` branch `main`. Before Git operations, read AGENTS.md; inspect branches, worktrees, staged/uncommitted files, live Vite and backend source; compare with origin/main; check the earlier PR; fetch without overwriting work. Include only actually implemented authentication, secure sessions, Gmail read-only integration and Sync, per-user isolation, profile creation/editing, premium responsive UI, inbox, email reader, summaries/explanations, Priority Center, analytics, Daily Briefing, interest ranking, Opportunities Hub, deadline tracking, actions, and isolated three-email Demo Mode. Verify the opportunities-sidebar count fix, Demo counts, startup reliability, OAuth/error fixes, and ranking explanations only where present. Perform a mandatory staged and history security audit: never publish OAuth credentials, secrets, tokens, encryption keys, private env files, databases, real Gmail records/bodies, dependencies, build output, runtime logs, or unsafe private-machine data. Keep fixtures fictional and marked DEMO DATA. Run backend/frontend tests, production build, diff check, authenticated API ownership/isolation checks, Demo isolation checks, and startup-script audit without Syncing Gmail or modifying real data. Stage only reviewed safe source, tests, docs, and startup assets; re-audit; commit safely; preserve collaborator history; push a feature branch; create/update a PR to main; merge only if checks and protections pass, never force-push or bypass protections; then fetch and confirm remote main contains the final commit and no private data. Report the final hash, direct main URL, included features, verification, security-audit outcome, and any omissions or uncommitted changes.
 
 ---
+---
+---
+
+## Prompt
+
+Prepare the final CampusSignal Docker image for CS5013 submission.
+
+The evaluator must be able to run the application with a maximum of 3–4 commands and without configuring PostgreSQL, Gmail OAuth, external services or secrets.
+
+Create a safe, self-contained demonstration mode using H2 and fictional sample data, preserving the existing production and local configurations.
+
+Requirements:
+
+- Preserve all existing tests and functionality.
+- Do not include real Gmail credentials, tokens or private emails.
+- Ensure the container listens on port 80.
+- Build a final Docker image tagged `campussignal:final`.
+- Export it as `campussignal-final.tar`.
+- Verify the image by loading it and starting a fresh container.
+- Confirm `http://localhost:8080/api/v1/emails` returns fictional demonstration emails.
+- Run the full Maven test suite.
+- Provide the exact verified commands for the TA.
+- Update the required project logs.
+
+Do not commit, push or deploy without approval.
+
+---
+
+## Prompt
+
+We have merged `origin/main` into `integration/final-submission` using `git merge --no-commit --no-ff`.
+
+The merge had no conflicts, but the combined Maven test suite reports:
+
+- 241 tests run
+- 1 failure
+- 0 errors
+- Failing test: `FinalDemoProfileTest.demoProfileIsSelfContainedAndListsOnlyFictionalEmails`
+- Location: `FinalDemoProfileTest.java:37`
+- Expected HTTP 200 from `GET /api/v1/emails`, but received HTTP 404.
+- MockMvc reports no mapped handler.
+
+**Your task:**
+
+1. Read `AGENTS.md` and inspect the current pending merge.
+2. Investigate the failed test, API mappings, authentication configuration, and changes introduced by the teammate's multi-user platform.
+3. Determine why the test receives 404.
+4. Preserve the intended test coverage: the final self-contained Docker demonstration must work without Gmail credentials or external services, and only fictional data must be accessible.
+5. Fix the integration correctly. If the old endpoint has been replaced, update the test to use the appropriate API and authentication setup. Do not weaken the test or bypass security.
+6. Preserve all teammate frontend, authentication, Gmail, and user-isolation functionality.
+7. Run the failing test independently, then the full Maven suite.
+8. Verify that the existing standalone Docker configuration remains compatible.
+9. Report the exact changes, test results, and whether the Docker archive needs rebuilding.
+
+**Important restrictions:**
+
+- Do not abort the merge, reset branches, or discard changes.
+- Do not disable security for production or real user accounts.
+- Do not commit, push, create a Git tag, or deploy.
+- Do not modify or overwrite the previously verified `campussignal-final.tar` yet.
+- Preserve the existing 239-test standalone submission as a recoverable fallback.
+
+Stop after reporting the verified results.
+
+---
+
+## Prompt
+
+CampusSignal integration has passed all 241 tests. We now need the final self-contained Docker submission archive.
+
+The repository is currently on `integration/final-submission` with a pending, uncommitted merge.
+
+Please:
+
+1. Read `AGENTS.md` and inspect the current Git status.
+2. Preserve all existing staged and unstaged integration changes.
+3. Build a Docker image from the current verified integration using the existing self-contained demonstration Dockerfile.
+4. Tag the new image `campussignal:final`.
+5. Export it as `campussignal-final-integrated.tar` without overwriting the existing `campussignal-final.tar`.
+6. Verify the exported archive by loading it and running a fresh container.
+7. Verify the four-command evaluator flow documented in the README, including demo login and authenticated retrieval of exactly two fictional emails.
+8. Confirm that unauthenticated access remains restricted and no Gmail credentials or external database are needed.
+9. Report the new archive size, SHA-256 checksum, exact tested TA commands and any unresolved issues.
+
+Do not commit, push, create a Git tag, deploy publicly, or delete the previous Docker archive.
+
+Do not overwrite the old tested archive. Stop and report any failed verification.

@@ -1,0 +1,27 @@
+FROM maven:3.9.16-eclipse-temurin-25 AS build
+
+WORKDIR /build
+
+COPY pom.xml ./
+COPY src src
+COPY config config
+
+RUN mvn -B -ntp -DskipTests package
+
+FROM eclipse-temurin:25-jre-noble
+
+WORKDIR /app
+
+RUN groupadd --system campussignal \
+    && useradd --system --gid campussignal --home-dir /app campussignal
+
+COPY --from=build --chown=campussignal:campussignal \
+    /build/target/campussignal-0.1.0-SNAPSHOT.jar /app/campussignal.jar
+
+ENV SPRING_PROFILES_ACTIVE=demo
+
+EXPOSE 80
+
+USER campussignal
+
+ENTRYPOINT ["java", "-jar", "/app/campussignal.jar"]

@@ -198,6 +198,28 @@ data ownership. A public deployment is therefore suitable only for fictional dem
 behind an external access-control layer. Do not connect real Gmail data to a publicly
 reachable instance until application-level authentication and authorization are implemented.
 
+## CS5013 final demonstration image
+
+The root `Dockerfile` is the self-contained submission image. It activates only the
+`demo` profile, listens on container port 80, uses an in-memory H2 database, and seeds
+two fictional `demo.example.com` emails. Gmail sync and local AI are disabled, and the
+image needs no database, OAuth configuration, external service, secret, or volume.
+`Dockerfile.vercel` and the existing local and `prod` profiles are unchanged.
+
+The submission image keeps multi-user authentication and owner isolation enabled. Its
+demo-only login creates a session for the fictional demo student without contacting
+Google. The image can be evaluated from PowerShell in four commands:
+
+```powershell
+docker load --input .\campussignal-final-integrated.tar
+docker run --detach --rm --name campussignal-final --publish 8080:80 campussignal:final
+Invoke-WebRequest -Method Post http://localhost:8080/api/v1/auth/demo -SessionVariable demoSession
+Invoke-RestMethod http://localhost:8080/api/v1/me/emails -WebSession $demoSession
+```
+
+After evaluation, remove the disposable container with
+`docker stop campussignal-final`.
+
 ## Gmail authorization and synchronization
 
 Enable the Gmail API, create a desktop OAuth client, and keep the downloaded credentials outside source control. For realtime synchronization, also enable Pub/Sub, configure a topic and pull subscription, and grant the Gmail push service account permission to publish to the topic.
